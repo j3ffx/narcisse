@@ -1,0 +1,51 @@
+name: Release
+
+# Pushing a version tag (v0.1.0) publishes its GitHub release, with the notes of that version
+# from CHANGELOG.md and the built package. See CLAUDE.md → Releases.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: GitHub release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      # uv picks Python from .python-version.
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+
+      - name: Check that the tag matches pyproject.toml
+        run: |
+          version="$(uv version --short)"
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match pyproject.toml ($version)"
+            exit 1
+          fi
+
+      - name: Build the package (UI included)
+        run: npm ci && npm run build && uv build
+
+      - name: Notes from CHANGELOG.md
+        run: node scripts/release-notes.mjs "$GITHUB_REF_NAME" > release-notes.md
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "$GITHUB_REF_NAME" dist/*
+          --title "Narcisse ${GITHUB_REF_NAME#v}"
+          --notes-file release-notes.md
+          --verify-tag

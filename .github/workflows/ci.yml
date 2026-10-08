@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Privacy, types, lint, tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Full history: the privacy check inspects every commit identity, gitleaks every commit.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      # uv picks Python from .python-version.
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+
+      - run: npm ci
+      - run: uv sync --locked
+
+      - name: Privacy check (no private file or identity tracked)
+        run: npm run check:private
+
+      - name: Commit messages (Conventional Commits)
+        run: >-
+          node scripts/check-commits.mjs
+          ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}..${{ github.sha }}
+
+      - name: Secrets (gitleaks, whole history)
+        run: |
+          version=8.30.1
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_linux_x64.tar.gz" \
+            | tar -xz gitleaks
+          ./gitleaks git --redact --no-banner .
+
+      - run: npm run format:check
+      - run: uv run ruff check
+      - run: uv run ruff format --check
+      - run: uv run mypy
+      - run: uv run pytest -q
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+        working-directory: web
+
+      - name: End-to-end tests (built UI served by narcisse serve --demo)
+        run: npm run e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: web/playwright-report/
+          retention-days: 7
+
+      - name: Build the package (UI included)
+        run: uv build
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: narcisse-dist
+          path: dist/
+          retention-days: 14
