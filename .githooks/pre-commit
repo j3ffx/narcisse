@@ -5,4 +5,4 @@ if ! command -v gitleaks >/dev/null 2>&1; then
   echo "    Windows: scoop install gitleaks   macOS: brew install gitleaks   Linux: see github.com/gitleaks/gitleaks"
   exit 1
 fi
-exec gitleaks git --staged --redact --no-banner
+exec gitleaks git --staged --redact --no-banner --log-level warn
