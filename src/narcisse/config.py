@@ -6,7 +6,10 @@ from pathlib import Path
 
 from platformdirs import user_data_path
 
-DEFAULT_PORT = 8765
+# Port 80 keeps the port out of the address (http://narcisse.localhost); when it is taken or
+# not allowed (Linux without root), `narcisse serve` falls back to 8765.
+DEFAULT_PORT = 80
+FALLBACK_PORT = 8765
 # Only loopback: the server never listens on a network interface.
 HOST = "127.0.0.1"
 # The address shown to the user: browsers send any *.localhost name to the machine itself,
@@ -33,17 +36,20 @@ class Settings:
     def log_dir(self) -> Path:
         return self.data_dir / "logs"
 
+    def _origin(self, host: str) -> str:
+        return f"http://{host}" if self.port == 80 else f"http://{host}:{self.port}"
+
     @property
     def url(self) -> str:
-        return f"http://{PUBLIC_HOST}:{self.port}"
+        return self._origin(PUBLIC_HOST)
 
     @property
     def own_origins(self) -> frozenset[str]:
         return frozenset(
             {
                 self.url,
-                f"http://{HOST}:{self.port}",
-                f"http://localhost:{self.port}",
+                self._origin(HOST),
+                self._origin("localhost"),
                 *self.extra_origins,
             }
         )

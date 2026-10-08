@@ -23,5 +23,5 @@ Pas encore de version : la 0.1.0 sortira quand Narcisse sera utilisable sur de v
   sites ouverts dans le navigateur.
 - Mode démo, avec un module qui invente des résultats sans rien interroger, et ses données rangées à
   part.
-- Narcisse s’ouvre sur http://narcisse.localhost:8765, une adresse que les navigateurs envoient
+- Narcisse s’ouvre sur http://narcisse.localhost, sans numéro de port, une adresse que les navigateurs envoient
   d’eux-mêmes vers ta machine.

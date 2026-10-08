@@ -1,9 +1,11 @@
 """Command line: `narcisse serve` starts everything; more commands come with scans from scripts."""
 
+import os
 import socket
 import threading
 import time
 import webbrowser
+from dataclasses import replace
 from typing import Annotated
 
 import httpx
@@ -12,7 +14,7 @@ import uvicorn
 
 from narcisse import __version__
 from narcisse.app import create_app
-from narcisse.config import HOST, Settings
+from narcisse.config import DEFAULT_PORT, FALLBACK_PORT, HOST, Settings
 from narcisse.logs import setup_logging
 from narcisse.server import Server
 
@@ -23,9 +25,13 @@ app = typer.Typer(
 )
 
 
-def _port_in_use(port: int) -> bool:
+def _can_listen(port: int) -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
-        return probe.connect_ex((HOST, port)) == 0
+        try:
+            probe.bind((HOST, port))
+        except OSError:
+            return False
+        return True
 
 
 def _narcisse_answers(url: str) -> bool:
@@ -44,7 +50,9 @@ def _open_when_ready(server: Server, url: str) -> None:
 
 @app.command()
 def serve(
-    port: Annotated[int | None, typer.Option(help="Port local (8765 par défaut).")] = None,
+    port: Annotated[
+        int | None, typer.Option(help="Port local (80 si possible, sinon 8765).")
+    ] = None,
     demo: Annotated[
         bool, typer.Option("--demo", help="Mode démo : propose le module factice.")
     ] = False,
@@ -55,15 +63,21 @@ def serve(
 ) -> None:
     """Lance Narcisse sur 127.0.0.1 et ouvre l’interface dans le navigateur."""
     settings = Settings.from_env(port=port, demo=demo or None)
-    url = settings.url
-    if _port_in_use(settings.port):
-        if _narcisse_answers(f"http://{HOST}:{settings.port}"):
-            typer.echo(f"Narcisse tourne déjà sur {url}.")
+    explicit = port is not None or "NARCISSE_PORT" in os.environ
+    for candidate in [settings.port] if explicit else [DEFAULT_PORT, FALLBACK_PORT]:
+        candidate_settings = replace(settings, port=candidate)
+        if _narcisse_answers(f"http://{HOST}:{candidate}"):
+            typer.echo(f"Narcisse tourne déjà sur {candidate_settings.url}.")
             if browser:
-                webbrowser.open(url)
+                webbrowser.open(candidate_settings.url)
             return
+        if _can_listen(candidate):
+            settings = candidate_settings
+            break
+    else:
         typer.echo(f"Le port {settings.port} est déjà pris. Essaie : narcisse serve --port 8766")
         raise typer.Exit(1)
+    url = settings.url
     setup_logging(settings, verbose=verbose)
     config = uvicorn.Config(
         create_app(settings),

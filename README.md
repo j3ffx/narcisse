@@ -62,7 +62,7 @@ npm run build
 uv run narcisse serve --demo
 ```
 
-Le navigateur s’ouvre sur <http://narcisse.localhost:8765> : une adresse que les navigateurs
+Le navigateur s’ouvre sur <http://narcisse.localhost> : une adresse que les navigateurs
 envoient d’eux-mêmes vers ta machine, sans réglage. En mode démo, crée un profil fictif (« Jeanne Exemple »), ajoute un
 nom, un pseudo, un email et un domaine, puis lance un scan avec le module de démonstration : les
 résultats arrivent au fil de l’eau pendant une trentaine de secondes, avec une limite de débit, une

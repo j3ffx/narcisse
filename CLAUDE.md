@@ -80,8 +80,9 @@ fixtures, docs, commit messages or commit metadata.
 - **User data lives outside the repository**, in the OS data directory (`platformdirs`), overridable
   with `NARCISSE_DATA_DIR`. Demo mode and `npm run dev` use their own directories (`narcisse-demo`,
   `narcisse-dev`), so fictitious profiles never mix with real ones.
-- **The address is `http://narcisse.localhost:<port>`**: browsers resolve `*.localhost` to the
-  machine themselves (RFC 6761), so it needs no setup and no DNS can point it elsewhere.
+- **The address is `http://narcisse.localhost`**: browsers resolve `*.localhost` to the machine
+  themselves (RFC 6761), so it needs no setup and no DNS can point it elsewhere. `narcisse serve`
+  takes port 80 when it can (no port in the address), else 8765.
 - **Licences are checked** before reusing a tool or dataset. The project is GPL-3.0-only, compatible
   with what it draws on so far: Maigret, Sherlock, JustDeleteMe (MIT), holehe, PhoneInfoga (GPL-3.0),
   WhatsMyName's data (CC BY-SA 4.0, credited).

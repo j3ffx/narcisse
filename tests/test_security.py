@@ -24,7 +24,10 @@ async def test_loopback_hosts_are_served(api: Api, host: str) -> None:
     assert response.status_code == 200
 
 
-@pytest.mark.parametrize("origin", ["https://evil.example", "null", "http://127.0.0.1:9999"])
+@pytest.mark.parametrize(
+    "origin",
+    ["https://evil.example", "null", "http://127.0.0.1:9999", "http://narcisse.localhost:8765"],
+)
 async def test_a_foreign_origin_cannot_change_anything(api: Api, origin: str) -> None:
     response = await api.client.post(
         "/api/profiles", json={"name": "Jeanne Exemple"}, headers={"Origin": origin}
@@ -34,7 +37,7 @@ async def test_a_foreign_origin_cannot_change_anything(api: Api, origin: str) ->
     assert (await api.json("GET", "/profiles")) == []
 
 
-@pytest.mark.parametrize("origin", ["http://narcisse.localhost:8765", "http://127.0.0.1:8765"])
+@pytest.mark.parametrize("origin", ["http://narcisse.localhost", "http://127.0.0.1"])
 async def test_the_own_origin_and_scripts_without_origin_can(api: Api, origin: str) -> None:
     await api.json("POST", "/profiles", {"name": "Sans origine"}, status=201)
     response = await api.client.post(
