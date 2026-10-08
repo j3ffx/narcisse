@@ -74,6 +74,20 @@ navigateur ou arrêter Narcisse : tout reprend où ça en était.
 - `narcisse paths` : où sont rangées tes données (le dossier de données de ton système, jamais le
   dossier du projet) et le journal.
 
+### Une adresse encore plus courte (facultatif)
+
+Pour ouvrir Narcisse sur <http://narcisse/>, ajoute une ligne au fichier `hosts` de ton système :
+`127.0.0.1 narcisse`. Sous Windows, dans un PowerShell lancé en administrateur :
+
+```powershell
+Add-Content -Path "$env:SystemRoot\System32\drivers\etc\hosts" -Value "127.0.0.1 narcisse"
+```
+
+Sous macOS ou Linux : `echo "127.0.0.1 narcisse" | sudo tee -a /etc/hosts`. Relance ensuite
+Narcisse : il voit la ligne et répond aussi à cette adresse. Sans elle, il refuse ce nom, qui
+pourrait sinon être détourné par un réseau mal intentionné. Dans le navigateur, tape `narcisse/` (avec
+la barre oblique) la première fois ; ensuite, il la propose de lui-même.
+
 ## Ajouter une source
 
 Une source est un fichier dans `src/narcisse/modules/`, avec une classe qui décrit ce qu’elle fait

@@ -82,7 +82,9 @@ fixtures, docs, commit messages or commit metadata.
   `narcisse-dev`), so fictitious profiles never mix with real ones.
 - **The address is `http://narcisse.localhost`**: browsers resolve `*.localhost` to the machine
   themselves (RFC 6761), so it needs no setup and no DNS can point it elsewhere. `narcisse serve`
-  takes port 80 when it can (no port in the address), else 8765.
+  takes port 80 when it can (no port in the address), else 8765. `http://narcisse/` is served
+  only when the system's hosts file maps `narcisse` to loopback (checked on start-up): otherwise
+  DNS could hand that name to someone else, then rebind it to this machine.
 - **Licences are checked** before reusing a tool or dataset. The project is GPL-3.0-only, compatible
   with what it draws on so far: Maigret, Sherlock, JustDeleteMe (MIT), holehe, PhoneInfoga (GPL-3.0),
   WhatsMyName's data (CC BY-SA 4.0, credited).

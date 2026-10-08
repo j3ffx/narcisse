@@ -91,7 +91,11 @@ def create_app(
         docs_url="/api/docs",
         redoc_url=None,
     )
-    app.add_middleware(LocalOnlyMiddleware, allowed_origins=settings.own_origins)
+    app.add_middleware(
+        LocalOnlyMiddleware,
+        allowed_origins=settings.own_origins,
+        allowed_hosts=settings.hostnames,
+    )
 
     @app.exception_handler(AppError)
     async def app_error(_: Request, exc: AppError) -> JSONResponse:

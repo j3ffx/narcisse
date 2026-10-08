@@ -25,9 +25,17 @@ def hostname_of(host_header: str) -> str:
 
 
 class LocalOnlyMiddleware:
-    def __init__(self, app: ASGIApp, *, allowed_origins: frozenset[str]) -> None:
+    def __init__(
+        self,
+        app: ASGIApp,
+        *,
+        allowed_origins: frozenset[str],
+        allowed_hosts: frozenset[str] = frozenset(),
+    ) -> None:
         self.app = app
         self.allowed_origins = allowed_origins
+        # Extra names the user mapped to loopback themselves (hosts file).
+        self.allowed_hosts = allowed_hosts
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
@@ -54,7 +62,11 @@ class LocalOnlyMiddleware:
 
     def _problem(self, method: str, headers: Headers) -> tuple[int, str] | None:
         hostname = hostname_of(headers.get("host", "")).lower()
-        if hostname not in LOOPBACK_HOSTS and not hostname.endswith(".localhost"):
+        if (
+            hostname not in LOOPBACK_HOSTS
+            and hostname not in self.allowed_hosts
+            and not hostname.endswith(".localhost")
+        ):
             return 403, "forbidden_host"
         if method in SAFE_METHODS:
             return None

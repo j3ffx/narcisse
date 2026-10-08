@@ -2,7 +2,8 @@
 
 import pytest
 
-from tests.conftest import Api
+from narcisse.config import maps_to_loopback
+from tests.conftest import Api, ApiFactory
 
 
 @pytest.mark.parametrize(
@@ -74,3 +75,20 @@ async def test_errors_are_codes_without_traces(api: Api) -> None:
     assert response.json() == {"code": "invalid_request", "params": {"fields": ["name"]}}
     response = await api.client.get("/api/nope")
     assert response.json()["code"] == "not_found"
+
+
+def test_the_short_name_counts_only_when_the_hosts_file_maps_it() -> None:
+    assert maps_to_loopback("127.0.0.1 narcisse\n", "narcisse")
+    assert maps_to_loopback("# local\n::1   other narcisse  # Narcisse\n", "narcisse")
+    assert not maps_to_loopback("# 127.0.0.1 narcisse\n", "narcisse")
+    assert not maps_to_loopback("192.168.1.10 narcisse\n", "narcisse")
+    assert not maps_to_loopback("127.0.0.1 narcisse.example.org\n", "narcisse")
+
+
+@pytest.mark.parametrize(("short_host", "status"), [(False, 403), (True, 200)])
+async def test_the_short_name_is_served_only_once_mapped(
+    make_api: ApiFactory, short_host: bool, status: int
+) -> None:
+    api = await make_api(None, short_host=short_host)
+    response = await api.client.get("/api/profiles", headers={"Host": "narcisse"})
+    assert response.status_code == status

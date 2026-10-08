@@ -15,6 +15,32 @@ HOST = "127.0.0.1"
 # The address shown to the user: browsers send any *.localhost name to the machine itself,
 # without asking DNS (RFC 6761), so it needs no setup and can't be pointed elsewhere.
 PUBLIC_HOST = "narcisse.localhost"
+# Shorter still, once the user maps it to loopback in the system's hosts file (never otherwise:
+# without that line, DNS could hand the name to someone else, then rebind it to this machine).
+SHORT_HOST = "narcisse"
+LOOPBACK_ADDRESSES = frozenset({"127.0.0.1", "::1"})
+
+
+def hosts_file() -> Path:
+    if os.name == "nt":
+        return Path(os.environ.get("SYSTEMROOT", r"C:\Windows")) / "System32/drivers/etc/hosts"
+    return Path("/etc/hosts")
+
+
+def maps_to_loopback(hosts_text: str, name: str) -> bool:
+    """Whether a hosts file sends `name` to this machine."""
+    for line in hosts_text.splitlines():
+        fields = line.split("#", 1)[0].split()
+        if len(fields) >= 2 and fields[0] in LOOPBACK_ADDRESSES and name in fields[1:]:
+            return True
+    return False
+
+
+def short_host_ready() -> bool:
+    try:
+        return maps_to_loopback(hosts_file().read_text(errors="replace"), SHORT_HOST)
+    except OSError:
+        return False
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -27,6 +53,8 @@ class Settings:
     speed: float = 1.0
     # Origins allowed to change state besides the server's own (the Vite dev server).
     extra_origins: tuple[str, ...] = field(default=())
+    # Whether the hosts file maps `SHORT_HOST` to loopback (checked on start-up).
+    short_host: bool = False
 
     @property
     def database_path(self) -> Path:
@@ -40,14 +68,20 @@ class Settings:
         return f"http://{host}" if self.port == 80 else f"http://{host}:{self.port}"
 
     @property
+    def hostnames(self) -> frozenset[str]:
+        """Names a request may be addressed to, besides loopback and *.localhost."""
+        return frozenset({SHORT_HOST}) if self.short_host else frozenset()
+
+    @property
     def url(self) -> str:
-        return self._origin(PUBLIC_HOST)
+        return self._origin(SHORT_HOST if self.short_host else PUBLIC_HOST)
 
     @property
     def own_origins(self) -> frozenset[str]:
         return frozenset(
             {
                 self.url,
+                self._origin(PUBLIC_HOST),
                 self._origin(HOST),
                 self._origin("localhost"),
                 *self.extra_origins,
@@ -70,4 +104,5 @@ class Settings:
             demo=demo,
             speed=float(env.get("NARCISSE_SPEED", "1")),
             extra_origins=tuple(o for o in env.get("NARCISSE_DEV_ORIGINS", "").split(",") if o),
+            short_host=short_host_ready(),
         )
