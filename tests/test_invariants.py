@@ -98,5 +98,10 @@ def test_migrations_match_the_models(tmp_path: Path) -> None:
 
 def test_user_data_lives_outside_the_repository(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("NARCISSE_DATA_DIR", raising=False)
+    monkeypatch.delenv("NARCISSE_DEV", raising=False)
     repo = Path(__file__).resolve().parents[1]
-    assert not Settings.from_env().data_dir.resolve().is_relative_to(repo)
+    real = Settings.from_env(demo=False).data_dir
+    assert not real.resolve().is_relative_to(repo)
+    # Fictitious demo profiles never land among real ones.
+    assert Settings.from_env(demo=True).data_dir.name == "narcisse-demo"
+    assert real.name == "narcisse"

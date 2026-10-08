@@ -21,4 +21,7 @@ Pas encore de version : la 0.1.0 sortira quand Narcisse sera utilisable sur de v
 - Thème clair, sombre ou celui du système ; animations réduites si le système le demande.
 - Tout reste sur ta machine : Narcisse n’écoute que sur 127.0.0.1 et refuse les requêtes d’autres
   sites ouverts dans le navigateur.
-- Mode démo, avec un module qui invente des résultats sans rien interroger.
+- Mode démo, avec un module qui invente des résultats sans rien interroger, et ses données rangées à
+  part.
+- Narcisse s’ouvre sur http://narcisse.localhost:8765, une adresse que les navigateurs envoient
+  d’eux-mêmes vers ta machine.

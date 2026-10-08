@@ -55,9 +55,9 @@ def serve(
 ) -> None:
     """Lance Narcisse sur 127.0.0.1 et ouvre l’interface dans le navigateur."""
     settings = Settings.from_env(port=port, demo=demo or None)
-    url = f"http://{HOST}:{settings.port}"
+    url = settings.url
     if _port_in_use(settings.port):
-        if _narcisse_answers(url):
+        if _narcisse_answers(f"http://{HOST}:{settings.port}"):
             typer.echo(f"Narcisse tourne déjà sur {url}.")
             if browser:
                 webbrowser.open(url)

@@ -5,14 +5,20 @@ import pytest
 from tests.conftest import Api
 
 
-@pytest.mark.parametrize("host", ["evil.example", "127.0.0.1.evil.example", "192.168.1.10:8765"])
+@pytest.mark.parametrize(
+    "host",
+    ["evil.example", "127.0.0.1.evil.example", "localhost.evil.example", "192.168.1.10:8765"],
+)
 async def test_a_foreign_host_is_refused(api: Api, host: str) -> None:
     response = await api.client.get("/api/profiles", headers={"Host": host})
     assert response.status_code == 403
     assert response.json()["code"] == "forbidden_host"
 
 
-@pytest.mark.parametrize("host", ["127.0.0.1:8765", "localhost:8765", "[::1]:8765", "localhost"])
+@pytest.mark.parametrize(
+    "host",
+    ["127.0.0.1:8765", "localhost:8765", "[::1]:8765", "localhost", "narcisse.localhost:8765"],
+)
 async def test_loopback_hosts_are_served(api: Api, host: str) -> None:
     response = await api.client.get("/api/profiles", headers={"Host": host})
     assert response.status_code == 200
@@ -28,10 +34,11 @@ async def test_a_foreign_origin_cannot_change_anything(api: Api, origin: str) ->
     assert (await api.json("GET", "/profiles")) == []
 
 
-async def test_the_own_origin_and_scripts_without_origin_can(api: Api) -> None:
+@pytest.mark.parametrize("origin", ["http://narcisse.localhost:8765", "http://127.0.0.1:8765"])
+async def test_the_own_origin_and_scripts_without_origin_can(api: Api, origin: str) -> None:
     await api.json("POST", "/profiles", {"name": "Sans origine"}, status=201)
     response = await api.client.post(
-        "/api/profiles", json={"name": "Même origine"}, headers={"Origin": "http://127.0.0.1:8765"}
+        "/api/profiles", json={"name": "Même origine"}, headers={"Origin": origin}
     )
     assert response.status_code == 201
 

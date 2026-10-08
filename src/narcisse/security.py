@@ -2,7 +2,8 @@
 
 Any website open in the browser can send requests to 127.0.0.1. Three rules stop it from reading
 or changing anything:
-- the `Host` must be loopback, which defeats DNS rebinding (a hostile name resolving to 127.0.0.1);
+- the `Host` must be loopback (127.0.0.1, ::1, localhost or a *.localhost name, which browsers
+  resolve themselves), which defeats DNS rebinding (a hostile name resolving to 127.0.0.1);
 - a state-changing request must come from Narcisse's own origin (or carry none: curl, scripts);
 - its body must be JSON, which a cross-site form can't send without a CORS preflight, and no CORS
   header is ever granted.
@@ -52,7 +53,8 @@ class LocalOnlyMiddleware:
         await send({"type": "http.response.body", "body": body})
 
     def _problem(self, method: str, headers: Headers) -> tuple[int, str] | None:
-        if hostname_of(headers.get("host", "")).lower() not in LOOPBACK_HOSTS:
+        hostname = hostname_of(headers.get("host", "")).lower()
+        if hostname not in LOOPBACK_HOSTS and not hostname.endswith(".localhost"):
             return 403, "forbidden_host"
         if method in SAFE_METHODS:
             return None

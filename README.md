@@ -57,17 +57,20 @@ le temps que Narcisse soit publié sous forme de paquet.
 ```bash
 git clone https://github.com/j3ffx/narcisse.git
 cd narcisse
-npm ci && npm run build
+npm ci
+npm run build
 uv run narcisse serve --demo
 ```
 
-Le navigateur s’ouvre sur Narcisse. En mode démo, crée un profil fictif (« Jeanne Exemple »), ajoute un
+Le navigateur s’ouvre sur <http://narcisse.localhost:8765> : une adresse que les navigateurs
+envoient d’eux-mêmes vers ta machine, sans réglage. En mode démo, crée un profil fictif (« Jeanne Exemple »), ajoute un
 nom, un pseudo, un email et un domaine, puis lance un scan avec le module de démonstration : les
 résultats arrivent au fil de l’eau pendant une trentaine de secondes, avec une limite de débit, une
 erreur réseau rattrapée seule et une panne à relancer. Tu peux mettre en pause, annuler, fermer le
 navigateur ou arrêter Narcisse : tout reprend où ça en était.
 
-- `narcisse serve` : sans `--demo`, le module de démonstration n’est pas proposé.
+- `narcisse serve` : sans `--demo`, le module de démonstration n’est pas proposé. Les données du
+  mode démo sont rangées à part : les profils fictifs ne se mélangent jamais aux vrais.
 - `narcisse paths` : où sont rangées tes données (le dossier de données de ton système, jamais le
   dossier du projet) et le journal.
 
