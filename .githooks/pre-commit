@@ -1,0 +1,8 @@
+#!/bin/sh
+# Refuses to commit a secret (API key, token, private key…) found in the staged changes.
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "✖ gitleaks is required to commit (CLAUDE.md → Privacy). Install it:"
+  echo "    Windows: scoop install gitleaks   macOS: brew install gitleaks   Linux: see github.com/gitleaks/gitleaks"
+  exit 1
+fi
+exec gitleaks git --staged --redact --no-banner

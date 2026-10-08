@@ -1,0 +1,8 @@
+web/dist
+src/narcisse/web/static
+coverage
+playwright-report
+test-results
+package-lock.json
+uv.lock
+.claude

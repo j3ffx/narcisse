@@ -1,0 +1,5 @@
+#!/bin/sh
+# Refuses to push private files, identities, times or malformed commit messages.
+node scripts/check-tracked.mjs &&
+  node scripts/commit-date.mjs --check &&
+  node scripts/check-commits.mjs

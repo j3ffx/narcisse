@@ -1,0 +1,21 @@
+{
+  "name": "narcisse-repo",
+  "private": true,
+  "description": "Repository tooling for Narcisse: git hooks, privacy and commit checks, formatting.",
+  "license": "GPL-3.0-only",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "prepare": "node scripts/setup-hooks.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check:private": "node scripts/check-tracked.mjs",
+    "check:commits": "node scripts/check-commits.mjs",
+    "fix:dates": "node scripts/commit-date.mjs --fix"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.9"
+  }
+}

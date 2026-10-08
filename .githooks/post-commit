@@ -1,0 +1,3 @@
+#!/bin/sh
+# Keeps only the day of each commit: dates it at noon UTC (CLAUDE.md → Privacy).
+exec node scripts/commit-date.mjs

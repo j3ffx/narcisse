@@ -1,0 +1,59 @@
+# Local working notes (brief, plans, handoff), never committed
+.claude/
+
+# Local configuration (optional tokens, etc.) — only .env.example is versioned
+.env
+.env.*
+!.env.example
+
+# Optional local deny-list used by scripts/check-tracked.mjs
+.private-patterns
+
+# User data never belongs in the repository, wherever a tool drops it
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+/data/
+/narcisse-data/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Frontend build, bundled into the Python package at build time
+src/narcisse/web/static/
+
+# Node
+node_modules/
+web/dist/
+*.tsbuildinfo
+
+# Tests
+coverage/
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
+
+# Local tooling
+.vite/
+*.local
+*.log
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
