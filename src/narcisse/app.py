@@ -45,6 +45,15 @@ UI_MISSING = """<!doctype html><html lang="fr"><meta charset="utf-8"><title>Narc
 <code>narcisse serve</code>. Pour développer : <code>npm run dev</code>.</p></body></html>"""
 
 
+def app_from_env() -> FastAPI:
+    """For `uvicorn --factory` (development with reload): settings from the environment."""
+    from narcisse.logs import setup_logging
+
+    settings = Settings.from_env()
+    setup_logging(settings)
+    return create_app(settings)
+
+
 def create_app(
     settings: Settings,
     *,

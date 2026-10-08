@@ -44,8 +44,10 @@ class Settings:
     def from_env(cls, *, port: int | None = None, demo: bool | None = None) -> "Settings":
         env = os.environ
         data_dir = env.get("NARCISSE_DATA_DIR")
+        # `npm run dev` keeps its data apart, so that development never touches real profiles.
+        default_name = "narcisse-dev" if env.get("NARCISSE_DEV") == "1" else "narcisse"
         return cls(
-            data_dir=Path(data_dir) if data_dir else user_data_path("narcisse", appauthor=False),
+            data_dir=Path(data_dir) if data_dir else user_data_path(default_name, appauthor=False),
             port=port if port is not None else int(env.get("NARCISSE_PORT", DEFAULT_PORT)),
             demo=demo if demo is not None else env.get("NARCISSE_DEMO") == "1",
             speed=float(env.get("NARCISSE_SPEED", "1")),
