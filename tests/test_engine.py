@@ -152,6 +152,7 @@ async def test_a_restart_resumes_running_scans_from_their_checkpoints(
     assert scan["status"] == "done"
     assert scan["results_count"] == 10  # nothing lost, nothing twice
     assert second.started_at_step[0] >= 3
+    assert scan["runs"][0]["attempts"] == 1  # a restart is not a failed attempt
 
 
 async def test_a_paused_scan_stays_paused_across_a_restart(make_api: ApiFactory) -> None:

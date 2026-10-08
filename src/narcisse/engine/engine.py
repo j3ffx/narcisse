@@ -237,6 +237,8 @@ class Engine:
                 select(ModuleRun).where(ModuleRun.status == RunStatus.RUNNING)
             )
             for run in runs:
+                # Not a new attempt: the run was interrupted, not failing.
+                run.attempts = max(0, run.attempts - 1)
                 self._set_status(tx, run, RunStatus.QUEUED)
             paused = await tx.session.scalars(
                 select(Scan.id).where(Scan.status == ScanStatus.PAUSED)
