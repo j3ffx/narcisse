@@ -192,7 +192,7 @@ class RunContext:
             )
             tx.emit(
                 "run.progress",
-                {"run_id": self._run_id, "done": done, "total": total},
+                {"run_id": self._run_id, "scan_id": self._scan_id, "done": done, "total": total},
                 self._scan_id,
             )
 
