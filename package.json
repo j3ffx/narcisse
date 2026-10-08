@@ -9,6 +9,13 @@
   },
   "scripts": {
     "prepare": "node scripts/setup-hooks.mjs",
+    "dev": "node scripts/dev.mjs",
+    "build": "npm run build -w web",
+    "typecheck": "npm run typecheck -w web",
+    "lint": "npm run lint -w web",
+    "test": "npm test -w web",
+    "e2e": "npm run e2e -w web",
+    "check": "npm run check:private && npm run format:check && npm run typecheck && npm run lint && npm test && uv run ruff check && uv run ruff format --check && uv run mypy && uv run pytest -q",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check:private": "node scripts/check-tracked.mjs",
@@ -17,5 +24,8 @@
   },
   "devDependencies": {
     "prettier": "^3.9.9"
-  }
+  },
+  "workspaces": [
+    "web"
+  ]
 }
