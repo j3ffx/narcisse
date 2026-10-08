@@ -10,10 +10,10 @@ the tool does and the ethical frame.
 
 ```bash
 npm ci && uv sync                # install (npm ci also points git at .githooks/)
-npm run dev                      # API with reload + Vite on http://localhost:5173, demo mode
+npm run dev                      # API with reload + Vite on http://localhost:5173 (demo, own data dir)
 npm run build                    # builds the UI into the Python package
 uv run narcisse serve            # built UI + API on 127.0.0.1, opens the browser (--demo for the fake module)
-npm run check                    # everything CI runs, but the e2e tests
+npm run check                    # everything CI runs, but gitleaks on the history and the e2e tests
 npm run e2e                      # Playwright against `narcisse serve --demo`, on a temporary data dir
 ```
 
@@ -93,9 +93,13 @@ fixtures, docs, commit messages or commit metadata.
 
 ## Layout
 
-- `src/narcisse/`: Python package. `tests/`: pytest.
-- `web/`: the UI (Vite, React). `npm run build` writes it into `src/narcisse/web/static/` (ignored),
-  which the Python package serves and ships.
+- `src/narcisse/`: Python package. `engine/` (scheduling, events, HTTP for modules), `modules/` (one
+  file per source), `api/`, `storage/` (models, Alembic migrations: `scripts/new-migration.py`).
+  `tests/`: pytest (`tests/fakes.py` holds modules whose timing tests control).
+- `web/`: the UI (Vite, React, Tailwind, shadcn/ui in `src/components/ui/`, TanStack Query, wouter).
+  `src/lib/live.ts` applies the live events to the query cache. `npm run build` writes the UI into
+  `src/narcisse/web/static/` (ignored), which the Python package serves and ships. `web/e2e/`:
+  Playwright against `narcisse serve --demo` on a temporary data dir.
 - `scripts/`: repository checks and git hook helpers.
 
 ## Dependencies

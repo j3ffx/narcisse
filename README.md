@@ -7,9 +7,10 @@ publiques de cette identité, les relie dans un graphe pour montrer comment elle
 évalue ce que chacune expose, et t’aide à faire le ménage : supprimer un compte, demander un
 déréférencement, envoyer une demande RGPD. Puis il suit tes progrès d’un scan à l’autre.
 
-> **En construction.** Narcisse n’est pas encore utilisable : les fondations (scans de longue durée,
-> suivi en direct, profils) se mettent en place, et aucune source réelle n’est branchée. Le
-> [journal des changements](CHANGELOG.md) dira quand la première version sortira.
+> **En construction.** Les fondations sont là : profils, scans de longue durée suivis en direct,
+> reprise après fermeture du navigateur ou redémarrage. Aucune source réelle n’est encore branchée :
+> seul un module de démonstration, qui invente des résultats sans rien interroger, permet d’essayer.
+> Le [journal des changements](CHANGELOG.md) dira quand la première version sortira.
 
 ## Pour qui, pour quoi
 
@@ -47,6 +48,36 @@ discréditer. Ces usages sont souvent illégaux, et toujours contraires à l’e
   toi qui les envoies.
 - **Gratuit.** Aucune API payante ; un token gratuit (GitHub, par exemple) peut lever des limites,
   mais rien ne l’exige.
+
+## Essayer
+
+Il faut [uv](https://docs.astral.sh/uv/) (Python) et [Node.js](https://nodejs.org/) 22 ou plus,
+le temps que Narcisse soit publié sous forme de paquet.
+
+```bash
+git clone https://github.com/j3ffx/narcisse.git
+cd narcisse
+npm ci && npm run build
+uv run narcisse serve --demo
+```
+
+Le navigateur s’ouvre sur Narcisse. En mode démo, crée un profil fictif (« Jeanne Exemple »), ajoute un
+nom, un pseudo, un email et un domaine, puis lance un scan avec le module de démonstration : les
+résultats arrivent au fil de l’eau pendant une trentaine de secondes, avec une limite de débit, une
+erreur réseau rattrapée seule et une panne à relancer. Tu peux mettre en pause, annuler, fermer le
+navigateur ou arrêter Narcisse : tout reprend où ça en était.
+
+- `narcisse serve` : sans `--demo`, le module de démonstration n’est pas proposé.
+- `narcisse paths` : où sont rangées tes données (le dossier de données de ton système, jamais le
+  dossier du projet) et le journal.
+
+## Ajouter une source
+
+Une source est un fichier dans `src/narcisse/modules/`, avec une classe qui décrit ce qu’elle fait
+(titre, description, types d’éléments acceptés et produits, sites contactés, limite de débit,
+licence) et une méthode qui rend ses résultats un par un. Le moteur s’occupe du reste : file
+d’attente, pause, reprise, erreurs, limites de débit, affichage. Le module de démonstration,
+[`demo.py`](src/narcisse/modules/demo.py), sert d’exemple.
 
 ## Contribuer
 
