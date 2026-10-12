@@ -1,9 +1,10 @@
-"""A profile's traces as a graph, and one trace in detail (its proofs, its neighbours)."""
+"""A profile's traces as a graph, one trace in detail (its proofs, its neighbours), and the views
+of the graph the user saved."""
 
 from collections import defaultdict
 from collections.abc import Iterable
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,8 +21,10 @@ from narcisse.schemas import (
     EvidenceOut,
     GraphNode,
     GraphOut,
+    SavedViewIn,
+    SavedViewOut,
 )
-from narcisse.storage.models import Edge, Entity, Evidence, Profile
+from narcisse.storage.models import Edge, Entity, Evidence, Profile, SavedView
 
 router = APIRouter(tags=["graph"])
 
@@ -134,6 +137,46 @@ async def get_entity(entity_id: int, s: ServicesDep) -> EntityDetail:
             edges=[EdgeOut.model_validate(e) for e in edges],
             neighbours=[EntityOut.model_validate(n) for n in neighbours],
         )
+
+
+@router.get("/profiles/{profile_id}/views")
+async def list_views(profile_id: int, s: ServicesDep) -> list[SavedViewOut]:
+    async with s.db.read() as session:
+        if await session.get(Profile, profile_id) is None:
+            raise not_found("profile")
+        views = await session.scalars(
+            select(SavedView).where(SavedView.profile_id == profile_id).order_by(SavedView.name)
+        )
+        return [SavedViewOut.model_validate(v) for v in views]
+
+
+@router.post("/profiles/{profile_id}/views", status_code=201)
+async def save_view(profile_id: int, body: SavedViewIn, s: ServicesDep) -> SavedViewOut:
+    """Saves a view; one of the same name is replaced (saving again updates it)."""
+    now = s.bus.clock.now()
+    async with s.db.write() as session:
+        if await session.get(Profile, profile_id) is None:
+            raise not_found("profile")
+        view = await session.scalar(
+            select(SavedView).where(SavedView.profile_id == profile_id, SavedView.name == body.name)
+        )
+        if view is None:
+            view = SavedView(profile_id=profile_id, name=body.name, created_at=now)
+            session.add(view)
+        view.state = body.state
+        view.updated_at = now
+        await session.flush()
+        return SavedViewOut.model_validate(view)
+
+
+@router.delete("/views/{view_id}", status_code=204)
+async def delete_view(view_id: int, s: ServicesDep) -> Response:
+    async with s.db.write() as session:
+        view = await session.get(SavedView, view_id)
+        if view is None:
+            raise not_found("view")
+        await session.delete(view)
+    return Response(status_code=204)
 
 
 @router.post("/demo/graph", status_code=201)

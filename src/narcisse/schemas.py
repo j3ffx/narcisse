@@ -1,9 +1,10 @@
 """Shapes the API returns and the events carry (the UI's TypeScript types mirror them)."""
 
+import json
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from narcisse.domain import (
     EntityKind,
@@ -198,6 +199,36 @@ class EntityDetail(Schema):
     evidence: list[EvidenceOut]
     edges: list[EdgeOut]
     neighbours: list[EntityOut]
+
+
+class SavedViewIn(Schema):
+    name: str = Field(min_length=1, max_length=100)
+    # What the UI restores: its shape is the UI's business; only its size is bounded here.
+    state: dict[str, Any]
+
+    @field_validator("name")
+    @classmethod
+    def _trimmed(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("empty name")
+        return value
+
+    @field_validator("state")
+    @classmethod
+    def _small(cls, value: dict[str, Any]) -> dict[str, Any]:
+        if len(json.dumps(value)) > 100_000:
+            raise ValueError("state too large")
+        return value
+
+
+class SavedViewOut(Schema):
+    id: int
+    profile_id: int
+    name: str
+    state: dict[str, Any]
+    created_at: datetime
+    updated_at: datetime
 
 
 class DemoGraphIn(Schema):

@@ -204,6 +204,23 @@ class Evidence(Base):
     captured_at: Mapped[datetime]
 
 
+class SavedView(Base):
+    """A way of looking at a profile's graph the user named: filters, groups, camera…"""
+
+    __tablename__ = "saved_view"
+    __table_args__ = (UniqueConstraint("profile_id", "name"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    profile_id: Mapped[int] = mapped_column(
+        ForeignKey("profile.id", ondelete="CASCADE"), index=True
+    )
+    name: Mapped[str] = mapped_column(String(100))
+    # What the UI restores (validated by the UI, which owns its shape).
+    state: Mapped[dict[str, Any]] = mapped_column(default=dict)
+    created_at: Mapped[datetime]
+    updated_at: Mapped[datetime]
+
+
 class Event(Base):
     """Everything the UI is told, kept so that a reconnecting browser misses nothing."""
 

@@ -112,3 +112,34 @@ async def test_demo_mode_makes_a_fictitious_graph_of_the_size_asked(api: Api) ->
 async def test_only_demo_mode_makes_fictitious_graphs(make_api: ApiFactory) -> None:
     api = await make_api(None, demo=False)
     await api.json("POST", "/demo/graph", {"nodes": 100}, status=404)
+
+
+async def test_saved_views_are_kept_per_profile_and_replaced_by_name(api: Api) -> None:
+    profile = await api.profile(("username", "jeanne"))
+    state = {"grouping": "site", "camera": {"x": 0.4, "y": 0.6, "ratio": 0.5}}
+    saved = await api.json(
+        "POST", f"/profiles/{profile}/views", {"name": " Comptes ", "state": state}, status=201
+    )
+    assert (saved["name"], saved["state"]) == ("Comptes", state)
+
+    again = await api.json(
+        "POST",
+        f"/profiles/{profile}/views",
+        {"name": "Comptes", "state": {"grouping": "kind"}},
+        status=201,
+    )
+    assert again["id"] == saved["id"]
+    await api.json("POST", f"/profiles/{profile}/views", {"name": "Tout", "state": {}}, status=201)
+    views = await api.json("GET", f"/profiles/{profile}/views")
+    assert [(v["name"], v["state"]) for v in views] == [
+        ("Comptes", {"grouping": "kind"}),
+        ("Tout", {}),
+    ]
+
+    await api.json("DELETE", f"/views/{saved['id']}", status=204)
+    assert [v["name"] for v in await api.json("GET", f"/profiles/{profile}/views")] == ["Tout"]
+    await api.json("POST", f"/profiles/{profile}/views", {"name": "  ", "state": {}}, status=422)
+    await api.json("GET", "/profiles/999999/views", status=404)
+
+    # A profile's views go with it.
+    await api.json("DELETE", f"/profiles/{profile}", status=204)
