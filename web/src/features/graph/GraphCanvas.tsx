@@ -15,6 +15,7 @@ import type { GraphPath } from '@/lib/graph';
 import type { GraphData } from '@/lib/types';
 import { Layout, savePositions, savedPositions } from './layout';
 import {
+  label as labelOf,
   newGraph,
   recolor,
   sync,
@@ -164,7 +165,9 @@ export function GraphCanvas({
   hidden,
   selected,
   path = null,
+  badges,
   onSelect,
+  onFold,
   ref,
   label,
 }: {
@@ -175,7 +178,11 @@ export function GraphCanvas({
   selected: number | null;
   /** A path to show instead of the selection's neighbours. */
   path?: GraphPath | null;
+  /** How many leaves each folded trace holds ("+3" after its label). */
+  badges?: ReadonlyMap<number, number>;
   onSelect: (id: number | null) => void;
+  /** A double click folds or unfolds a trace's leaves. */
+  onFold?: (id: number) => void;
   ref?: Ref<GraphCanvasHandle>;
   /** What the canvas shows, for assistive technologies. */
   label: string;
@@ -185,11 +192,13 @@ export function GraphCanvas({
   const sigma = useRef<TraceSigma | null>(null);
   const layout = useRef<Layout | null>(null);
   const select = useRef(onSelect);
+  const fold = useRef(onFold);
   const { resolved: theme } = useTheme();
   const reduced = useReducedMotion();
   const [settling, setSettling] = useState(false);
   useEffect(() => {
     select.current = onSelect;
+    fold.current = onFold;
   });
 
   // The canvas, once.
@@ -202,6 +211,11 @@ export function GraphCanvas({
     });
     instance.on('clickNode', ({ node }) => select.current(Number(node)));
     instance.on('clickStage', () => select.current(null));
+    instance.on('doubleClickNode', (event) => {
+      if (!fold.current) return;
+      event.preventSigmaDefault(); // no zoom: the double click folds
+      fold.current(Number(event.node));
+    });
     return () => {
       layout.current?.stop();
       instance.kill();
@@ -310,6 +324,23 @@ export function GraphCanvas({
     instance.setGraphState({ hasHighlighted: nodes.size > 0 });
     shownFocus.current = { nodes, edges, selected: key };
   }, [selected, path, data]);
+
+  // "+3": the leaves folded into a trace.
+  const shownBadges = useRef(new Map<string, number>());
+  useEffect(() => {
+    const g = graph.current;
+    const byId = new Map(data.nodes.map((n) => [String(n.id), n]));
+    const next = new Map(
+      [...(badges ?? new Map<number, number>())].map(([id, n]) => [String(id), n]),
+    );
+    for (const key of new Set([...shownBadges.current.keys(), ...next.keys()])) {
+      const node = byId.get(key);
+      if (!node || !g.hasNode(key) || shownBadges.current.get(key) === next.get(key)) continue;
+      const count = next.get(key);
+      g.setNodeAttribute(key, 'label', count ? `${labelOf(node)}  +${count}` : labelOf(node));
+    }
+    shownBadges.current = next;
+  }, [badges, data]);
 
   useImperativeHandle(
     ref,

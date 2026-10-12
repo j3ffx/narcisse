@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { NO_FILTER, passes, search, shortestPath, withEntity, withResult } from './graph';
+import {
+  NO_FILTER,
+  foldedLeaves,
+  passes,
+  search,
+  shortestPath,
+  withEntity,
+  withResult,
+} from './graph';
 import type { Edge, GraphData, GraphNode, Result } from './types';
 
 const node = (id: number, display: string, extra: Partial<GraphNode> = {}): GraphNode => ({
@@ -146,5 +154,41 @@ describe('shortest path', () => {
     expect(shortestPath(chain, 1, 3, new Set([2]))).toEqual({ nodes: [1, 4, 3], edges: [3, 4] });
     expect(shortestPath(chain, 1, 5)).toBeNull();
     expect(shortestPath(chain, 1, 3, new Set([3]))).toBeNull();
+  });
+});
+
+describe('folded leaves', () => {
+  // identity 1 → seed 2 → account 3 → site 4, site 5; account 3 → name 6 ← account 7 ← seed 2
+  const tree: GraphData = {
+    nodes: [
+      node(1, 'Jeanne', { kind: 'identity', modules: [] }),
+      node(2, 'jeanne', { kind: 'username', modules: ['seed'] }),
+      node(3, 'a'),
+      node(4, 'site 4', { kind: 'url' }),
+      node(5, 'site 5', { kind: 'url' }),
+      node(6, 'Jeanne E.', { kind: 'name' }),
+      node(7, 'b'),
+    ],
+    edges: [
+      edge(1, 1, 2),
+      edge(2, 2, 3),
+      edge(3, 3, 4),
+      edge(4, 3, 5),
+      edge(5, 3, 6),
+      edge(6, 7, 6),
+      edge(7, 2, 7),
+    ],
+    truncated: false,
+  };
+
+  it('hides what hangs from a folded trace only', () => {
+    const { hidden, counts } = foldedLeaves(tree, new Set([3]));
+    expect([...hidden]).toEqual([4, 5]); // 6 also hangs from 7
+    expect(counts.get(3)).toBe(2);
+  });
+
+  it('folds every trace at once, never a declared one', () => {
+    expect([...foldedLeaves(tree, 'all').hidden]).toEqual([4, 5]);
+    expect(foldedLeaves(tree, new Set([1])).hidden.size).toBe(0); // the seed stays
   });
 });

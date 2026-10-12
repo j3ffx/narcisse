@@ -3,13 +3,13 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { errorMessage } from '@/lib/errors';
-import { isFiltering, type GraphPath } from '@/lib/graph';
+import { foldedLeaves, isFiltering, leafCounts, type GraphPath } from '@/lib/graph';
 import { KIND_LABELS } from '@/lib/labels';
 import { useGraph } from '@/lib/queries';
 import type { EntityKind, GraphData } from '@/lib/types';
 import { useTheme } from '@/app/theme';
 import { cn } from 'cn';
-import { MaximizeIcon } from 'lucide-react';
+import { MaximizeIcon, ShrinkIcon } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { GraphCanvas, type GraphCanvasHandle } from './GraphCanvas';
 import { KIND_COLORS, KIND_ICONS } from './kinds';
@@ -70,6 +70,27 @@ export function GraphView({ profileId, view }: { profileId: number; view: TraceV
   // A path holds while its first trace stays selected.
   const [linked, setLinked] = useState<{ from: number; path: GraphPath } | null>(null);
   const path = linked && linked.from === selected ? linked.path : null;
+  // Folded leaves: of some traces, or of all at once.
+  const [folded, setFolded] = useState<ReadonlySet<number>>(new Set());
+  const [foldAll, setFoldAll] = useState(false);
+  const fold = useMemo(
+    () => (graph.data ? foldedLeaves(graph.data, foldAll ? 'all' : folded) : null),
+    [graph.data, folded, foldAll],
+  );
+  const leaves = useMemo(() => (graph.data ? leafCounts(graph.data) : new Map()), [graph.data]);
+  const shown = useMemo(
+    () => (fold?.hidden.size ? new Set([...hidden, ...fold.hidden]) : hidden),
+    [hidden, fold],
+  );
+  const toggleFold = (id: number) => {
+    if (!leaves.get(id)) return;
+    setFoldAll(false);
+    const base = foldAll ? new Set(leaves.keys()) : new Set(folded);
+    if (base.has(id)) base.delete(id);
+    else base.add(id);
+    setFolded(base);
+  };
+  const isFolded = (id: number) => foldAll || folded.has(id);
 
   // Arriving with a trace selected (from the list, a link): the camera goes to it once drawn.
   const arrived = useRef(false);
@@ -101,6 +122,17 @@ export function GraphView({ profileId, view }: { profileId: number; view: TraceV
   return (
     <div className="grid gap-3">
       <TraceToolbar data={data} view={view} hidden={hidden} onPick={show}>
+        <Button
+          variant={foldAll ? 'secondary' : 'ghost'}
+          aria-pressed={foldAll}
+          onClick={() => {
+            setFoldAll(!foldAll);
+            setFolded(new Set());
+          }}
+        >
+          <ShrinkIcon aria-hidden />
+          Replier les feuilles
+        </Button>
         <Button variant="ghost" onClick={() => canvas.current?.fit()}>
           <MaximizeIcon aria-hidden />
           Tout voir
@@ -128,10 +160,12 @@ export function GraphView({ profileId, view }: { profileId: number; view: TraceV
               ref={canvas}
               profileId={profileId}
               data={data}
-              hidden={hidden}
+              hidden={shown}
               selected={selected}
               path={path}
+              badges={fold?.counts}
               onSelect={select}
+              onFold={toggleFold}
               label={`Graphe de ${data.nodes.length} traces. La vue Liste en donne le même contenu.`}
             />
           )}
@@ -145,17 +179,32 @@ export function GraphView({ profileId, view }: { profileId: number; view: TraceV
             onClose={() => select(null)}
             sourceTitle={sourceTitle}
             extra={
-              <PathFinder
-                data={data}
-                from={selected}
-                hidden={hidden}
-                path={path}
-                onPath={(found) => {
-                  setLinked(found ? { from: selected, path: found } : null);
-                  if (found) canvas.current?.frame(found.nodes);
-                }}
-                onShow={(id) => canvas.current?.show(id)}
-              />
+              <>
+                {(leaves.get(selected) ?? 0) > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-fit"
+                    aria-pressed={isFolded(selected)}
+                    onClick={() => toggleFold(selected)}
+                  >
+                    {isFolded(selected) ? 'Déplier' : 'Replier'} ses {leaves.get(selected)} trace
+                    {(leaves.get(selected) ?? 0) > 1 ? 's' : ''} isolée
+                    {(leaves.get(selected) ?? 0) > 1 ? 's' : ''}
+                  </Button>
+                )}
+                <PathFinder
+                  data={data}
+                  from={selected}
+                  hidden={hidden}
+                  path={path}
+                  onPath={(found) => {
+                    setLinked(found ? { from: selected, path: found } : null);
+                    if (found) canvas.current?.frame(found.nodes);
+                  }}
+                  onShow={(id) => canvas.current?.show(id)}
+                />
+              </>
             }
           />
         )}

@@ -174,3 +174,37 @@ export function shortestPath(
   }
   return { nodes, edges };
 }
+
+/**
+ * The leaves folded into their trace: traces linked to nothing but it (never the identity nor
+ * a declared one). `folded` lists the traces folded, or 'all' for every one. Gives the leaves
+ * to hide, and how many each folded trace holds.
+ */
+export function foldedLeaves(
+  data: GraphData,
+  folded: ReadonlySet<number> | 'all',
+): { hidden: Set<number>; counts: Map<number, number> } {
+  const neighbours = new Map<number, Set<number>>();
+  const meet = (a: number, b: number) => neighbours.set(a, (neighbours.get(a) ?? new Set()).add(b));
+  for (const edge of data.edges) {
+    meet(edge.source_id, edge.target_id);
+    meet(edge.target_id, edge.source_id);
+  }
+  const hidden = new Set<number>();
+  const counts = new Map<number, number>();
+  for (const node of data.nodes) {
+    if (node.kind === 'identity' || node.modules.includes('seed')) continue;
+    const links = neighbours.get(node.id);
+    if (links?.size !== 1) continue;
+    const [parent] = links as Set<number>;
+    if (folded !== 'all' && !folded.has(parent!)) continue;
+    hidden.add(node.id);
+    counts.set(parent!, (counts.get(parent!) ?? 0) + 1);
+  }
+  return { hidden, counts };
+}
+
+/** How many leaves each trace has (what folding it would hide). */
+export function leafCounts(data: GraphData): Map<number, number> {
+  return foldedLeaves(data, 'all').counts;
+}
