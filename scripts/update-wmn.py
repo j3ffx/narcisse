@@ -33,7 +33,7 @@ data["sites"] = [s for s in data["sites"] if s["name"] not in dropped]
 
 DATA.mkdir(parents=True, exist_ok=True)
 (DATA / "wmn-data.json").write_text(
-    json.dumps(data, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
+    json.dumps(data, ensure_ascii=False, indent=1) + "\n", encoding="utf-8", newline="\n"
 )
 source = {
     "repository": f"https://github.com/{REPO}",
@@ -42,5 +42,7 @@ source = {
     "licence": "CC BY-SA 4.0",
     "changes": f"sites queried with a third party's credentials removed: {', '.join(dropped)}",
 }
-(DATA / "wmn-source.json").write_text(json.dumps(source, indent=2) + "\n", encoding="utf-8")
+(DATA / "wmn-source.json").write_text(
+    json.dumps(source, indent=2) + "\n", encoding="utf-8", newline="\n"
+)
 print(f"{len(data['sites'])} sites, upstream commit {sha[:7]} of {date}")
