@@ -122,9 +122,11 @@ def tray(
         if open_window:
             system.open_window(settings.app_url, settings.url)
         return
+    from narcisse.desktop.native import prepare_native_ui
     from narcisse.desktop.tray import Tray  # pystray needs a desktop session: load it only here
 
     setup_logging(settings, terminal=False)
+    prepare_native_ui()  # before the tray creates its windows
     Tray(settings, open_on_start=open_window).run()
 
 

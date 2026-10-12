@@ -197,3 +197,11 @@ def test_open_starts_narcisse_only_when_it_is_not_running(
         ("open", "http://narcisse.localhost"),
         ("spawn", ["tray", "--open", "--demo"]),
     ]
+
+
+def test_the_native_menu_setup_does_nothing_off_windows(monkeypatch: pytest.MonkeyPatch) -> None:
+    from narcisse.desktop import native
+
+    monkeypatch.setattr("sys.platform", "linux")
+    monkeypatch.setattr("ctypes.WinDLL", None, raising=False)  # would fail if reached
+    native.prepare_native_ui()
