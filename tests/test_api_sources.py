@@ -23,7 +23,7 @@ USER = {
     "twitter_username": None,
     "location": "Lyon",
     "company": None,
-    "bio": None,
+    "bio": "Notes : https://notes.example.org",
     "public_repos": 2,
 }
 
@@ -67,6 +67,7 @@ async def test_github_finds_the_profile_and_the_addresses_commits_carry(
         (EntityKind.ACCOUNT, "has_account", "https://github.com/jeanne-exemple"),
         (EntityKind.NAME, "shows_name", "Jeanne Exemple"),
         (EntityKind.URL, "links_to", "https://jeanne.example.org"),
+        (EntityKind.URL, "links_to", "https://notes.example.org"),
         (EntityKind.EMAIL, "commits_as", "jeanne@example.org"),
     ]
     assert found[0].attributes["location"] == "Lyon"

@@ -24,6 +24,7 @@ from narcisse.engine.plugin import (
     SourceUnavailable,
     Target,
 )
+from narcisse.modules._text import text_findings
 
 API = "https://api.github.com"
 REPOS_TO_READ = 5  # the most recently pushed ones
@@ -147,6 +148,13 @@ class GitHub(SourceModule):
                 url=profile,
                 excerpt=f"Compte X indiqué sur le profil GitHub « {login} ».",
             )
+        for finding in text_findings(
+            user.get("bio") or "",
+            url=profile,
+            where=f"dans la bio du profil GitHub « {login} »",
+            confidence=0.6,
+        ):
+            yield finding
         await ctx.progress(1, 2 + REPOS_TO_READ)
 
         repos = await _get(ctx, f"/users/{quote(login)}/repos?type=owner&sort=pushed&per_page=20")
