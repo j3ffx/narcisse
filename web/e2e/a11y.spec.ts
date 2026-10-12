@@ -28,7 +28,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expect(page.getByRole('heading', { name: 'Profils' })).toBeVisible();
       await audit(page);
 
-      await page.goto(`/profils/${id}`);
+      await page.goto(`/profils/${id}/elements`);
       await expect(page.getByTestId('seed')).toHaveCount(4);
       await audit(page);
 
@@ -39,6 +39,15 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expect(page.getByRole('heading', { name: /Scan/ }).getByText('Terminé')).toBeVisible({
         timeout: 30_000,
       });
+      await audit(page);
+
+      await page.goto(`/profils/${id}`);
+      await expect(page.getByTestId('graph-canvas')).toBeVisible();
+      await audit(page);
+
+      await page.goto(`/profils/${id}/liste`);
+      await page.getByTestId('trace').first().getByRole('button').first().click();
+      await expect(page.getByTestId('trace-panel').getByTestId('trace-value')).toBeVisible();
       await audit(page);
 
       await page.goto('/sources');

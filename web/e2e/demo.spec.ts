@@ -151,3 +151,58 @@ test('the sources and the settings explain themselves', async ({ page }) => {
   await fediverse.getByRole('button', { name: 'Retirer social.example.org' }).click();
   await expect(fediverse.getByText('Aucune instance ajoutée.')).toBeVisible();
 });
+
+test('the graph and the list show the same traces and follow one selection', async ({
+  page,
+  request,
+}) => {
+  const id = await demoProfile(request, 'Jeanne Exemple (graphe)');
+  await startScanFromUi(page, id);
+  await expect(page.getByRole('heading', { name: /Scan/ }).getByText('Terminé')).toBeVisible({
+    timeout: 30_000,
+  });
+
+  await page.goto(`/profils/${id}`);
+  await expect(page.getByTestId('graph-canvas')).toBeVisible();
+  const count = await page.getByTestId('trace-count').textContent();
+
+  await page.getByRole('link', { name: 'Liste' }).click();
+  await expect(page.getByTestId('trace-count')).toHaveText(count!);
+  // Search, pick: the trace is selected and its detail opens.
+  await page.getByRole('combobox', { name: /Chercher une trace/ }).fill('forum.example.org');
+  await page.getByRole('option').first().click();
+  const panel = page.getByTestId('trace-panel');
+  await expect(panel.getByTestId('trace-value')).toContainText('forum.example.org');
+  await expect(page).toHaveURL(/trace=\d+/);
+  await panel.getByRole('button', { name: 'C’est moi' }).click();
+  await expect(panel.getByText('Statut').locator('+ dd')).toHaveText('C’est moi');
+
+  // The same trace, selected in the graph.
+  await panel.getByRole('link', { name: 'Voir dans le graphe' }).click();
+  await expect(page.getByTestId('graph-canvas')).toBeVisible();
+  await expect(page.getByTestId('trace-panel').getByTestId('trace-value')).toContainText(
+    'forum.example.org',
+  );
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('trace-panel')).toHaveCount(0);
+
+  // Filters cut the list down to one kind.
+  await page.getByRole('link', { name: 'Liste' }).click();
+  await page.getByRole('button', { name: 'Filtres' }).click();
+  await page.getByLabel(/^Email/).check();
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('trace-count')).toContainText(' sur ');
+  // Emails only, and the identity everything hangs from.
+  for (const row of await page.getByTestId('trace').all()) {
+    await expect(row).toContainText(/Email|Identité/);
+  }
+});
+
+test('demo mode draws a fictitious graph of thousands of traces', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Graphe fictif' }).click();
+  await page.getByRole('menuitem', { name: /500 traces/ }).click();
+  await expect(page.getByRole('heading', { name: 'Graphe fictif (500 traces)' })).toBeVisible();
+  await expect(page.getByTestId('graph-canvas')).toBeVisible();
+  await expect(page.getByTestId('trace-count')).toContainText('traces');
+});
