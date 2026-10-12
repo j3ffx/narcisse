@@ -18,6 +18,8 @@ export interface NodeAttributes {
   opacity: number;
   /** Declared by the user (or the identity): drawn square. */
   declared: boolean;
+  /** For a group of traces drawn as one node: how many it holds. */
+  members: number;
   /** Held in place while the layout settles new traces. */
   fixed?: boolean;
 }
@@ -71,6 +73,7 @@ function nodeLook(node: GraphNode, theme: Theme) {
     shape: declared ? ('square' as const) : ('circle' as const),
     opacity: node.status === 'false_positive' ? 0.35 : 1,
     declared,
+    members: typeof node.attributes.members === 'number' ? node.attributes.members : 0,
   };
 }
 
@@ -179,7 +182,9 @@ export function sync(
     graph.addDirectedEdgeWithKey(key, source, target, edgeLook(edge, theme));
   }
   graph.forEachNode((key, attributes) => {
-    const size = sizeFor(graph.degree(key), attributes.kind, graph.order);
+    const size = attributes.members
+      ? Math.min(28, 6 + 2 * Math.sqrt(attributes.members))
+      : sizeFor(graph.degree(key), attributes.kind, graph.order);
     if (size !== attributes.size) graph.setNodeAttribute(key, 'size', size);
   });
   return added;

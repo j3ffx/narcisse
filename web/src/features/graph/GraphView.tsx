@@ -3,17 +3,26 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { errorMessage } from '@/lib/errors';
-import { foldedLeaves, isFiltering, leafCounts, type GraphPath } from '@/lib/graph';
+import {
+  foldedLeaves,
+  grouped,
+  isFiltering,
+  leafCounts,
+  type GraphGroup,
+  type GraphPath,
+  type Grouping,
+} from '@/lib/graph';
 import { KIND_LABELS } from '@/lib/labels';
 import { useGraph } from '@/lib/queries';
-import type { EntityKind, GraphData } from '@/lib/types';
+import type { EntityKind, GraphData, GraphNode } from '@/lib/types';
 import { useTheme } from '@/app/theme';
 import { cn } from 'cn';
 import { MaximizeIcon, ShrinkIcon } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { GraphCanvas, type GraphCanvasHandle } from './GraphCanvas';
 import { KIND_COLORS, KIND_ICONS } from './kinds';
 import { TraceFilters } from './TraceFilters';
+import { GroupPanel } from './GroupPanel';
 import { PathFinder } from './PathFinder';
 import { TracePanel } from './TracePanel';
 import { TraceSearch } from './TraceSearch';
@@ -61,26 +70,61 @@ export function TraceToolbar({
   );
 }
 
+const GROUPINGS: [Grouping, string][] = [
+  ['none', 'Aucun'],
+  ['kind', 'Par type'],
+  ['source', 'Par source'],
+  ['site', 'Par site'],
+];
+
 export function GraphView({ profileId, view }: { profileId: number; view: TraceView }) {
   const graph = useGraph(profileId, view.falsePositives);
   const [selected, select] = useSelectedTrace();
   const hidden = useHidden(graph.data, view.filter);
   const canvas = useRef<GraphCanvasHandle>(null);
   const sourceTitle = useSourceTitle();
+
+  // Groups: each drawn as one node, but those opened.
+  const [grouping, setGrouping] = useState<Grouping>('none');
+  const [opened, setOpened] = useState<ReadonlySet<string>>(new Set());
+  const groupName = useCallback(
+    (key: string, members: GraphNode[]) => {
+      const title =
+        grouping === 'kind'
+          ? KIND_LABELS[key as EntityKind]
+          : grouping === 'source'
+            ? sourceTitle(key)
+            : key;
+      return `${title} · ${members.length}`;
+    },
+    [grouping, sourceTitle],
+  );
+  const drawn = useMemo(() => {
+    if (!graph.data || grouping === 'none') {
+      return { data: graph.data, groups: new Map<number, GraphGroup>(), hidden };
+    }
+    const result = grouped(graph.data, grouping, opened, (n) => !hidden.has(n.id), groupName);
+    return { ...result, hidden: NOTHING };
+  }, [graph.data, grouping, opened, hidden, groupName]);
+
   // A path holds while its first trace stays selected.
   const [linked, setLinked] = useState<{ from: number; path: GraphPath } | null>(null);
   const path = linked && linked.from === selected ? linked.path : null;
+
   // Folded leaves: of some traces, or of all at once.
   const [folded, setFolded] = useState<ReadonlySet<number>>(new Set());
   const [foldAll, setFoldAll] = useState(false);
   const fold = useMemo(
-    () => (graph.data ? foldedLeaves(graph.data, foldAll ? 'all' : folded) : null),
-    [graph.data, folded, foldAll],
+    () => (drawn.data ? foldedLeaves(drawn.data, foldAll ? 'all' : folded) : null),
+    [drawn.data, folded, foldAll],
   );
-  const leaves = useMemo(() => (graph.data ? leafCounts(graph.data) : new Map()), [graph.data]);
+  const leaves = useMemo(
+    () => (drawn.data ? leafCounts(drawn.data) : new Map<number, number>()),
+    [drawn.data],
+  );
   const shown = useMemo(
-    () => (fold?.hidden.size ? new Set([...hidden, ...fold.hidden]) : hidden),
-    [hidden, fold],
+    () => (fold?.hidden.size ? new Set([...drawn.hidden, ...fold.hidden]) : drawn.hidden),
+    [drawn.hidden, fold],
   );
   const toggleFold = (id: number) => {
     if (!leaves.get(id)) return;
@@ -112,16 +156,52 @@ export function GraphView({ profileId, view }: { profileId: number; view: TraceV
   }, [select]);
 
   if (graph.isPending) return <Pending label="Chargement du graphe…" />;
-  if (graph.isError) return <p role="alert">{errorMessage(graph.error)}</p>;
-  const data = graph.data;
+  if (graph.isError || !drawn.data) return <p role="alert">{errorMessage(graph.error)}</p>;
+  const all = graph.data;
+  const data = drawn.data;
+  const groupOf = (id: number) =>
+    [...drawn.groups.values()].find((g) => g.members.some((m) => m.id === id));
   const show = (id: number) => {
+    const group = groupOf(id);
     select(id);
-    canvas.current?.show(id);
+    if (!group) {
+      canvas.current?.show(id);
+      return;
+    }
+    // In a closed group: open it, then go to the trace once it is drawn.
+    setOpened(new Set([...opened, group.key]));
+    window.setTimeout(() => canvas.current?.show(id), 150);
   };
+  const openGroup = (id: number) => {
+    const group = drawn.groups.get(id);
+    if (!group) return false;
+    setOpened(new Set([...opened, group.key]));
+    select(null);
+    return true;
+  };
+  const group = selected !== null ? drawn.groups.get(selected) : undefined;
 
   return (
     <div className="grid gap-3">
-      <TraceToolbar data={data} view={view} hidden={hidden} onPick={show}>
+      <TraceToolbar data={all} view={view} hidden={hidden} onPick={show}>
+        <Label className="flex items-center gap-2 font-normal">
+          Regrouper
+          <select
+            className="h-8 rounded-lg border bg-background px-2 text-sm"
+            value={grouping}
+            onChange={(e) => {
+              setGrouping(e.target.value as Grouping);
+              setOpened(new Set());
+              select(null);
+            }}
+          >
+            {GROUPINGS.map(([value, title]) => (
+              <option key={value} value={value}>
+                {title}
+              </option>
+            ))}
+          </select>
+        </Label>
         <Button
           variant={foldAll ? 'secondary' : 'ghost'}
           aria-pressed={foldAll}
@@ -138,7 +218,7 @@ export function GraphView({ profileId, view }: { profileId: number; view: TraceV
           Tout voir
         </Button>
       </TraceToolbar>
-      {data.truncated && (
+      {all.truncated && (
         <p className="text-sm text-muted-foreground">
           Trop de traces pour toutes les dessiner : les plus récemment vues sont affichées.
         </p>
@@ -150,7 +230,7 @@ export function GraphView({ profileId, view }: { profileId: number; view: TraceV
         )}
       >
         <div className="relative min-h-[24rem] overflow-hidden rounded-lg border bg-card">
-          {data.nodes.length <= 1 ? (
+          {all.nodes.length <= 1 ? (
             <p className="p-6 text-sm text-muted-foreground">
               Rien à relier pour l’instant : lance un scan, les traces apparaîtront ici au fil de
               l’eau.
@@ -165,13 +245,25 @@ export function GraphView({ profileId, view }: { profileId: number; view: TraceV
               path={path}
               badges={fold?.counts}
               onSelect={select}
-              onFold={toggleFold}
-              label={`Graphe de ${data.nodes.length} traces. La vue Liste en donne le même contenu.`}
+              onFold={(id) => {
+                if (!openGroup(id)) toggleFold(id);
+              }}
+              label={`Graphe de ${all.nodes.length} traces. La vue Liste en donne le même contenu.`}
             />
           )}
-          <Legend nodes={data.nodes.map((n) => n.kind)} />
+          <Legend nodes={all.nodes.map((n) => n.kind)} />
         </div>
-        {selected !== null && (
+        {group && (
+          <GroupPanel
+            key={group.id}
+            group={group}
+            title={data.nodes.find((n) => n.id === group.id)?.display ?? group.key}
+            onOpen={() => openGroup(group.id)}
+            onPick={show}
+            onClose={() => select(null)}
+          />
+        )}
+        {selected !== null && selected >= 0 && (
           <TracePanel
             key={selected}
             id={selected}
@@ -196,7 +288,7 @@ export function GraphView({ profileId, view }: { profileId: number; view: TraceV
                 <PathFinder
                   data={data}
                   from={selected}
-                  hidden={hidden}
+                  hidden={drawn.hidden}
                   path={path}
                   onPath={(found) => {
                     setLinked(found ? { from: selected, path: found } : null);
@@ -212,6 +304,8 @@ export function GraphView({ profileId, view }: { profileId: number; view: TraceV
     </div>
   );
 }
+
+const NOTHING: ReadonlySet<number> = new Set();
 
 function Legend({ nodes }: { nodes: EntityKind[] }) {
   const { resolved } = useTheme();

@@ -1,6 +1,6 @@
 // A profile's graph as the query cache holds it: live changes, filters and search. Pure
 // functions, tested in graph.test.ts.
-import type { EntityStatus, EntityKind, GraphData, GraphNode, Entity, Result } from './types';
+import type { Edge, EntityStatus, EntityKind, GraphData, GraphNode, Entity, Result } from './types';
 
 /**
  * A new result in a loaded graph: its trace (new, or one more proof of a known one) and its
@@ -207,4 +207,102 @@ export function foldedLeaves(
 /** How many leaves each trace has (what folding it would hide). */
 export function leafCounts(data: GraphData): Map<number, number> {
   return foldedLeaves(data, 'all').counts;
+}
+
+export type Grouping = 'none' | 'kind' | 'source' | 'site';
+
+/** The group a trace falls in, or null when it always stands alone (the identity, declared
+ * traces, and for sites, traces without one). */
+export function groupKey(node: GraphNode, by: Grouping): string | null {
+  if (by === 'none' || node.kind === 'identity' || node.modules.includes('seed')) return null;
+  switch (by) {
+    case 'kind':
+      return node.kind;
+    case 'source':
+      return node.modules[0] ?? null;
+    case 'site': {
+      if (node.kind === 'email') return node.display.split('@')[1]?.toLowerCase() ?? null;
+      if (node.kind !== 'account' && node.kind !== 'url') return null;
+      try {
+        return new URL(node.display).hostname.replace(/^www\./, '');
+      } catch {
+        return null;
+      }
+    }
+  }
+}
+
+export interface GraphGroup {
+  key: string;
+  /** The meta node's id (negative, never a trace's). */
+  id: number;
+  members: GraphNode[];
+}
+
+/**
+ * The graph with each group of traces drawn as one node (its id negative), but the groups in
+ * `open`, whose traces show again. Edges between groups merge into one. Traces `kept` rejects
+ * (filters) are left out. `name` titles a group.
+ */
+export function grouped(
+  data: GraphData,
+  by: Grouping,
+  open: ReadonlySet<string>,
+  kept: (node: GraphNode) => boolean,
+  name: (key: string, members: GraphNode[]) => string,
+): { data: GraphData; groups: Map<number, GraphGroup> } {
+  const members = new Map<string, GraphNode[]>();
+  const nodes: GraphNode[] = [];
+  for (const node of data.nodes) {
+    if (!kept(node)) continue;
+    const key = groupKey(node, by);
+    if (key === null || open.has(key)) nodes.push(node);
+    else members.set(key, [...(members.get(key) ?? []), node]);
+  }
+  const groups = new Map<number, GraphGroup>();
+  const owner = new Map<number, number>();
+  [...members.keys()].sort().forEach((key, i) => {
+    const list = members.get(key)!;
+    if (list.length === 1) {
+      nodes.push(list[0]!); // a group of one is the trace itself
+      return;
+    }
+    const id = -(i + 1);
+    groups.set(id, { key, id, members: list });
+    for (const m of list) owner.set(m.id, id);
+    const kinds = new Set(list.map((m) => m.kind));
+    nodes.push({
+      id,
+      kind: kinds.size === 1 ? list[0]!.kind : 'url',
+      display: name(key, list),
+      normalized: key,
+      status: 'unreviewed',
+      confidence: null,
+      attributes: { group: key, members: list.length },
+      first_seen: list.map((m) => m.first_seen).sort()[0]!,
+      last_seen: list
+        .map((m) => m.last_seen)
+        .sort()
+        .at(-1)!,
+      modules: [...new Set(list.flatMap((m) => m.modules))],
+      evidence_count: list.reduce((n, m) => n + m.evidence_count, 0),
+    });
+  });
+  const present = new Set(nodes.map((n) => n.id));
+  const edges = new Map<string, Edge>();
+  let next = -1;
+  for (const edge of data.edges) {
+    const source = owner.get(edge.source_id) ?? edge.source_id;
+    const target = owner.get(edge.target_id) ?? edge.target_id;
+    if (source === target || !present.has(source) || !present.has(target)) continue;
+    if (source === edge.source_id && target === edge.target_id) {
+      edges.set(String(edge.id), edge);
+      continue;
+    }
+    const key = `${source}>${target}`;
+    if (!edges.has(key)) {
+      edges.set(key, { ...edge, id: -1_000_000 + next--, source_id: source, target_id: target });
+    }
+  }
+  return { data: { ...data, nodes, edges: [...edges.values()] }, groups };
 }

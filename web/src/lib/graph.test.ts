@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   NO_FILTER,
   foldedLeaves,
+  groupKey,
+  grouped,
   passes,
   search,
   shortestPath,
@@ -190,5 +192,57 @@ describe('folded leaves', () => {
   it('folds every trace at once, never a declared one', () => {
     expect([...foldedLeaves(tree, 'all').hidden]).toEqual([4, 5]);
     expect(foldedLeaves(tree, new Set([1])).hidden.size).toBe(0); // the seed stays
+  });
+});
+
+describe('groups', () => {
+  const data: GraphData = {
+    nodes: [
+      node(1, 'Jeanne', { kind: 'identity', modules: [] }),
+      node(2, 'jeanne', { kind: 'username', modules: ['seed'] }),
+      node(3, 'https://github.com/jeanne', { modules: ['github'] }),
+      node(4, 'https://www.github.com/jeanne2', { modules: ['github'] }),
+      node(5, 'https://gitlab.com/jeanne', { modules: ['gitlab'] }),
+      node(6, 'jeanne@example.org', { kind: 'email', modules: ['github'] }),
+    ],
+    edges: [
+      edge(1, 1, 2),
+      edge(2, 2, 3),
+      edge(3, 2, 4),
+      edge(4, 2, 5),
+      edge(5, 3, 6),
+      edge(6, 4, 6),
+    ],
+    truncated: false,
+  };
+  const name = (key: string, members: GraphNode[]) => `${key} · ${members.length}`;
+
+  it('draws each group as one node, and merges the edges that meet there', () => {
+    const { data: view, groups } = grouped(data, 'source', new Set(), () => true, name);
+    // github: 3, 4, 6; gitlab: 5 alone stays itself
+    expect(view.nodes.map((n) => n.display).sort()).toEqual([
+      'Jeanne',
+      'github · 3',
+      'https://gitlab.com/jeanne',
+      'jeanne',
+    ]);
+    const github = [...groups.values()].find((g) => g.key === 'github')!;
+    expect(github.members.map((m) => m.id)).toEqual([3, 4, 6]);
+    const toGroup = view.edges.filter((e) => e.target_id === github.id);
+    expect(toGroup).toHaveLength(1); // 2 → 3 and 2 → 4 merged; 3 → 6, 4 → 6 inside
+    expect(view.edges).toHaveLength(3);
+  });
+
+  it('opens a group, groups by site, and leaves out what the filters reject', () => {
+    const open = grouped(data, 'source', new Set(['github']), () => true, name);
+    expect(open.groups.size).toBe(0);
+    expect(open.data.nodes).toHaveLength(6);
+
+    expect(groupKey(data.nodes[3]!, 'site')).toBe('github.com');
+    expect(groupKey(data.nodes[5]!, 'site')).toBe('example.org');
+    expect(groupKey(data.nodes[1]!, 'site')).toBeNull(); // declared
+    const bySite = grouped(data, 'site', new Set(), (n) => n.id !== 6, name);
+    expect(bySite.data.nodes.map((n) => n.display)).toContain('github.com · 2');
+    expect(bySite.data.nodes.some((n) => n.id === 6)).toBe(false);
   });
 });

@@ -23,7 +23,8 @@ export function useSelectedTrace(): [number | null, (id: number | null) => void]
   const search = useSearch();
   const [location, navigate] = useLocation();
   const raw = new URLSearchParams(search).get('trace');
-  const selected = raw && /^\d+$/.test(raw) ? Number(raw) : null;
+  // Negative: a group of traces (graph view).
+  const selected = raw && /^-?\d+$/.test(raw) ? Number(raw) : null;
   const select = useCallback(
     (id: number | null) => {
       navigate(id === null ? location : `${location}?trace=${id}`, { replace: true });
