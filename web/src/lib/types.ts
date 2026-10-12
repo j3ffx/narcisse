@@ -157,7 +157,16 @@ export interface RunProgress {
 
 export interface Preferences {
   github_token_set: boolean;
+  gitlab_token_set: boolean;
   exclude_adult: boolean;
+  fediverse_instances: string[];
+}
+
+export interface PreferencesChanges {
+  github_token?: string | null;
+  gitlab_token?: string | null;
+  exclude_adult?: boolean;
+  fediverse_instances?: string[];
 }
 
 export interface EntityUpdate extends Entity {

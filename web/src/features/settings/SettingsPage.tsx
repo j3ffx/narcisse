@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { errorMessage } from '@/lib/errors';
 import { useInfo, usePreferences, useUpdatePreferences } from '@/lib/queries';
-import { useState, type FormEvent } from 'react';
+import { XIcon } from 'lucide-react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { toast } from 'sonner';
 
 export function SettingsPage() {
@@ -24,7 +25,27 @@ export function SettingsPage() {
       {preferences.isError && <p role="alert">{errorMessage(preferences.error)}</p>}
       {preferences.data && (
         <>
-          <GitHubToken saved={preferences.data.github_token_set} />
+          <Token
+            service="github"
+            title="Token GitHub (facultatif)"
+            saved={preferences.data.github_token_set}
+            placeholder="github_pat_…"
+          >
+            Sans token, GitHub répond à 60 requêtes par heure, ce qui suffit pour un ou deux
+            éléments. Un token personnel gratuit, sans aucune permission cochée, relève la limite à
+            5 000. Il se crée dans GitHub : Settings → Developer settings → Personal access tokens.
+          </Token>
+          <Token
+            service="gitlab"
+            title="Token GitLab (facultatif)"
+            saved={preferences.data.gitlab_token_set}
+            placeholder="glpat-…"
+          >
+            Sans token, gitlab.com ne montre d’un profil que le nom et l’email public. Un token
+            personnel gratuit, avec la seule permission « read_user », ajoute la bio, le lieu et le
+            site. Il se crée dans GitLab : Preferences → Access tokens.
+          </Token>
+          <FediverseInstances instances={preferences.data.fediverse_instances} />
           <AdultSites excluded={preferences.data.exclude_adult} />
         </>
       )}
@@ -32,47 +53,59 @@ export function SettingsPage() {
   );
 }
 
-function GitHubToken({ saved }: { saved: boolean }) {
+const SERVICE_NAMES = { github: 'GitHub', gitlab: 'GitLab' } as const;
+
+function Token({
+  service,
+  title,
+  saved,
+  placeholder,
+  children,
+}: {
+  service: keyof typeof SERVICE_NAMES;
+  title: string;
+  saved: boolean;
+  placeholder: string;
+  children: ReactNode;
+}) {
   const [token, setToken] = useState('');
   const update = useUpdatePreferences();
+  const key = `${service}_token` as const;
+  const name = SERVICE_NAMES[service];
   const save = (event: FormEvent) => {
     event.preventDefault();
     update.mutate(
-      { github_token: token },
+      { [key]: token },
       {
         onSuccess: () => {
           setToken('');
-          toast.success('Token GitHub enregistré.');
+          toast.success(`Token ${name} enregistré.`);
         },
       },
     );
   };
   return (
-    <section aria-labelledby="github-title" className="grid gap-3">
+    <section aria-labelledby={`${service}-title`} className="grid gap-3">
       <div>
-        <h2 id="github-title" className="font-heading text-lg font-semibold">
-          Token GitHub (facultatif)
+        <h2 id={`${service}-title`} className="font-heading text-lg font-semibold">
+          {title}
         </h2>
-        <p className="text-sm text-muted-foreground">
-          Sans token, GitHub répond à 60 requêtes par heure, ce qui suffit pour un ou deux éléments.
-          Un token personnel gratuit, sans aucune permission cochée, relève la limite à 5 000. Il se
-          crée dans GitHub : Settings → Developer settings → Personal access tokens.
-        </p>
+        <p className="text-sm text-muted-foreground">{children}</p>
       </div>
-      <p className="text-sm" data-testid="github-token-state">
+      <p className="text-sm" data-testid={`${service}-token-state`}>
         {saved ? 'Un token est enregistré.' : 'Aucun token enregistré.'}
       </p>
       <form onSubmit={save} className="flex flex-wrap items-end gap-2">
         <div className="grid min-w-64 flex-1 gap-1.5">
-          <Label htmlFor="github-token">{saved ? 'Remplacer le token' : 'Token'}</Label>
+          <Label htmlFor={`${service}-token`}>{saved ? 'Remplacer le token' : 'Token'}</Label>
           <Input
-            id="github-token"
+            id={`${service}-token`}
             type="password"
             autoComplete="off"
             spellCheck={false}
             value={token}
             onChange={(e) => setToken(e.target.value)}
-            placeholder="github_pat_…"
+            placeholder={placeholder}
           />
         </div>
         <Button type="submit" disabled={!token.trim() || update.isPending}>
@@ -84,14 +117,81 @@ function GitHubToken({ saved }: { saved: boolean }) {
             variant="ghost"
             onClick={() =>
               update.mutate(
-                { github_token: null },
-                { onSuccess: () => toast.success('Token GitHub retiré.') },
+                { [key]: null },
+                { onSuccess: () => toast.success(`Token ${name} retiré.`) },
               )
             }
           >
             Retirer
           </Button>
         )}
+      </form>
+    </section>
+  );
+}
+
+function FediverseInstances({ instances }: { instances: string[] }) {
+  const [instance, setInstance] = useState('');
+  const update = useUpdatePreferences();
+  const add = (event: FormEvent) => {
+    event.preventDefault();
+    update.mutate(
+      { fediverse_instances: [...instances, instance] },
+      { onSuccess: () => setInstance('') },
+    );
+  };
+  return (
+    <section aria-labelledby="fediverse-title" className="grid gap-3">
+      <div>
+        <h2 id="fediverse-title" className="font-heading text-lg font-semibold">
+          Instances Mastodon et Fediverse
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Un pseudo est cherché sur une quinzaine de grandes instances (la liste est sur la page
+          Sources). Ajoute ici celles où tu as, ou as eu, un compte : seules les instances de la
+          liste sont contactées, et un pseudo@instance donné comme élément l’est sur la sienne.
+        </p>
+      </div>
+      {instances.length > 0 ? (
+        <ul className="flex flex-wrap gap-2" aria-label="Instances ajoutées">
+          {instances.map((host) => (
+            <li
+              key={host}
+              className="flex items-center gap-1 rounded-md border py-0.5 pr-0.5 pl-2 text-sm"
+            >
+              {host}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label={`Retirer ${host}`}
+                disabled={update.isPending}
+                onClick={() =>
+                  update.mutate({ fediverse_instances: instances.filter((h) => h !== host) })
+                }
+              >
+                <XIcon aria-hidden />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm">Aucune instance ajoutée.</p>
+      )}
+      <form onSubmit={add} className="flex flex-wrap items-end gap-2">
+        <div className="grid min-w-64 flex-1 gap-1.5">
+          <Label htmlFor="fediverse-instance">Instance</Label>
+          <Input
+            id="fediverse-instance"
+            spellCheck={false}
+            value={instance}
+            onChange={(e) => setInstance(e.target.value)}
+            placeholder="instance.example"
+          />
+        </div>
+        <Button type="submit" disabled={!instance.trim() || update.isPending}>
+          Ajouter
+        </Button>
       </form>
     </section>
   );

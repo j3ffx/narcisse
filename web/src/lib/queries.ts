@@ -20,6 +20,7 @@ import type {
   Entity,
   EntityStatus,
   Preferences,
+  PreferencesChanges,
   ProfileKind,
   ResultsPage,
   Scan,
@@ -285,8 +286,7 @@ export const usePreferences = () =>
 export function useUpdatePreferences() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (changes: { github_token?: string | null; exclude_adult?: boolean }) =>
-      patch<Preferences>('/preferences', changes),
+    mutationFn: (changes: PreferencesChanges) => patch<Preferences>('/preferences', changes),
     onSuccess: (preferences) => client.setQueryData(keys.preferences, preferences),
     onError: failed,
   });

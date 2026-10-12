@@ -29,7 +29,7 @@ export const SEED_KINDS: SeedKind[] = [
 /** Fictitious examples, shown as placeholders. */
 export const SEED_EXAMPLES: Record<SeedKind, string> = {
   name: 'Jeanne Exemple',
-  username: 'jeanne.exemple',
+  username: 'jeanne.exemple, ou @jeanne@instance.example',
   email: 'jeanne@example.org',
   phone: '+33 6 39 98 00 00',
   address: '1 rue de l’Exemple, 75000 Paris',
@@ -73,6 +73,8 @@ export const RELATION_LABELS: Record<string, string> = {
   commits_as: 'commits',
   publishes_key: 'clé PGP publiée',
   key_identity: 'identité de la clé',
+  proves: 'preuve d’identité',
+  handle_domain: 'domaine du pseudo',
 };
 
 /** What a search reports, in the order it reads best. */
@@ -88,6 +90,8 @@ export const NOTE_LABELS: [string, (n: number) => string][] = [
 
 export const CATEGORY_LABELS: Record<string, string> = {
   accounts: 'Comptes',
+  social: 'Réseaux sociaux',
+  forums: 'Forums',
   code: 'Code',
   keys: 'Clés',
   demo: 'Démonstration',

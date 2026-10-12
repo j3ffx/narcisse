@@ -25,6 +25,10 @@ const MESSAGES: Record<string, (p: Params) => string> = {
   entity_not_reviewable: () => 'Cet élément vient de toi : il n’y a rien à trier.',
   github_token_rejected: () =>
     'GitHub refuse le token enregistré (expiré ou révoqué ?). Change-le dans les réglages.',
+  gitlab_token_rejected: () =>
+    'GitLab refuse le token enregistré (expiré ou révoqué ?). Change-le dans les réglages.',
+  instance_not_listed: (p) =>
+    `L’instance ${typeof p.host === 'string' ? p.host : ''} n’est pas dans la liste : ajoute-la dans les réglages, puis relance un scan.`,
   forbidden_host: () => 'Requête refusée : adresse inattendue.',
   forbidden_origin: () => 'Requête refusée : elle ne vient pas de Narcisse.',
   json_required: () => 'Requête refusée : format inattendu.',
