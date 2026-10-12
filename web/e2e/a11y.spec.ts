@@ -41,6 +41,14 @@ for (const colorScheme of ['light', 'dark'] as const) {
       });
       await audit(page);
 
+      await page.goto('/sources');
+      await expect(page.getByTestId('source')).toHaveCount(1);
+      await audit(page);
+
+      await page.goto('/reglages');
+      await expect(page.getByTestId('github-token-state')).toBeVisible();
+      await audit(page);
+
       await page.getByRole('button', { name: /Activité/ }).click();
       await expect(page.getByRole('dialog', { name: 'Activité' })).toBeVisible();
       await audit(page);

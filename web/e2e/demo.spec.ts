@@ -105,3 +105,41 @@ test('no long task over 200 ms while a scan streams', async ({ page, request }) 
   );
   expect(longTasks.filter((d) => d > 200)).toEqual([]);
 });
+
+test('a trace marked "not me" leaves the list, and the choice holds', async ({ page, request }) => {
+  const id = await demoProfile(request, 'Jeanne Exemple (tri)');
+  await startScanFromUi(page, id);
+  await expect(page.getByRole('heading', { name: /Scan/ }).getByText('Terminé')).toBeVisible({
+    timeout: 30_000,
+  });
+  const first = results(page).first();
+  const value = await first.getByTestId('result-value').innerText();
+
+  await first.getByRole('button', { name: 'Pas moi' }).click();
+  await expect(results(page).filter({ hasText: value })).toHaveCount(0, { timeout: 100 });
+
+  await page.getByLabel('Afficher les « pas moi »').check();
+  const back = results(page).filter({ hasText: value }).first();
+  await expect(back).toHaveAttribute('data-status', 'false_positive');
+
+  await back.getByRole('button', { name: 'C’est moi' }).click();
+  await page.reload();
+  await expect(results(page).filter({ hasText: value }).first()).toHaveAttribute(
+    'data-status',
+    'confirmed',
+  );
+});
+
+test('the sources and the settings explain themselves', async ({ page }) => {
+  await page.goto('/sources');
+  await expect(page.getByTestId('source')).toHaveCount(1); // demo mode: the demo module only
+  await expect(page.getByText('aucun site (rien ne sort de ta machine)')).toBeVisible();
+
+  await page.goto('/reglages');
+  await expect(page.getByTestId('github-token-state')).toHaveText('Aucun token enregistré.');
+  await page.getByRole('textbox', { name: 'Token' }).fill('fake-test-token');
+  await page.getByRole('button', { name: 'Enregistrer' }).click();
+  await expect(page.getByTestId('github-token-state')).toHaveText('Un token est enregistré.');
+  await page.getByRole('button', { name: 'Retirer' }).click();
+  await expect(page.getByTestId('github-token-state')).toHaveText('Aucun token enregistré.');
+});
