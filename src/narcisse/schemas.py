@@ -164,6 +164,42 @@ class ResultOut(Schema):
     captured_at: datetime
 
 
+class GraphNode(EntityOut):
+    first_seen: datetime
+    last_seen: datetime
+    modules: list[str]  # the sources that found it ("seed" for what the user declared)
+    evidence_count: int
+
+
+class GraphOut(Schema):
+    """A profile's traces and how they relate. `truncated`: too many to send them all."""
+
+    nodes: list[GraphNode]
+    edges: list[EdgeOut]
+    truncated: bool
+
+
+class EvidenceOut(Schema):
+    id: int
+    scan_id: int
+    run_id: int
+    module: str
+    relation: str | None
+    url: str | None
+    excerpt: str | None
+    content_hash: str | None
+    captured_at: datetime
+
+
+class EntityDetail(Schema):
+    """One trace, with every proof of it and every trace it relates to."""
+
+    entity: GraphNode
+    evidence: list[EvidenceOut]
+    edges: list[EdgeOut]
+    neighbours: list[EntityOut]
+
+
 class ResultsPage(Schema):
     items: list[ResultOut]
     total: int
