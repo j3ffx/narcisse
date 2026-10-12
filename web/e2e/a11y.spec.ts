@@ -34,6 +34,11 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
       await startScanFromUi(page, id);
       await expect(results(page).first()).toBeVisible();
+      // Audited once it ends: a result arriving live would be measured halfway through its
+      // fade-in. The failed run keeps an error and a retry button on the page.
+      await expect(page.getByRole('heading', { name: /Scan/ }).getByText('Terminé')).toBeVisible({
+        timeout: 30_000,
+      });
       await audit(page);
 
       await page.getByRole('button', { name: /Activité/ }).click();
