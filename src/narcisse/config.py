@@ -74,7 +74,14 @@ class Settings:
 
     @property
     def url(self) -> str:
+        """The address shown and opened in a browser tab: the shortest one that works."""
         return self._origin(SHORT_HOST if self.short_host else PUBLIC_HOST)
+
+    @property
+    def app_url(self) -> str:
+        """The address of Narcisse's own window. Always *.localhost: unlike http://narcisse/,
+        browsers treat it as a secure context, which installing the app requires."""
+        return self._origin(PUBLIC_HOST)
 
     @property
     def own_origins(self) -> frozenset[str]:

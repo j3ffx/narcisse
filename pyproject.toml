@@ -11,7 +11,9 @@ dependencies = [
     "alembic>=1.20.0",
     "fastapi>=0.142.4",
     "httpx>=0.28.1",
+    "pillow>=12.3.0",
     "platformdirs>=4.12.4",
+    "pystray>=0.19.5",
     "sqlalchemy[asyncio]>=2.1.4",
     "typer>=0.27.3",
     "uvicorn>=0.54.0",
@@ -60,6 +62,10 @@ files = ["src", "tests", "scripts"]
 [[tool.mypy.overrides]]
 module = ["narcisse.storage.migrations.*"]
 disallow_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["pystray"]  # ships no type information
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

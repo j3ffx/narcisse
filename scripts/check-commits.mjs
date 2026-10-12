@@ -29,6 +29,7 @@ export const SCOPES = [
   'storage',
   'events',
   'cli',
+  'desktop',
   'ui',
   'profiles',
   'scans',

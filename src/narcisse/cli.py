@@ -1,10 +1,16 @@
-"""Command line: `narcisse serve` starts everything; more commands come with scans from scripts."""
+"""Command line.
+
+- `narcisse open`: what the Start menu shortcut runs. Opens Narcisse, starting it first (in the
+  notification area) if it isn't running.
+- `narcisse tray`: the server in the background, with its icon in the notification area.
+- `narcisse serve`: the server in this terminal (development, scripts).
+- `narcisse shortcut`: adds Narcisse to the Start menu (Windows).
+"""
 
 import os
 import socket
 import threading
 import time
-import webbrowser
 from dataclasses import replace
 from typing import Annotated
 
@@ -15,6 +21,7 @@ import uvicorn
 from narcisse import __version__
 from narcisse.app import create_app
 from narcisse.config import DEFAULT_PORT, FALLBACK_PORT, HOST, Settings
+from narcisse.desktop import system
 from narcisse.logs import setup_logging
 from narcisse.server import Server
 
@@ -23,6 +30,9 @@ app = typer.Typer(
     no_args_is_help=True,
     add_completion=False,
 )
+
+Demo = Annotated[bool, typer.Option("--demo", help="Mode démo : propose le module factice.")]
+Port = Annotated[int | None, typer.Option(help="Port local (80 si possible, sinon 8765).")]
 
 
 def _can_listen(port: int) -> bool:
@@ -34,50 +44,52 @@ def _can_listen(port: int) -> bool:
         return True
 
 
-def _narcisse_answers(url: str) -> bool:
+def _narcisse_answers(port: int) -> bool:
     try:
-        return httpx.get(f"{url}/api/info", timeout=2).json().get("version") is not None
+        response = httpx.get(f"http://{HOST}:{port}/api/info", timeout=2)
+        return response.json().get("version") is not None
     except (httpx.HTTPError, ValueError, AttributeError):
         return False
 
 
-def _open_when_ready(server: Server, url: str) -> None:
+def _locate(port: int | None, demo: bool) -> tuple[Settings, bool]:
+    """Where Narcisse runs or will run: (settings, whether it already runs there). Port 80 when
+    free, so that the address has no port; else 8765. Raises Exit when no port is usable."""
+    settings = Settings.from_env(port=port, demo=demo or None)
+    explicit = port is not None or "NARCISSE_PORT" in os.environ
+    for candidate in [settings.port] if explicit else [DEFAULT_PORT, FALLBACK_PORT]:
+        candidate_settings = replace(settings, port=candidate)
+        if _narcisse_answers(candidate):
+            return candidate_settings, True
+        if _can_listen(candidate):
+            return candidate_settings, False
+    typer.echo(f"Le port {settings.port} est déjà pris. Essaie : narcisse serve --port 8766")
+    raise typer.Exit(1)
+
+
+def _open_when_ready(server: Server, settings: Settings) -> None:
     while not server.started and not server.should_exit:
         time.sleep(0.05)
     if server.started:
-        webbrowser.open(url)
+        system.open_window(settings.app_url, settings.url)
 
 
 @app.command()
 def serve(
-    port: Annotated[
-        int | None, typer.Option(help="Port local (80 si possible, sinon 8765).")
-    ] = None,
-    demo: Annotated[
-        bool, typer.Option("--demo", help="Mode démo : propose le module factice.")
-    ] = False,
+    port: Port = None,
+    demo: Demo = False,
     browser: Annotated[
         bool, typer.Option("--browser/--no-browser", help="Ouvrir le navigateur.")
     ] = True,
     verbose: Annotated[bool, typer.Option("--verbose", help="Journal détaillé.")] = False,
 ) -> None:
-    """Lance Narcisse sur 127.0.0.1 et ouvre l’interface dans le navigateur."""
-    settings = Settings.from_env(port=port, demo=demo or None)
-    explicit = port is not None or "NARCISSE_PORT" in os.environ
-    for candidate in [settings.port] if explicit else [DEFAULT_PORT, FALLBACK_PORT]:
-        candidate_settings = replace(settings, port=candidate)
-        if _narcisse_answers(f"http://{HOST}:{candidate}"):
-            typer.echo(f"Narcisse tourne déjà sur {candidate_settings.url}.")
-            if browser:
-                webbrowser.open(candidate_settings.url)
-            return
-        if _can_listen(candidate):
-            settings = candidate_settings
-            break
-    else:
-        typer.echo(f"Le port {settings.port} est déjà pris. Essaie : narcisse serve --port 8766")
-        raise typer.Exit(1)
-    url = settings.url
+    """Lance Narcisse dans ce terminal, sur 127.0.0.1, et l’ouvre."""
+    settings, running = _locate(port, demo)
+    if running:
+        typer.echo(f"Narcisse tourne déjà sur {settings.url}.")
+        if browser:
+            system.open_window(settings.app_url, settings.url)
+        return
     setup_logging(settings, verbose=verbose)
     config = uvicorn.Config(
         create_app(settings),
@@ -88,11 +100,61 @@ def serve(
         timeout_graceful_shutdown=3,
     )
     server = Server(config)
-    typer.echo(f"Narcisse {__version__} : {url}" + (" (mode démo)" if settings.demo else ""))
+    mode = " (mode démo)" if settings.demo else ""
+    typer.echo(f"Narcisse {__version__} : {settings.url}{mode}")
     typer.echo(f"Données : {settings.data_dir}. Ctrl+C pour arrêter.")
     if browser:
-        threading.Thread(target=_open_when_ready, args=(server, url), daemon=True).start()
+        threading.Thread(target=_open_when_ready, args=(server, settings), daemon=True).start()
     server.run()
+
+
+@app.command()
+def tray(
+    port: Port = None,
+    demo: Demo = False,
+    open_window: Annotated[
+        bool, typer.Option("--open", help="Ouvrir Narcisse une fois prêt.")
+    ] = False,
+) -> None:
+    """Lance Narcisse en arrière-plan, avec son icône dans la zone de notification."""
+    settings, running = _locate(port, demo)
+    if running:
+        if open_window:
+            system.open_window(settings.app_url, settings.url)
+        return
+    from narcisse.desktop.tray import Tray  # pystray needs a desktop session: load it only here
+
+    setup_logging(settings, terminal=False)
+    Tray(settings, open_on_start=open_window).run()
+
+
+@app.command("open")
+def open_(port: Port = None, demo: Demo = False) -> None:
+    """Ouvre Narcisse, en le démarrant d’abord s’il ne tourne pas."""
+    settings, running = _locate(port, demo)
+    if running:
+        system.open_window(settings.app_url, settings.url)
+        return
+    args = [
+        "tray",
+        "--open",
+        *(["--demo"] if demo else []),
+        *(["--port", str(port)] if port else []),
+    ]
+    system.spawn_detached(system.command(*args))
+
+
+@app.command()
+def shortcut(demo: Demo = False) -> None:
+    """Ajoute Narcisse au menu Démarrer (Windows) : un clic l’ouvre, en le démarrant si besoin."""
+    if not system.IS_WINDOWS:
+        typer.echo(
+            "Le raccourci n’existe que sous Windows pour l’instant : lance « narcisse open »."
+        )
+        raise typer.Exit(1)
+    path = system.create_shortcut(system.command("open", *(["--demo"] if demo else [])))
+    typer.echo(f"Raccourci créé : {path}")
+    typer.echo("Tape « Narcisse » dans le menu Démarrer pour l’ouvrir, ou épingle-le.")
 
 
 @app.command()
