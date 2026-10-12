@@ -96,12 +96,15 @@ que tout le monde peut lire. En mode démo, le bouton « Graphe fictif » crée 
 uv run narcisse shortcut --demo
 ```
 
+(Sans `--demo`, il s’ouvre directement sur tes vraies données.)
+
 Narcisse apparaît dans le menu Démarrer (tape « Narcisse », ou épingle-le). Un clic l’ouvre dans sa
 propre fenêtre, en le démarrant d’abord s’il ne tourne pas. Il se range alors près de l’horloge :
 l’icône dit ce qui se passe (un point bleu pendant un scan, jaune en pause, rouge si une recherche
 échoue), et son menu permet d’ouvrir Narcisse, de mettre les scans en pause, de couper les
-notifications, de le faire démarrer avec Windows (décoché tant que tu ne le coches pas), de le
-redémarrer ou de le quitter. Une notification te prévient quand un scan se termine ou qu’une
+notifications, de passer du mode démo à tes vraies données et inversement (case « Mode démo » : le
+menu Démarrer et le démarrage avec Windows rouvrent ensuite le dernier choisi), de le faire démarrer
+avec Windows (décoché tant que tu ne le coches pas), de le redémarrer ou de le quitter. Une notification te prévient quand un scan se termine ou qu’une
 recherche échoue.
 
 Pour l’installer comme une appli du navigateur (icône dans la barre des tâches), ouvre

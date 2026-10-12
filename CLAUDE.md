@@ -14,7 +14,7 @@ npm run dev                      # API with reload + Vite on http://localhost:51
 npm run build                    # builds the UI into the Python package
 uv run narcisse serve            # built UI + API on 127.0.0.1, opens the browser (--demo for the fake module)
 uv run narcisse tray             # the same in the background, with a notification-area icon
-uv run narcisse shortcut --demo  # Start menu entry running `narcisse open` (Windows)
+uv run narcisse shortcut --demo  # Start menu entry running `narcisse open` (Windows), on the demo side
 npm run check                    # everything CI runs, but gitleaks on the history and the e2e tests
 npm run e2e                      # Playwright against `narcisse serve --demo`, on a temporary data dir
 npm run bench                    # the graph's benchmark (fictitious graphs of 500 to 20,000 traces)
@@ -96,7 +96,9 @@ fixtures, docs, commit messages or commit metadata.
   DNS could hand that name to someone else, then rebind it to this machine.
 - **The desktop side asks before touching the system.** Starting with Windows is off until the
   user ticks it in the tray menu (a value in the user's own Run key, nothing machine-wide); the
-  Start menu entry exists only once `narcisse shortcut` is run. Tests never write the real registry.
+  Start menu entry exists only once `narcisse shortcut` is run. `open` and `tray` open the side
+  (demo or the user's data) chosen last in the tray menu, kept in the user's config directory
+  (`NARCISSE_CONFIG_DIR` in tests). Tests never write the real registry.
 - **Licences are checked** before reusing a tool or dataset. The project is GPL-3.0-only, compatible
   with what it draws on so far: Maigret, Sherlock, JustDeleteMe (MIT), holehe, PhoneInfoga (GPL-3.0),
   WhatsMyName's data (CC BY-SA 4.0, credited).
