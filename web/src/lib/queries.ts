@@ -17,6 +17,7 @@ import type {
   AppInfo,
   EntityDetail,
   GraphData,
+  SavedView,
   Module,
   Profile,
   ProfileDetail,
@@ -49,6 +50,7 @@ export const keys = {
     ['graph', profileId, falsePositives] as const,
   graphs: (profileId: number) => ['graph', profileId] as const,
   entity: (id: number) => ['entity', id] as const,
+  views: (profileId: number) => ['views', profileId] as const,
   entities: ['entity'] as const,
 };
 
@@ -81,6 +83,31 @@ export const useEntityDetail = (id: number | null) =>
     queryFn: () => get<EntityDetail>(`/entities/${id}`),
     enabled: id !== null,
   });
+
+export const useSavedViews = (profileId: number) =>
+  useQuery({
+    queryKey: keys.views(profileId),
+    queryFn: () => get<SavedView[]>(`/profiles/${profileId}/views`),
+  });
+
+export function useSaveView(profileId: number) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (view: { name: string; state: Record<string, unknown> }) =>
+      post<SavedView>(`/profiles/${profileId}/views`, view),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.views(profileId) }),
+    onError: failed,
+  });
+}
+
+export function useDeleteView(profileId: number) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => del(`/views/${id}`),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.views(profileId) }),
+    onError: failed,
+  });
+}
 
 export function useMakeDemoGraph() {
   const client = useQueryClient();

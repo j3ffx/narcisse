@@ -5,6 +5,7 @@ import {
   groupKey,
   grouped,
   passes,
+  readViewState,
   search,
   shortestPath,
   withEntity,
@@ -244,5 +245,29 @@ describe('groups', () => {
     const bySite = grouped(data, 'site', new Set(), (n) => n.id !== 6, name);
     expect(bySite.data.nodes.map((n) => n.display)).toContain('github.com · 2');
     expect(bySite.data.nodes.some((n) => n.id === 6)).toBe(false);
+  });
+});
+
+describe('saved view state', () => {
+  it('keeps what fits and defaults the rest', () => {
+    const state = readViewState({
+      filter: { kinds: ['email', 'robot'], minConfidence: 0.5, since: '2026-01-01', statuses: 3 },
+      grouping: 'site',
+      opened: ['github.com', 4],
+      folded: [12, 'x'],
+      camera: { x: 0.4, y: 0.6, ratio: 0.3 },
+      selected: 7,
+    });
+    expect(state).toEqual({
+      filter: { ...NO_FILTER, kinds: ['email'], minConfidence: 0.5, since: '2026-01-01' },
+      falsePositives: false,
+      grouping: 'site',
+      opened: ['github.com'],
+      folded: [12],
+      foldAll: false,
+      selected: 7,
+      camera: { x: 0.4, y: 0.6, ratio: 0.3, angle: 0 },
+    });
+    expect(readViewState('nonsense')).toMatchObject({ filter: NO_FILTER, grouping: 'none' });
   });
 });

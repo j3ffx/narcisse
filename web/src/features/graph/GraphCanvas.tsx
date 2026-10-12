@@ -11,7 +11,7 @@ import {
 } from 'sigma/rendering';
 import { useTheme } from '@/app/theme';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
-import type { GraphPath } from '@/lib/graph';
+import type { CameraState, GraphPath } from '@/lib/graph';
 import type { GraphData } from '@/lib/types';
 import { STAGE_COLORS, pictogramsReady } from './kinds';
 import { Layout, savePositions, savedPositions } from './layout';
@@ -32,6 +32,9 @@ export interface GraphCanvasHandle {
   fit: () => void;
   /** These traces in view (a path). */
   frame: (ids: number[]) => void;
+  /** Where the camera is, and putting it back there (saved views). */
+  camera: () => CameraState | null;
+  setCamera: (state: CameraState) => void;
 }
 
 interface NodeState {
@@ -337,6 +340,8 @@ export function GraphCanvas({
   useEffect(() => {
     const saved = first.current ? savedPositions(profileId) : undefined;
     const added = sync(graph.current, data, theme, saved);
+    // What is drawn, for tests and measures (no re-render: straight on the element).
+    container.current!.dataset.nodes = String(graph.current.order);
     if (!added.length) return;
     // A trace drawn again starts with no state: forget what was set on its previous self.
     for (const key of added) {
@@ -391,6 +396,7 @@ export function GraphCanvas({
       g.hasEdge.bind(g),
     );
     shownHidden.current = { nodes, edges };
+    container.current!.dataset.visible = String(g.order - nodes.size);
   }, [hidden, data]);
 
   // Focus: a path, or the selected trace and its neighbours.
@@ -491,6 +497,13 @@ export function GraphCanvas({
           },
           { duration: reduced ? 0 : 500 },
         );
+      },
+      camera: () => {
+        const state = sigma.current?.getCamera().getState();
+        return state ? { x: state.x, y: state.y, ratio: state.ratio, angle: state.angle } : null;
+      },
+      setCamera: (state) => {
+        void sigma.current?.getCamera().animate(state, { duration: reduced ? 0 : 400 });
       },
       fit: () => {
         void sigma.current

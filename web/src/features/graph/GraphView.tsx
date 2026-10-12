@@ -10,6 +10,7 @@ import {
   leafCounts,
   type GraphGroup,
   type GraphPath,
+  type GraphViewState,
   type Grouping,
 } from '@/lib/graph';
 import { KIND_LABELS } from '@/lib/labels';
@@ -24,6 +25,7 @@ import { KIND_COLORS, KIND_ICONS } from './kinds';
 import { TraceFilters } from './TraceFilters';
 import { GroupPanel } from './GroupPanel';
 import { PathFinder } from './PathFinder';
+import { SavedViews } from './SavedViews';
 import { TracePanel } from './TracePanel';
 import { TraceSearch } from './TraceSearch';
 import { useHidden, useSelectedTrace, useSourceTitle, type TraceView } from './useTraceView';
@@ -181,6 +183,32 @@ export function GraphView({ profileId, view }: { profileId: number; view: TraceV
   };
   const group = selected !== null ? drawn.groups.get(selected) : undefined;
 
+  // Saved views: everything above, and the camera.
+  const viewState = (): GraphViewState => ({
+    filter: view.filter,
+    falsePositives: view.falsePositives,
+    grouping,
+    opened: [...opened],
+    folded: [...folded],
+    foldAll,
+    selected,
+    camera: canvas.current?.camera() ?? null,
+  });
+  const applyView = (state: GraphViewState) => {
+    view.setFilter(state.filter);
+    view.setFalsePositives(state.falsePositives);
+    setGrouping(state.grouping);
+    setOpened(new Set(state.opened));
+    setFolded(new Set(state.folded));
+    setFoldAll(state.foldAll);
+    select(state.selected);
+    // Once the graph is drawn as the view had it.
+    if (state.camera) {
+      const camera = state.camera;
+      window.setTimeout(() => canvas.current?.setCamera(camera), 300);
+    }
+  };
+
   return (
     <div className="grid gap-3">
       <TraceToolbar data={all} view={view} hidden={hidden} onPick={show}>
@@ -217,6 +245,7 @@ export function GraphView({ profileId, view }: { profileId: number; view: TraceV
           <MaximizeIcon aria-hidden />
           Tout voir
         </Button>
+        <SavedViews profileId={profileId} current={viewState} onApply={applyView} />
       </TraceToolbar>
       {all.truncated && (
         <p className="text-sm text-muted-foreground">

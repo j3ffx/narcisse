@@ -306,3 +306,80 @@ export function grouped(
   }
   return { data: { ...data, nodes, edges: [...edges.values()] }, groups };
 }
+
+export interface CameraState {
+  x: number;
+  y: number;
+  ratio: number;
+  angle: number;
+}
+
+/** What a saved view restores. */
+export interface GraphViewState {
+  filter: TraceFilter;
+  falsePositives: boolean;
+  grouping: Grouping;
+  opened: string[];
+  folded: number[];
+  foldAll: boolean;
+  selected: number | null;
+  camera: CameraState | null;
+}
+
+const GROUPINGS: Grouping[] = ['none', 'kind', 'source', 'site'];
+const KINDS: EntityKind[] = [
+  'identity',
+  'name',
+  'username',
+  'email',
+  'phone',
+  'address',
+  'domain',
+  'organization',
+  'account',
+  'url',
+  'leak',
+  'photo',
+];
+const STATUSES: EntityStatus[] = ['unreviewed', 'confirmed', 'false_positive'];
+
+/**
+ * A saved view's state, read with care: it was written by an earlier version of the UI, or by
+ * hand. Whatever is missing or doesn't fit takes its default.
+ */
+export function readViewState(raw: unknown): GraphViewState {
+  const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const f = (r.filter && typeof r.filter === 'object' ? r.filter : {}) as Record<string, unknown>;
+  const list = <T>(value: unknown, ok: (v: unknown) => v is T): T[] =>
+    Array.isArray(value) ? value.filter(ok) : [];
+  const isString = (v: unknown): v is string => typeof v === 'string';
+  const isNumber = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+  const camera = (r.camera && typeof r.camera === 'object' ? r.camera : null) as Record<
+    string,
+    unknown
+  > | null;
+  return {
+    filter: {
+      kinds: list(f.kinds, (v): v is EntityKind => KINDS.includes(v as EntityKind)),
+      modules: list(f.modules, isString),
+      statuses: list(f.statuses, (v): v is EntityStatus => STATUSES.includes(v as EntityStatus)),
+      minConfidence: isNumber(f.minConfidence) ? f.minConfidence : 0,
+      since: isString(f.since) && /^\d{4}-\d{2}-\d{2}$/.test(f.since) ? f.since : null,
+    },
+    falsePositives: r.falsePositives === true,
+    grouping: GROUPINGS.includes(r.grouping as Grouping) ? (r.grouping as Grouping) : 'none',
+    opened: list(r.opened, isString),
+    folded: list(r.folded, isNumber),
+    foldAll: r.foldAll === true,
+    selected: isNumber(r.selected) ? r.selected : null,
+    camera:
+      camera && [camera.x, camera.y, camera.ratio].every(isNumber)
+        ? {
+            x: camera.x as number,
+            y: camera.y as number,
+            ratio: camera.ratio as number,
+            angle: isNumber(camera.angle) ? camera.angle : 0,
+          }
+        : null,
+  };
+}

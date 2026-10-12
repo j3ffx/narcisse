@@ -149,6 +149,16 @@ export interface EntityDetail {
   neighbours: Entity[];
 }
 
+/** A view of a profile's graph the user saved. Its state is the UI's (see SavedViews). */
+export interface SavedView {
+  id: number;
+  profile_id: number;
+  name: string;
+  state: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Result {
   id: number;
   profile_id: number;
