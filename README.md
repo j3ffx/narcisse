@@ -74,6 +74,26 @@ navigateur ou arrêter Narcisse : tout reprend où ça en était.
 - `narcisse paths` : où sont rangées tes données (le dossier de données de ton système, jamais le
   dossier du projet) et le journal.
 
+### Comme une appli (Windows)
+
+```powershell
+uv run narcisse shortcut --demo
+```
+
+Narcisse apparaît dans le menu Démarrer (tape « Narcisse », ou épingle-le). Un clic l’ouvre dans sa
+propre fenêtre, en le démarrant d’abord s’il ne tourne pas. Il se range alors près de l’horloge :
+l’icône dit ce qui se passe (un point bleu pendant un scan, jaune en pause, rouge si une recherche
+échoue), et son menu permet d’ouvrir Narcisse, de mettre les scans en pause, de couper les
+notifications, de le faire démarrer avec Windows (décoché tant que tu ne le coches pas), de le
+redémarrer ou de le quitter. Une notification te prévient quand un scan se termine ou qu’une
+recherche échoue.
+
+Pour l’installer comme une appli du navigateur (icône dans la barre des tâches), ouvre
+<http://narcisse.localhost> dans Chrome ou Edge et clique sur l’icône d’installation dans la barre
+d’adresse.
+
+Mettre à jour : `git pull`, puis `npm run build`, puis « Redémarrer » dans le menu de l’icône.
+
 ### Une adresse encore plus courte (facultatif)
 
 Pour ouvrir Narcisse sur <http://narcisse/>, ajoute une ligne au fichier `hosts` de ton système :

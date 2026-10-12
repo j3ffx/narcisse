@@ -13,6 +13,8 @@ npm ci && uv sync                # install (npm ci also points git at .githooks/
 npm run dev                      # API with reload + Vite on http://localhost:5173 (demo, own data dir)
 npm run build                    # builds the UI into the Python package
 uv run narcisse serve            # built UI + API on 127.0.0.1, opens the browser (--demo for the fake module)
+uv run narcisse tray             # the same in the background, with a notification-area icon
+uv run narcisse shortcut --demo  # Start menu entry running `narcisse open` (Windows)
 npm run check                    # everything CI runs, but gitleaks on the history and the e2e tests
 npm run e2e                      # Playwright against `narcisse serve --demo`, on a temporary data dir
 ```
@@ -85,6 +87,9 @@ fixtures, docs, commit messages or commit metadata.
   takes port 80 when it can (no port in the address), else 8765. `http://narcisse/` is served
   only when the system's hosts file maps `narcisse` to loopback (checked on start-up): otherwise
   DNS could hand that name to someone else, then rebind it to this machine.
+- **The desktop side asks before touching the system.** Starting with Windows is off until the
+  user ticks it in the tray menu (a value in the user's own Run key, nothing machine-wide); the
+  Start menu entry exists only once `narcisse shortcut` is run. Tests never write the real registry.
 - **Licences are checked** before reusing a tool or dataset. The project is GPL-3.0-only, compatible
   with what it draws on so far: Maigret, Sherlock, JustDeleteMe (MIT), holehe, PhoneInfoga (GPL-3.0),
   WhatsMyName's data (CC BY-SA 4.0, credited).
@@ -100,7 +105,9 @@ fixtures, docs, commit messages or commit metadata.
 ## Layout
 
 - `src/narcisse/`: Python package. `engine/` (scheduling, events, HTTP for modules), `modules/` (one
-  file per source), `api/`, `storage/` (models, Alembic migrations: `scripts/new-migration.py`).
+  file per source), `api/`, `storage/` (models, Alembic migrations: `scripts/new-migration.py`),
+  `desktop/` (tray, Windows integration, the icon drawn in `art.py` and exported by
+  `scripts/make-icons.py`).
   `tests/`: pytest (`tests/fakes.py` holds modules whose timing tests control).
 - `web/`: the UI (Vite, React, Tailwind, shadcn/ui in `src/components/ui/`, TanStack Query, wouter).
   `src/lib/live.ts` applies the live events to the query cache. `npm run build` writes the UI into

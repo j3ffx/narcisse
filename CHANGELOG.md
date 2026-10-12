@@ -23,5 +23,10 @@ Pas encore de version : la 0.1.0 sortira quand Narcisse sera utilisable sur de v
   sites ouverts dans le navigateur.
 - Mode démo, avec un module qui invente des résultats sans rien interroger, et ses données rangées à
   part.
+- Sous Windows, Narcisse s’ajoute au menu Démarrer : un clic l’ouvre dans sa propre fenêtre, en le
+  démarrant au besoin. Une icône près de l’horloge montre ce qui se passe et permet de mettre les
+  scans en pause, de le faire démarrer avec Windows, de le redémarrer ou de le quitter ; une
+  notification prévient quand un scan se termine ou qu’une recherche échoue.
+- Narcisse s’installe comme une appli depuis Chrome ou Edge.
 - Narcisse s’ouvre sur http://narcisse.localhost, sans numéro de port, une adresse que les navigateurs envoient
   d’eux-mêmes vers ta machine.
