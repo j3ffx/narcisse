@@ -270,7 +270,12 @@ test('no long task over 200 ms on the graph while a scan streams into it', async
   await page.goto(`/profils/${id}`);
   const canvas = page.getByTestId('graph-canvas');
   await expect(canvas).toBeVisible();
+  await expect(canvas).toHaveAttribute('data-nodes', /\d+/);
   const first = Number(await canvas.getAttribute('data-nodes'));
+  // From here on: the page is loaded (its code and shaders compiled), traces keep arriving.
+  await page.evaluate(() => {
+    (window as unknown as { longTasks: number[] }).longTasks = [];
+  });
   // Click about while traces keep arriving.
   await page.getByRole('combobox', { name: /Chercher une trace/ }).fill('jeanne');
   await page.keyboard.press('Escape');
