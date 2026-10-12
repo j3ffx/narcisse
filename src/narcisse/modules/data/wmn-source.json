@@ -1,0 +1,7 @@
+{
+  "repository": "https://github.com/WebBreacher/WhatsMyName",
+  "commit": "062bcfe48df79fa618e96edc79dc9673f3fe5643",
+  "date": "2026-09-16T12:07:59Z",
+  "licence": "CC BY-SA 4.0",
+  "changes": "sites queried with a third party's credentials removed: Disqus, Imgur"
+}
