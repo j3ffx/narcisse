@@ -38,13 +38,14 @@ class ScanIn(BaseModel):
 
 @router.get("/modules")
 async def list_modules(s: ServicesDep) -> list[ModuleOut]:
+    preferences = s.engine.preferences()
     return [
         ModuleOut.model_validate(
             {
                 **vars(m.meta),
                 "accepts": sorted(m.meta.accepts),
                 "produces": sorted(m.meta.produces),
-                "hosts": list(m.meta.hosts),
+                "hosts": list(m.allowed_hosts(preferences)),
                 "rate_limit": vars(m.meta.rate_limit) if m.meta.rate_limit else None,
             }
         )

@@ -78,7 +78,8 @@ def host_declared(host: str, declared: tuple[str, ...]) -> bool:
 
 
 class HttpClient:
-    """The client a module uses. Only the hosts its metadata declares are reachable."""
+    """The client a module uses. Only the hosts its metadata declares (or `hosts`, when the user
+    added some) are reachable."""
 
     def __init__(
         self,
@@ -86,16 +87,18 @@ class HttpClient:
         pacer: DomainPacer,
         meta: ModuleMeta,
         clock: Clock,
+        hosts: tuple[str, ...] | None = None,
     ) -> None:
         self._client = client
         self._pacer = pacer
         self._meta = meta
         self._clock = clock
+        self._hosts = meta.hosts if hosts is None else hosts
         self._robots: dict[str, RobotFileParser] = {}
 
     def _host(self, url: str) -> str:
         host = urlsplit(url).hostname or ""
-        if not host_declared(host, self._meta.hosts):
+        if not host_declared(host, self._hosts):
             # A module reaching an undeclared host is a bug: the list of hosts is a promise.
             raise ValueError(f"{self._meta.name} may not contact {host!r}")
         return host

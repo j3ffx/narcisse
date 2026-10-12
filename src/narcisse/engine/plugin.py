@@ -132,6 +132,19 @@ class ModuleContext(Protocol):
 class SourceModule(ABC):
     meta: ClassVar[ModuleMeta]
 
+    def accepts_target(self, kind: EntityKind, value: str) -> bool:
+        """Whether a search makes sense for this seed. By default, any seed of an accepted kind,
+        but a Fediverse handle (`name@instance`), which isn't a username elsewhere. A module that
+        accepts account URLs narrows this to the sites it knows."""
+        if kind == EntityKind.USERNAME and "@" in value:
+            return False
+        return kind in self.meta.accepts
+
+    def allowed_hosts(self, preferences: "Preferences") -> tuple[str, ...]:
+        """The hosts a run may contact: the declared ones, plus those the user added in the
+        settings, for a module that lets them."""
+        return self.meta.hosts
+
     @abstractmethod
     def run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
         """Yields findings as they come. Each one is stored and shown before the next is asked."""

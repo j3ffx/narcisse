@@ -162,15 +162,17 @@ async def upsert_edge(
 class RunContext:
     """What a running module sees of the engine (see `plugin.ModuleContext`)."""
 
-    def __init__(self, engine: "Engine", run: ModuleRun, meta: ModuleMeta) -> None:
+    def __init__(self, engine: "Engine", run: ModuleRun, module: SourceModule) -> None:
+        meta = module.meta
         self._engine = engine
         self._run_id = run.id
         self._scan_id = run.scan_id
-        self.http = HttpClient(engine.http_client, engine.pacer, meta, engine.clock)
+        self.preferences = engine.preferences()
+        hosts = module.allowed_hosts(self.preferences)
+        self.http = HttpClient(engine.http_client, engine.pacer, meta, engine.clock, hosts)
         self.log = logging.getLogger(f"narcisse.modules.{meta.name}")
         self.attempt = run.attempts
         self.checkpoint = run.checkpoint
-        self.preferences = engine.preferences()
         self._last_progress = 0.0
 
     async def save_checkpoint(self, data: dict[str, Any]) -> None:
@@ -341,7 +343,7 @@ class Engine:
                     confidence=1.0,
                 )
                 for name in names:
-                    if seed.kind in self.modules[name].meta.accepts:
+                    if self.modules[name].accepts_target(EntityKind(seed.kind), seed.value):
                         tx.session.add(
                             ModuleRun(
                                 scan_id=scan.id,
@@ -489,7 +491,7 @@ class Engine:
 
     async def _execute(self, run: ModuleRun) -> None:
         module = self.modules[run.module]
-        ctx = RunContext(self, run, module.meta)
+        ctx = RunContext(self, run, module)
         target = Target(
             entity_id=run.input_entity.id,
             kind=EntityKind(run.input_entity.kind),

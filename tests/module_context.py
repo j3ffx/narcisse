@@ -24,11 +24,12 @@ class FakeContext:
         checkpoint: dict[str, Any] | None = None,
     ) -> None:
         clock = Clock(speed=1000)
-        self.http = HttpClient(client, DomainPacer(clock), module.meta, clock)
+        self.preferences = preferences or Preferences()
+        hosts = module.allowed_hosts(self.preferences)
+        self.http = HttpClient(client, DomainPacer(clock), module.meta, clock, hosts)
         self.log = logging.getLogger("test-module")
         self.attempt = 1
         self.checkpoint = checkpoint
-        self.preferences = preferences or Preferences()
         self.saved: list[dict[str, Any]] = []
         self.notes: dict[str, int] | None = None
         self.progressed: list[tuple[int, int | None]] = []
