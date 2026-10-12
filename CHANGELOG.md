@@ -26,6 +26,10 @@ Pas encore de version : la 0.1.0 sortira quand Narcisse sera utilisable sur de v
 - Les liens et adresses d’une bio deviennent des traces (sur GitHub aussi).
 - Chaque recherche fait son bilan : vérifiés, trouvés, indéterminés, bloqués par un anti-robot,
   injoignables.
+- Le graphe d’un profil : chaque trace reliée à celle qui y a mené (un compte et ce qu’il affiche),
+  qui se remplit pendant le scan ; recherche, filtres (type, source, statut, confiance, date),
+  focus sur une trace et ses voisines, détail de ses preuves. La même chose en liste, avec la même
+  sélection. En mode démo, des graphes fictifs de 500 à 20 000 traces.
 - Trier chaque trace : « c’est moi » ou « pas moi ». Le choix tient d’un scan à l’autre et les « pas
   moi » sont masqués (une case les fait revenir).
 - Une page « Sources » qui dit ce que chaque source interroge, à quel rythme et sous quelle

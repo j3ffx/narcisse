@@ -9,8 +9,9 @@ déréférencement, envoyer une demande RGPD. Puis il suit tes progrès d’un s
 
 > **En construction.** Narcisse cherche déjà tes comptes à partir d’un pseudo (plus de 600 sites),
 > lit tes profils publics (GitHub, GitLab, Bluesky, Mastodon, Hacker News, Stack Exchange, Keybase),
-> ce que Gravatar et les serveurs de clés PGP publient sur toi, et te laisse trier chaque trace
-> (« c’est moi » / « pas moi »). Le graphe, la remédiation et d’autres sources arrivent. Le
+> ce que Gravatar et les serveurs de clés PGP publient sur toi, les relie dans un graphe qui se
+> remplit pendant le scan, et te laisse trier chaque trace (« c’est moi » / « pas moi »). La
+> remédiation, les scores et d’autres sources arrivent. Le
 > [journal des changements](CHANGELOG.md) dira quand la première version sortira.
 
 ## Pour qui, pour quoi
@@ -71,6 +72,13 @@ nom, un pseudo, un email et un domaine, puis lance un scan avec le module de dé
 résultats arrivent au fil de l’eau pendant une trentaine de secondes, avec une limite de débit, une
 erreur réseau rattrapée seule et une panne à relancer. Tu peux mettre en pause, annuler, fermer le
 navigateur ou arrêter Narcisse : tout reprend où ça en était.
+
+Le profil s’ouvre sur son **graphe** : chaque trace y apparaît au fil du scan, reliée à celle qui y a
+mené (un pseudo → un compte → le site indiqué sur ce compte). Clique une trace pour voir ses preuves
+et ses voisines, cherche-en une (touche `/`), filtre par type, source, statut, confiance ou date. La
+vue **Liste** montre les mêmes traces, avec les mêmes filtres et la même sélection, sous une forme
+que tout le monde peut lire. En mode démo, le bouton « Graphe fictif » crée un profil de 500 à
+20 000 traces inventées, pour voir le graphe à grande échelle.
 
 - `narcisse serve` : sans `--demo`, le module de démonstration n’est pas proposé. Les données du
   mode démo sont rangées à part : les profils fictifs ne se mélangent jamais aux vrais.

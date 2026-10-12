@@ -114,12 +114,16 @@ fixtures, docs, commit messages or commit metadata.
 ## Layout
 
 - `src/narcisse/`: Python package. `engine/` (scheduling, events, HTTP for modules), `modules/` (one
-  file per source), `api/`, `storage/` (models, Alembic migrations: `scripts/new-migration.py`),
+  file per source; `_text.py` reads profiles' bios and relates findings to the profile they were
+  read on), `api/`, `storage/` (models, Alembic migrations: `scripts/new-migration.py`),
+  `demo_graph.py` (fictitious graphs of thousands of traces, demo mode only),
   `desktop/` (tray, Windows integration, the icon drawn in `art.py` and exported by
   `scripts/make-icons.py`).
   `tests/`: pytest (`tests/fakes.py` holds modules whose timing tests control).
 - `web/`: the UI (Vite, React, Tailwind, shadcn/ui in `src/components/ui/`, TanStack Query, wouter).
-  `src/lib/live.ts` applies the live events to the query cache. `npm run build` writes the UI into
+  `src/lib/live.ts` and `src/lib/graph.ts` apply the live events to the query cache.
+  `src/features/graph/`: the graph (Sigma 4 + graphology, ForceAtlas2 in a Web Worker, loaded on
+  demand) and the list that mirrors it. `npm run build` writes the UI into
   `src/narcisse/web/static/` (ignored), which the Python package serves and ships. `web/e2e/`:
   Playwright against `narcisse serve --demo` on a temporary data dir.
 - `scripts/`: repository checks and git hook helpers.
