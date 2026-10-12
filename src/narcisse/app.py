@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import mimetypes
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -28,6 +29,9 @@ from narcisse.security import LocalOnlyMiddleware
 from narcisse.storage.database import Database, migrate
 
 log = logging.getLogger(__name__)
+
+# Not every system knows this one (Windows doesn't), and browsers expect it for the app manifest.
+mimetypes.add_type("application/manifest+json", ".webmanifest")
 
 STATIC = Path(__file__).parent / "web" / "static"
 # FastAPI can export traces to an OpenTelemetry collector named by OTEL_* variables: never here.
