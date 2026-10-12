@@ -62,22 +62,33 @@ async def test_a_run_keeps_what_its_module_reported(make_api: ApiFactory) -> Non
     assert done["runs"][0]["notes"] == {"checked": 3}
 
 
-async def test_settings_keep_the_token_without_ever_showing_it(
+async def test_settings_keep_the_tokens_without_ever_showing_them(
     api: Api, settings: Settings
 ) -> None:
-    assert await api.json("GET", "/preferences") == {
+    nothing = {
         "github_token_set": False,
+        "gitlab_token_set": False,
         "exclude_adult": False,
+        "fediverse_instances": [],
     }
+    assert await api.json("GET", "/preferences") == nothing
     shown: Any = await api.json(
-        "PATCH", "/preferences", {"github_token": " ghp_test ", "exclude_adult": True}
+        "PATCH",
+        "/preferences",
+        {"github_token": " ghp_test ", "gitlab_token": "glpat-test", "exclude_adult": True},
     )
-    assert shown == {"github_token_set": True, "exclude_adult": True}
+    assert shown == {
+        **nothing,
+        "github_token_set": True,
+        "gitlab_token_set": True,
+        "exclude_adult": True,
+    }
     assert "ghp_test" not in str(shown)
+    assert "glpat" not in str(shown)
     assert '"github_token": "ghp_test"' in settings.preferences_path.read_text(encoding="utf-8")
 
-    cleared = await api.json("PATCH", "/preferences", {"github_token": ""})
-    assert cleared == {"github_token_set": False, "exclude_adult": True}
+    cleared = await api.json("PATCH", "/preferences", {"github_token": "", "gitlab_token": None})
+    assert cleared == {**nothing, "exclude_adult": True}
 
 
 async def test_each_mode_offers_its_own_sources(make_api: ApiFactory) -> None:

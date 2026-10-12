@@ -189,13 +189,18 @@ class AppInfo(Schema):
 
 class PreferencesOut(Schema):
     github_token_set: bool
+    gitlab_token_set: bool
     exclude_adult: bool
+    fediverse_instances: list[str]
 
 
 class PreferencesPatch(Schema):
     # An empty string (or null) removes the token.
     github_token: str | None = Field(default=None, max_length=200)
+    gitlab_token: str | None = Field(default=None, max_length=200)
     exclude_adult: bool | None = None
+    # Host names, or addresses of the instances (https://example.social/…).
+    fediverse_instances: list[str] | None = Field(default=None, max_length=50)
 
 
 class ErrorOut(Schema):
