@@ -35,7 +35,12 @@ export function AppShell({
         Aller au contenu
       </a>
       <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5">
+        <div
+          className={cn(
+            'mx-auto flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5',
+            wide ? 'max-w-[110rem]' : 'max-w-5xl',
+          )}
+        >
           <Link href="/" className="flex items-center gap-2 font-heading text-lg font-semibold">
             <img src="/favicon.svg" alt="" className="size-6" />
             Narcisse
