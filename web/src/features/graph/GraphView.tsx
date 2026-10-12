@@ -313,7 +313,7 @@ function Legend({ nodes }: { nodes: EntityKind[] }) {
   return (
     <ul
       aria-label="Légende"
-      className="absolute bottom-2 left-2 flex max-w-[calc(100%-1rem)] flex-wrap gap-x-3 gap-y-1 rounded-md bg-background/85 px-2 py-1 text-xs"
+      className="absolute bottom-2 left-2 flex max-w-[calc(100%-1rem)] sm:max-w-[calc(100%-12rem)] flex-wrap gap-x-3 gap-y-1 rounded-md bg-background/85 px-2 py-1 text-xs"
     >
       {kinds.map((kind) => {
         const Icon = KIND_ICONS[kind];

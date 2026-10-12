@@ -13,7 +13,7 @@ import { useTheme } from '@/app/theme';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import type { GraphPath } from '@/lib/graph';
 import type { GraphData } from '@/lib/types';
-import { pictogramsReady } from './kinds';
+import { STAGE_COLORS, pictogramsReady } from './kinds';
 import { Layout, savePositions, savedPositions } from './layout';
 import {
   label as labelOf,
@@ -160,6 +160,85 @@ function apply(
   for (const key of after) if (!before.has(key)) set(key, true);
 }
 
+// The minimap: the whole graph, small, with the frame of what the canvas shows. Positions are
+// sigma's framed coordinates (the camera's own), fitted into the minimap.
+const MINI = { width: 168, height: 112, margin: 6 };
+
+interface MiniFit {
+  scale: number;
+  x0: number;
+  y0: number;
+  /** -1 when the screen's y runs against the graph's. */
+  flip: number;
+}
+
+function miniFit(instance: TraceSigma, graph: TraceGraph): MiniFit | null {
+  let [minX, maxX, minY, maxY] = [Infinity, -Infinity, Infinity, -Infinity];
+  graph.forEachNode((key) => {
+    const shown = instance.getNodeDisplayData(key);
+    if (!shown) return;
+    minX = Math.min(minX, shown.x);
+    maxX = Math.max(maxX, shown.x);
+    minY = Math.min(minY, shown.y);
+    maxY = Math.max(maxY, shown.y);
+  });
+  if (minX === Infinity) return null;
+  const inner = { w: MINI.width - 2 * MINI.margin, h: MINI.height - 2 * MINI.margin };
+  const scale = Math.min(inner.w / (maxX - minX || 1), inner.h / (maxY - minY || 1));
+  const top = instance.framedGraphToViewport({ x: 0, y: 0 }).y;
+  const below = instance.framedGraphToViewport({ x: 0, y: 1 }).y;
+  const flip = below < top ? -1 : 1;
+  return {
+    scale,
+    x0: (minX + maxX) / 2,
+    y0: (minY + maxY) / 2,
+    flip,
+  };
+}
+
+const toMini = (fit: MiniFit, x: number, y: number) => ({
+  x: MINI.width / 2 + (x - fit.x0) * fit.scale,
+  y: MINI.height / 2 + fit.flip * (y - fit.y0) * fit.scale,
+});
+
+const fromMini = (fit: MiniFit, x: number, y: number) => ({
+  x: fit.x0 + (x - MINI.width / 2) / fit.scale,
+  y: fit.y0 + (fit.flip * (y - MINI.height / 2)) / fit.scale,
+});
+
+function drawMinimap(
+  instance: TraceSigma,
+  graph: TraceGraph,
+  canvas: HTMLCanvasElement,
+  frame: string,
+): MiniFit | null {
+  const ratio = window.devicePixelRatio || 1;
+  canvas.width = MINI.width * ratio;
+  canvas.height = MINI.height * ratio;
+  const ctx = canvas.getContext('2d');
+  const fit = miniFit(instance, graph);
+  if (!ctx || !fit) return fit;
+  ctx.scale(ratio, ratio);
+  graph.forEachNode((key, a) => {
+    const shown = instance.getNodeDisplayData(key);
+    if (!shown || instance.getNodeState(key).isHidden) return;
+    const p = toMini(fit, shown.x, shown.y);
+    ctx.fillStyle = a.color;
+    ctx.fillRect(p.x - 1, p.y - 1, 2, 2);
+  });
+  const { width, height } = instance.getDimensions();
+  const corner = (x: number, y: number) => {
+    const at = instance.viewportToFramedGraph({ x, y });
+    return toMini(fit, at.x, at.y);
+  };
+  const a = corner(0, 0);
+  const b = corner(width, height);
+  ctx.strokeStyle = frame;
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.abs(b.x - a.x), Math.abs(b.y - a.y));
+  return fit;
+}
+
 export function GraphCanvas({
   profileId,
   data,
@@ -190,6 +269,9 @@ export function GraphCanvas({
 }) {
   use(pictogramsReady); // the nodes' pictograms, drawn before the first node
   const container = useRef<HTMLDivElement>(null);
+  const mini = useRef<HTMLCanvasElement>(null);
+  const miniFitRef = useRef<MiniFit | null>(null);
+  const frameColor = useRef('');
   const graph = useRef<TraceGraph>(newGraph());
   const sigma = useRef<TraceSigma | null>(null);
   const layout = useRef<Layout | null>(null);
@@ -199,6 +281,7 @@ export function GraphCanvas({
   const reduced = useReducedMotion();
   const [settling, setSettling] = useState(false);
   useEffect(() => {
+    frameColor.current = STAGE_COLORS[theme].highlight;
     select.current = onSelect;
     fold.current = onFold;
   });
@@ -218,7 +301,29 @@ export function GraphCanvas({
       event.preventSigmaDefault(); // no zoom: the double click folds
       fold.current(Number(event.node));
     });
+    // The minimap follows the canvas, at most a few times a second.
+    let pending = 0;
+    let drawn = 0;
+    instance.on('afterRender', () => {
+      if (pending || !mini.current) return;
+      pending = window.setTimeout(
+        () => {
+          pending = 0;
+          drawn = performance.now();
+          if (mini.current) {
+            miniFitRef.current = drawMinimap(
+              instance,
+              graph.current,
+              mini.current,
+              frameColor.current,
+            );
+          }
+        },
+        Math.max(0, 200 - (performance.now() - drawn)),
+      );
+    });
     return () => {
+      window.clearTimeout(pending);
       layout.current?.stop();
       instance.kill();
       sigma.current = null;
@@ -344,6 +449,14 @@ export function GraphCanvas({
     shownBadges.current = next;
   }, [badges, data]);
 
+  // A point of the minimap, clicked or dragged over: the camera goes there.
+  const moveTo = (x: number, y: number) => {
+    const instance = sigma.current;
+    const fit = miniFitRef.current;
+    if (!instance || !fit) return;
+    instance.getCamera().setState(fromMini(fit, x, y));
+  };
+
   useImperativeHandle(
     ref,
     () => ({
@@ -397,6 +510,20 @@ export function GraphCanvas({
         className={`size-full ${settling && reduced ? 'invisible' : ''}`}
         data-testid="graph-canvas"
         data-settling={settling || undefined}
+      />
+      <canvas
+        ref={mini}
+        aria-hidden
+        className="absolute right-2 bottom-2 hidden cursor-crosshair rounded-md border bg-background/85 sm:block"
+        style={{ width: MINI.width, height: MINI.height }}
+        data-testid="minimap"
+        onPointerDown={(e) => {
+          e.currentTarget.setPointerCapture(e.pointerId);
+          moveTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
+        }}
+        onPointerMove={(e) => {
+          if (e.buttons === 1) moveTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
+        }}
       />
       {settling && (
         <p
