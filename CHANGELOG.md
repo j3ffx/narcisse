@@ -16,13 +16,21 @@ Pas encore de version : la 0.1.0 sortira quand Narcisse sera utilisable sur de v
   - GitHub : profil public et emails visibles dans les commits ; pour un email, les comptes qui
     l’utilisent ;
   - Gravatar : profil public et comptes listés ;
-  - clés PGP publiques publiées pour un email.
+  - clés PGP publiques publiées pour un email ;
+  - GitLab (gitlab.com, framagit.org, salsa.debian.org, GNOME, freedesktop.org) : profil et emails
+    des commits récents ;
+  - Bluesky : profil et liens de la description ; un domaine servant de pseudo est vérifié ;
+  - Mastodon et le Fediverse : compte sur une quinzaine de grandes instances et celles ajoutées dans
+    les réglages, ou un pseudo@instance sur la sienne ; les liens vérifiés par Mastodon ;
+  - Hacker News, Stack Exchange (avec ses homonymes) et Keybase (preuves d’identité).
+- Les liens et adresses d’une bio deviennent des traces (sur GitHub aussi).
 - Chaque recherche fait son bilan : vérifiés, trouvés, indéterminés, bloqués par un anti-robot,
   injoignables.
 - Trier chaque trace : « c’est moi » ou « pas moi ». Le choix tient d’un scan à l’autre et les « pas
   moi » sont masqués (une case les fait revenir).
 - Une page « Sources » qui dit ce que chaque source interroge, à quel rythme et sous quelle
-  licence, et une page « Réglages » (token GitHub facultatif, sites adultes).
+  licence, et une page « Réglages » (tokens GitHub et GitLab facultatifs, instances Mastodon,
+  sites adultes).
 
 - Profils (perso, pro ou les deux) et ce qui t’identifie : noms, pseudos, emails, téléphones,
   adresses, domaines, organisations, comptes. Chaque élément peut être surveillé ou ignoré.

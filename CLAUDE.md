@@ -83,7 +83,8 @@ fixtures, docs, commit messages or commit metadata.
 - **100 % local, no telemetry.** The server binds to `127.0.0.1` only, refuses requests whose `Host`
   isn't loopback (DNS rebinding), and accepts state-changing requests only from its own origin with a
   JSON body (another website open in the browser can't drive it). Nothing leaves the machine except
-  requests to the hosts a source module declares and, if the user configured one, to their LLM.
+  requests to the hosts a source module declares (or that the user added in the settings, such as
+  their Fediverse instances) and, if the user configured one, to their LLM.
 - **User data lives outside the repository**, in the OS data directory (`platformdirs`), overridable
   with `NARCISSE_DATA_DIR`. Demo mode and `npm run dev` use their own directories (`narcisse-demo`,
   `narcisse-dev`), so fictitious profiles never mix with real ones.

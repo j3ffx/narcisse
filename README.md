@@ -8,8 +8,9 @@ publiques de cette identité, les relie dans un graphe pour montrer comment elle
 déréférencement, envoyer une demande RGPD. Puis il suit tes progrès d’un scan à l’autre.
 
 > **En construction.** Narcisse cherche déjà tes comptes à partir d’un pseudo (plus de 600 sites),
-> ce que GitHub, Gravatar et les serveurs de clés PGP publient sur toi, et te laisse trier chaque
-> trace (« c’est moi » / « pas moi »). Le graphe, la remédiation et d’autres sources arrivent. Le
+> lit tes profils publics (GitHub, GitLab, Bluesky, Mastodon, Hacker News, Stack Exchange, Keybase),
+> ce que Gravatar et les serveurs de clés PGP publient sur toi, et te laisse trier chaque trace
+> (« c’est moi » / « pas moi »). Le graphe, la remédiation et d’autres sources arrivent. Le
 > [journal des changements](CHANGELOG.md) dira quand la première version sortira.
 
 ## Pour qui, pour quoi
@@ -112,17 +113,25 @@ la barre oblique) la première fois ; ensuite, il la propose de lui-même.
 
 ## Les sources
 
-| Source                                 | À partir de         | Ce qu’elle trouve                                                                                                   |
-| -------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Comptes par pseudo (liste WhatsMyName) | un pseudo           | les comptes à ce nom sur plus de 600 sites (réseaux sociaux, jeux, code, forums, sites adultes signalés comme tels) |
-| GitHub                                 | un pseudo, un email | le profil public et les emails visibles dans les commits ; pour un email, les comptes qui l’utilisent               |
-| Gravatar                               | un email            | le profil public et les comptes qu’il liste (seule l’empreinte de l’email est envoyée)                              |
-| Clés PGP publiques (keys.openpgp.org)  | un email            | une clé publiée, et les noms et adresses qu’elle porte                                                              |
+| Source                                 | À partir de                              | Ce qu’elle trouve                                                                                                              |
+| -------------------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Comptes par pseudo (liste WhatsMyName) | un pseudo                                | les comptes à ce nom sur plus de 600 sites (réseaux sociaux, jeux, code, forums, sites adultes signalés comme tels)            |
+| GitHub                                 | un pseudo, un email                      | le profil public et les emails visibles dans les commits ; pour un email, les comptes qui l’utilisent                          |
+| Gravatar                               | un email                                 | le profil public et les comptes qu’il liste (seule l’empreinte de l’email est envoyée)                                         |
+| Clés PGP publiques (keys.openpgp.org)  | un email                                 | une clé publiée, et les noms et adresses qu’elle porte                                                                         |
+| GitLab                                 | un pseudo, un compte                     | le profil sur gitlab.com, framagit.org, salsa.debian.org, GNOME et freedesktop.org, et les emails des commits récents          |
+| Bluesky                                | un pseudo, un domaine, un compte         | le profil, sa description et ses liens ; un domaine servant de pseudo est vérifié par Bluesky                                  |
+| Mastodon et Fediverse                  | un pseudo, un pseudo@instance, un compte | le compte sur une quinzaine de grandes instances et celles que tu ajoutes ; les liens que Mastodon a vérifiés                  |
+| Hacker News                            | un pseudo, un compte                     | le compte, son ancienneté, et les liens et adresses de sa présentation                                                         |
+| Stack Exchange                         | un pseudo, un nom                        | les utilisateurs de Stack Overflow qui portent exactement ce nom (des homonymes sont possibles) et leurs comptes sur le réseau |
+| Keybase                                | un pseudo, un domaine, un compte         | le compte et ses preuves d’identité, qui relient sûrement d’autres comptes et des domaines                                     |
 
 Chaque recherche dit ce qu’elle a pu vérifier : par exemple « 640 vérifiés · 12 trouvés · 109
 bloqués par un anti-robot ». Le détail de chaque source (sites contactés, rythme, licence) est dans
-la page « Sources » de Narcisse. Un token GitHub personnel gratuit, dans les réglages, relève la
-limite de GitHub de 60 à 5 000 requêtes par heure ; rien ne l’exige.
+la page « Sources » de Narcisse. Dans les réglages, un token GitHub personnel gratuit relève la
+limite de GitHub de 60 à 5 000 requêtes par heure, et un token GitLab gratuit ajoute la bio, le lieu
+et le site des profils de gitlab.com ; rien ne les exige. Tu peux aussi y ajouter tes instances
+Mastodon : seules les instances de la liste sont contactées.
 
 En mode démo, seul le module de démonstration est proposé : des identités fictives n’interrogent
 jamais de vrais sites.
