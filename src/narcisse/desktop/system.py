@@ -1,12 +1,14 @@
 """What Narcisse asks of the operating system: open its window, start with the session, appear in
 the Start menu. Windows first; elsewhere it falls back to a browser tab and offers no autostart."""
 
+import importlib
 import os
 import subprocess
 import sys
 import webbrowser
 from contextlib import suppress
 from pathlib import Path
+from typing import Any
 
 APP_NAME = "Narcisse"
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
@@ -21,6 +23,11 @@ APP_MODE_BROWSERS = {
 }
 
 IS_WINDOWS = sys.platform == "win32"
+
+
+def _winreg() -> Any:
+    """The registry module, loaded at run time: it exists only on Windows (and tests swap it)."""
+    return importlib.import_module("winreg")
 
 
 def windowless_python() -> Path:
@@ -39,7 +46,7 @@ def _app_mode_browser() -> str | None:
     """The default browser's executable, if it can open a page as an app window."""
     if not IS_WINDOWS:
         return None
-    import winreg
+    winreg = _winreg()
 
     try:
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, USER_CHOICE) as key:
@@ -51,7 +58,7 @@ def _app_mode_browser() -> str | None:
         return None
     for root in (winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE):
         try:
-            path = winreg.QueryValue(root, rf"{APP_PATHS}\{exe}")
+            path = str(winreg.QueryValue(root, rf"{APP_PATHS}\{exe}"))
         except OSError:
             continue
         if path and Path(path).exists():
@@ -71,7 +78,9 @@ def open_window(app_url: str, tab_url: str) -> None:
 def spawn_detached(args: list[str]) -> None:
     """Starts a process that outlives this one, without a console window."""
     if IS_WINDOWS:
-        flags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+        flags = getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(
+            subprocess, "CREATE_NEW_PROCESS_GROUP", 0
+        )
         subprocess.Popen(args, creationflags=flags, close_fds=True)
     else:
         subprocess.Popen(args, start_new_session=True, close_fds=True)
@@ -89,7 +98,7 @@ def _quote(args: list[str]) -> str:
 def autostart_enabled() -> bool:
     if not AUTOSTART_SUPPORTED:
         return False
-    import winreg
+    winreg = _winreg()
 
     try:
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY) as key:
@@ -103,7 +112,7 @@ def set_autostart(enabled: bool, args: list[str]) -> None:
     """Starts `args` when the user opens their session, or stops doing so."""
     if not AUTOSTART_SUPPORTED:
         return
-    import winreg
+    winreg = _winreg()
 
     with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_SET_VALUE) as key:
         if enabled:
