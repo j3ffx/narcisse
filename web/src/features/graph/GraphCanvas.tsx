@@ -1,5 +1,5 @@
 import { layerImage } from '@sigma/node-image';
-import { useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react';
+import { use, useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react';
 import Sigma from 'sigma';
 import {
   extremityArrow,
@@ -13,6 +13,7 @@ import { useTheme } from '@/app/theme';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import type { GraphPath } from '@/lib/graph';
 import type { GraphData } from '@/lib/types';
+import { pictogramsReady } from './kinds';
 import { Layout, savePositions, savedPositions } from './layout';
 import {
   label as labelOf,
@@ -187,6 +188,7 @@ export function GraphCanvas({
   /** What the canvas shows, for assistive technologies. */
   label: string;
 }) {
+  use(pictogramsReady); // the nodes' pictograms, drawn before the first node
   const container = useRef<HTMLDivElement>(null);
   const graph = useRef<TraceGraph>(newGraph());
   const sigma = useRef<TraceSigma | null>(null);

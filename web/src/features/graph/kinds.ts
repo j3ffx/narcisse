@@ -14,9 +14,8 @@ import {
   PhoneIcon,
   type LucideIcon,
 } from 'lucide-react';
-import { createElement } from 'react';
+import { createElement, useLayoutEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { flushSync } from 'react-dom';
 
 /** One pictogram per kind: in the graph, the list and the legend (never colour alone). */
 export const KIND_ICONS: Record<EntityKind, LucideIcon> = {
@@ -92,23 +91,37 @@ export const STAGE_COLORS: Record<
   },
 };
 
-/** A pictogram as an SVG data URL. Drawn with React, outside any render: flushSync only works
- * there (inside an effect it silently draws nothing). */
-function draw(kind: EntityKind): string {
+const KINDS = Object.keys(KIND_ICONS) as EntityKind[];
+let drawn: Partial<Record<EntityKind, string>> = {};
+
+/**
+ * The pictograms as SVG data URLs, drawn once by React in a root of their own and read once
+ * committed (flushSync would collide with a render in progress). The canvas waits for it.
+ */
+export const pictogramsReady: Promise<void> = new Promise((resolve) => {
   const host = document.createElement('div');
   const root = createRoot(host);
-  flushSync(() =>
-    root.render(createElement(KIND_ICONS[kind], { size: 64, strokeWidth: 2.25, color: '#000' })),
-  );
-  const svg = host.innerHTML;
-  root.unmount();
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-}
+  function Pictograms() {
+    useLayoutEffect(() => {
+      drawn = Object.fromEntries(
+        [...host.children].map((el) => [
+          el.getAttribute('data-kind'),
+          `data:image/svg+xml;charset=utf-8,${encodeURIComponent(el.innerHTML)}`,
+        ]),
+      );
+      resolve();
+      window.setTimeout(() => root.unmount());
+    }, []);
+    return KINDS.map((kind) =>
+      createElement(
+        'span',
+        { key: kind, 'data-kind': kind },
+        createElement(KIND_ICONS[kind], { size: 64, strokeWidth: 2.25, color: '#000' }),
+      ),
+    );
+  }
+  root.render(createElement(Pictograms));
+});
 
-// Drawn once, when the graph's code loads.
-const PICTOGRAMS = Object.fromEntries(
-  (Object.keys(KIND_ICONS) as EntityKind[]).map((kind) => [kind, draw(kind)]),
-) as Record<EntityKind, string>;
-
-/** A kind's pictogram, for the canvas. */
-export const pictogram = (kind: EntityKind): string => PICTOGRAMS[kind];
+/** A kind's pictogram, for the canvas (once `pictogramsReady` has resolved). */
+export const pictogram = (kind: EntityKind): string => drawn[kind] ?? '';
