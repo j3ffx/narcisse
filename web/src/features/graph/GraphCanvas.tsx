@@ -209,18 +209,20 @@ const fromMini = (fit: MiniFit, x: number, y: number) => ({
   y: fit.y0 + (fit.flip * (y - MINI.height / 2)) / fit.scale,
 });
 
-function drawMinimap(
+/** The nodes as dots, drawn off screen: redone only when positions change, not as the camera
+ * moves (5,000 nodes read every few frames would cost the canvas its fluidity). */
+function drawDots(
   instance: TraceSigma,
   graph: TraceGraph,
-  canvas: HTMLCanvasElement,
-  frame: string,
-): MiniFit | null {
-  const ratio = window.devicePixelRatio || 1;
-  canvas.width = MINI.width * ratio;
-  canvas.height = MINI.height * ratio;
-  const ctx = canvas.getContext('2d');
+): { dots: HTMLCanvasElement; fit: MiniFit } | null {
   const fit = miniFit(instance, graph);
-  if (!ctx || !fit) return fit;
+  if (!fit) return null;
+  const ratio = window.devicePixelRatio || 1;
+  const dots = document.createElement('canvas');
+  dots.width = MINI.width * ratio;
+  dots.height = MINI.height * ratio;
+  const ctx = dots.getContext('2d');
+  if (!ctx) return null;
   ctx.scale(ratio, ratio);
   graph.forEachNode((key, a) => {
     const shown = instance.getNodeDisplayData(key);
@@ -229,17 +231,37 @@ function drawMinimap(
     ctx.fillStyle = a.color;
     ctx.fillRect(p.x - 1, p.y - 1, 2, 2);
   });
+  return { dots, fit };
+}
+
+/** The dots, and the frame of what the canvas shows. */
+function drawMinimap(
+  instance: TraceSigma,
+  canvas: HTMLCanvasElement,
+  cached: { dots: HTMLCanvasElement; fit: MiniFit },
+  frame: string,
+) {
+  const ratio = window.devicePixelRatio || 1;
+  if (canvas.width !== MINI.width * ratio) {
+    canvas.width = MINI.width * ratio;
+    canvas.height = MINI.height * ratio;
+  }
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(cached.dots, 0, 0);
+  ctx.scale(ratio, ratio);
   const { width, height } = instance.getDimensions();
   const corner = (x: number, y: number) => {
     const at = instance.viewportToFramedGraph({ x, y });
-    return toMini(fit, at.x, at.y);
+    return toMini(cached.fit, at.x, at.y);
   };
   const a = corner(0, 0);
   const b = corner(width, height);
   ctx.strokeStyle = frame;
   ctx.lineWidth = 1.5;
   ctx.strokeRect(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.abs(b.x - a.x), Math.abs(b.y - a.y));
-  return fit;
 }
 
 export function GraphCanvas({
@@ -274,6 +296,8 @@ export function GraphCanvas({
   const container = useRef<HTMLDivElement>(null);
   const mini = useRef<HTMLCanvasElement>(null);
   const miniFitRef = useRef<MiniFit | null>(null);
+  // The minimap's dots need redrawing (positions or visibility changed).
+  const miniDirty = useRef(true);
   const frameColor = useRef('');
   const graph = useRef<TraceGraph>(newGraph());
   const sigma = useRef<TraceSigma | null>(null);
@@ -304,28 +328,41 @@ export function GraphCanvas({
       event.preventSigmaDefault(); // no zoom: the double click folds
       fold.current(Number(event.node));
     });
-    // The minimap follows the canvas, at most a few times a second.
+    // The minimap follows the camera a few times a second; its dots are redrawn when positions
+    // or visibility change, at most once a second.
     let pending = 0;
-    let drawn = 0;
+    let dotsAt = 0;
+    let cached: { dots: HTMLCanvasElement; fit: MiniFit } | null = null;
+    const moved = () => {
+      miniDirty.current = true;
+    };
+    graph.current.on('eachNodeAttributesUpdated', moved);
+    graph.current.on('nodeAttributesUpdated', moved);
+    graph.current.on('nodeAdded', moved);
+    graph.current.on('nodeDropped', moved);
     instance.on('afterRender', () => {
       if (pending || !mini.current) return;
-      pending = window.setTimeout(
-        () => {
-          pending = 0;
-          drawn = performance.now();
-          if (mini.current) {
-            miniFitRef.current = drawMinimap(
-              instance,
-              graph.current,
-              mini.current,
-              frameColor.current,
-            );
-          }
-        },
-        Math.max(0, 200 - (performance.now() - drawn)),
-      );
+      pending = window.setTimeout(() => {
+        pending = 0;
+        if (!mini.current) return;
+        const now = performance.now();
+        if (!cached || (miniDirty.current && now - dotsAt > 1000)) {
+          cached = drawDots(instance, graph.current);
+          miniDirty.current = false;
+          dotsAt = now;
+          miniFitRef.current = cached?.fit ?? null;
+        }
+        if (cached) drawMinimap(instance, mini.current, cached, frameColor.current);
+      }, 150);
     });
+    const untrack = () => {
+      graph.current.off('eachNodeAttributesUpdated', moved);
+      graph.current.off('nodeAttributesUpdated', moved);
+      graph.current.off('nodeAdded', moved);
+      graph.current.off('nodeDropped', moved);
+    };
     return () => {
+      untrack();
       window.clearTimeout(pending);
       layout.current?.stop();
       instance.kill();
@@ -396,6 +433,7 @@ export function GraphCanvas({
       g.hasEdge.bind(g),
     );
     shownHidden.current = { nodes, edges };
+    miniDirty.current = true;
     container.current!.dataset.visible = String(g.order - nodes.size);
   }, [hidden, data]);
 
