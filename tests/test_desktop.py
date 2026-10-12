@@ -11,7 +11,7 @@ from typer.testing import CliRunner
 
 from narcisse import cli
 from narcisse.config import Settings
-from narcisse.desktop import system
+from narcisse.desktop import mode, system
 from narcisse.desktop.art import TrayState, tray_icon
 from narcisse.desktop.state import notifications, summarize
 
@@ -197,6 +197,51 @@ def test_open_starts_narcisse_only_when_it_is_not_running(
         ("open", "http://narcisse.localhost"),
         ("spawn", ["tray", "--open", "--demo"]),
     ]
+
+
+def test_open_starts_the_side_chosen_last(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    started: list[list[str]] = []
+    asked: list[bool] = []
+    monkeypatch.setattr(system, "spawn_detached", lambda args: started.append(args[-2:]))
+
+    def locate(port: int | None, demo: bool) -> tuple[Settings, bool]:
+        asked.append(demo)
+        return Settings(data_dir=tmp_path), False
+
+    monkeypatch.setattr(cli, "_locate", locate)
+    assert mode.demo_remembered() is False  # nothing chosen yet: the user's own data
+    CliRunner().invoke(cli.app, ["open"])
+    mode.remember(True)
+    CliRunner().invoke(cli.app, ["open"])
+    CliRunner().invoke(cli.app, ["open", "--real"])  # said explicitly: that side, once
+
+    assert asked == [False, True, False]
+    assert started == [["--open", "--real"], ["--open", "--demo"], ["--open", "--real"]]
+    assert mode.demo_remembered() is True
+
+
+def test_an_unreadable_choice_opens_the_users_own_data() -> None:
+    mode.mode_path().parent.mkdir(parents=True)
+    mode.mode_path().write_text("{not json", encoding="utf-8")
+    assert mode.demo_remembered() is False
+
+
+def test_the_shortcut_opens_the_side_chosen_last(monkeypatch: pytest.MonkeyPatch) -> None:
+    made: list[list[str]] = []
+    monkeypatch.setattr(system, "IS_WINDOWS", True)
+
+    def create_shortcut(args: list[str]) -> Path:
+        made.append(args)
+        return Path("Narcisse.lnk")
+
+    monkeypatch.setattr(system, "create_shortcut", create_shortcut)
+
+    result = CliRunner().invoke(cli.app, ["shortcut", "--demo"])
+
+    assert result.exit_code == 0, result.output
+    assert made[0][-2:] == ["narcisse", "open"]  # no side written in: the one chosen last
+    assert mode.demo_remembered() is True
+    assert "mode démo" in result.output
 
 
 def test_the_native_menu_setup_does_nothing_off_windows(monkeypatch: pytest.MonkeyPatch) -> None:

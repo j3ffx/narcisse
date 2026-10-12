@@ -21,7 +21,7 @@ import uvicorn
 from narcisse import __version__
 from narcisse.app import create_app
 from narcisse.config import DEFAULT_PORT, FALLBACK_PORT, HOST, Settings
-from narcisse.desktop import system
+from narcisse.desktop import mode, system
 from narcisse.logs import setup_logging
 from narcisse.server import Server
 
@@ -32,6 +32,15 @@ app = typer.Typer(
 )
 
 Demo = Annotated[bool, typer.Option("--demo", help="Mode démo : propose le module factice.")]
+# The desktop commands open the side chosen last (the tray's "Mode démo") unless told which.
+Side = Annotated[
+    bool | None,
+    typer.Option(
+        "--demo/--real",
+        help="Mode démo, ou tes vraies données (par défaut : le dernier choisi).",
+        show_default=False,
+    ),
+]
 Port = Annotated[int | None, typer.Option(help="Port local (80 si possible, sinon 8765).")]
 
 
@@ -111,13 +120,13 @@ def serve(
 @app.command()
 def tray(
     port: Port = None,
-    demo: Demo = False,
+    demo: Side = None,
     open_window: Annotated[
         bool, typer.Option("--open", help="Ouvrir Narcisse une fois prêt.")
     ] = False,
 ) -> None:
     """Lance Narcisse en arrière-plan, avec son icône dans la zone de notification."""
-    settings, running = _locate(port, demo)
+    settings, running = _locate(port, mode.demo_remembered() if demo is None else demo)
     if running:
         if open_window:
             system.open_window(settings.app_url, settings.url)
@@ -131,8 +140,9 @@ def tray(
 
 
 @app.command("open")
-def open_(port: Port = None, demo: Demo = False) -> None:
+def open_(port: Port = None, demo: Side = None) -> None:
     """Ouvre Narcisse, en le démarrant d’abord s’il ne tourne pas."""
+    demo = mode.demo_remembered() if demo is None else demo
     settings, running = _locate(port, demo)
     if running:
         system.open_window(settings.app_url, settings.url)
@@ -140,7 +150,7 @@ def open_(port: Port = None, demo: Demo = False) -> None:
     args = [
         "tray",
         "--open",
-        *(["--demo"] if demo else []),
+        "--demo" if demo else "--real",
         *(["--port", str(port)] if port else []),
     ]
     system.spawn_detached(system.command(*args))
@@ -148,14 +158,21 @@ def open_(port: Port = None, demo: Demo = False) -> None:
 
 @app.command()
 def shortcut(demo: Demo = False) -> None:
-    """Ajoute Narcisse au menu Démarrer (Windows) : un clic l’ouvre, en le démarrant si besoin."""
+    """Ajoute Narcisse au menu Démarrer (Windows) : un clic l’ouvre, en le démarrant si besoin.
+
+    L’entrée ouvre le dernier mode choisi (« Mode démo » dans le menu de l’icône) ; --demo le règle
+    sur la démo."""
     if not system.IS_WINDOWS:
         typer.echo(
             "Le raccourci n’existe que sous Windows pour l’instant : lance « narcisse open »."
         )
         raise typer.Exit(1)
-    path = system.create_shortcut(system.command("open", *(["--demo"] if demo else [])))
+    if demo:
+        mode.remember(True)
+    path = system.create_shortcut(system.command("open"))
     typer.echo(f"Raccourci créé : {path}")
+    side = "le mode démo" if mode.demo_remembered() else "tes vraies données"
+    typer.echo(f"Il ouvre {side} ; la case « Mode démo » du menu de l’icône change de côté.")
     typer.echo("Tape « Narcisse » dans le menu Démarrer pour l’ouvrir, ou épingle-le.")
 
 

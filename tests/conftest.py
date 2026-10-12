@@ -27,6 +27,12 @@ class NoNetwork(httpx.AsyncBaseTransport):
         raise AssertionError(f"unexpected request to {request.url}")
 
 
+@pytest.fixture(autouse=True)
+def own_config_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The desktop's choices (demo or real side) go to the test's directory, never the user's."""
+    monkeypatch.setenv("NARCISSE_CONFIG_DIR", str(tmp_path / "config"))
+
+
 @pytest.fixture
 def settings(tmp_path: Path) -> Settings:
     return Settings(data_dir=tmp_path / "data", demo=True, speed=FAST)

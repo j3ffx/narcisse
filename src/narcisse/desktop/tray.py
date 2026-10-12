@@ -17,7 +17,7 @@ import uvicorn
 
 from narcisse.app import create_app
 from narcisse.config import HOST, Settings
-from narcisse.desktop import system
+from narcisse.desktop import mode, system
 from narcisse.desktop.art import TrayState, tray_icon
 from narcisse.desktop.state import Summary, notifications, summarize
 from narcisse.server import Server
@@ -68,10 +68,10 @@ class Tray:
         )
         self._shown_state = TrayState.IDLE
 
-    # What `tray --demo` and the autostart entry run again on restart and at login.
+    # What a restart runs again: this side. (The start with Windows opens the side chosen last.)
     @property
     def tray_args(self) -> list[str]:
-        return ["tray", "--demo"] if self.settings.demo else ["tray"]
+        return ["tray", "--demo" if self.settings.demo else "--real"]
 
     def _menu(self) -> pystray.Menu:
         item = pystray.MenuItem
@@ -88,6 +88,11 @@ class Tray:
                 "Notifications",
                 self.toggle_notifications,
                 checked=lambda _: self.prefs.notifications,
+            ),
+            item(
+                "Mode démo",
+                self.toggle_demo,
+                checked=lambda _: self.settings.demo,
             ),
             item(
                 "Démarrer avec Windows",
@@ -172,7 +177,7 @@ class Tray:
         self.prefs.save()
 
     def toggle_autostart(self, *_: object) -> None:
-        system.set_autostart(not system.autostart_enabled(), system.command(*self.tray_args))
+        system.set_autostart(not system.autostart_enabled(), system.command("tray"))
 
     def _stop_server(self) -> None:
         self.stopping.set()
@@ -183,6 +188,15 @@ class Tray:
         """Picks up new code (after a `git pull` and a build) and runs it."""
         self._stop_server()
         system.spawn_detached(system.command(*self.tray_args))
+        self.icon.stop()
+
+    def toggle_demo(self, *_: object) -> None:
+        """Switches between the demo and the user's own data: remembered for the Start menu entry
+        and the start with Windows, and Narcisse starts again on the other side, in a window."""
+        demo = not self.settings.demo
+        mode.remember(demo)
+        self._stop_server()
+        system.spawn_detached(system.command("tray", "--open", "--demo" if demo else "--real"))
         self.icon.stop()
 
     def quit(self, *_: object) -> None:
