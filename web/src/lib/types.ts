@@ -70,6 +70,8 @@ export interface Run {
   retry_at: string | null;
   error_code: string | null;
   error_params: Params | null;
+  /** Counters the module reported ("checked", "unreachable"…). */
+  notes: Record<string, number> | null;
   retryable: boolean;
   started_at: string | null;
   finished_at: string | null;
@@ -98,6 +100,7 @@ export interface Entity {
   normalized: string;
   status: EntityStatus;
   confidence: number | null;
+  attributes: Record<string, unknown>;
 }
 
 export interface Result {
@@ -149,6 +152,16 @@ export interface RunProgress {
   scan_id: number;
   done: number;
   total: number | null;
+  notes: Record<string, number> | null;
+}
+
+export interface Preferences {
+  github_token_set: boolean;
+  exclude_adult: boolean;
+}
+
+export interface EntityUpdate extends Entity {
+  profile_id: number;
 }
 
 export type LiveEvent =
@@ -156,4 +169,5 @@ export type LiveEvent =
   | { type: 'scan.updated'; data: Scan }
   | { type: 'run.updated'; data: Run }
   | { type: 'run.progress'; data: RunProgress }
-  | { type: 'result.created'; data: Result };
+  | { type: 'result.created'; data: Result }
+  | { type: 'entity.updated'; data: EntityUpdate };

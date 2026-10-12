@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { messageFor } from '@/lib/errors';
-import { KIND_LABELS } from '@/lib/labels';
+import { KIND_LABELS, NOTE_LABELS } from '@/lib/labels';
 import { useModules, useRetryRun } from '@/lib/queries';
 import { formatDuration, remainingSeconds, secondsUntil } from '@/lib/time';
 import type { Run } from '@/lib/types';
@@ -47,6 +47,13 @@ export function RunRow({ run, now }: { run: Run; now: number }) {
         )}
         {run.attempts > 1 && <span>essai {run.attempts}</span>}
       </div>
+      {run.notes && (
+        <p className="text-xs text-muted-foreground" data-testid="run-notes">
+          {NOTE_LABELS.filter(([key]) => run.notes?.[key])
+            .map(([key, label]) => label(run.notes![key]!))
+            .join(' · ')}
+        </p>
+      )}
       {run.error_code && (
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p

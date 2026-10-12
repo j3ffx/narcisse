@@ -1,7 +1,16 @@
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { get } from '@/lib/api';
-import { inActivity, matches, withProgress, withResult, withRun, withScan } from '@/lib/live';
+import {
+  inActivity,
+  matches,
+  withEntity,
+  withProgress,
+  withResult,
+  withRun,
+  withScan,
+  type ResultFilter,
+} from '@/lib/live';
 import { keys } from '@/lib/queries';
 import type { Activity, LiveEvent, ResultsPage, ScanDetail } from '@/lib/types';
 
@@ -13,6 +22,7 @@ const EVENT_TYPES: LiveEvent['type'][] = [
   'run.updated',
   'run.progress',
   'result.created',
+  'entity.updated',
 ];
 
 /**
@@ -114,8 +124,8 @@ function apply(client: QueryClient, event: LiveEvent) {
       for (const [key, page] of client.getQueriesData<ResultsPage>({
         queryKey: keys.results(result.scan_id),
       })) {
-        const filter = key[2] as { kind: string | null; q: string } | undefined;
-        if (!page || !filter || !matches(result, filter.kind, filter.q)) continue;
+        const filter = key[2] as ResultFilter | undefined;
+        if (!page || !filter || !matches(result, filter)) continue;
         if (page.items.some((r) => r.id === result.id)) continue;
         // A list cut at its first page only learns that there is one more.
         const complete = page.items.length >= page.total;
@@ -126,5 +136,10 @@ function apply(client: QueryClient, event: LiveEvent) {
       }
       break;
     }
+    case 'entity.updated':
+      client.setQueriesData<ResultsPage>({ queryKey: keys.allResults }, (page) =>
+        page ? withEntity(page, event.data) : page,
+      );
+      break;
   }
 }

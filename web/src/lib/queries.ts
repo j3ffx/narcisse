@@ -2,13 +2,24 @@ import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tansta
 import { toast } from 'sonner';
 import { del, get, patch, post } from './api';
 import { errorMessage } from './errors';
-import { cancelled, inActivity, paused, resumed, retried } from './live';
+import {
+  cancelled,
+  inActivity,
+  paused,
+  resumed,
+  retried,
+  withEntity,
+  type ResultFilter,
+} from './live';
 import type {
   Activity,
   AppInfo,
   Module,
   Profile,
   ProfileDetail,
+  Entity,
+  EntityStatus,
+  Preferences,
   ProfileKind,
   ResultsPage,
   Scan,
@@ -27,8 +38,9 @@ export const keys = {
   scans: (profileId: number) => ['scans', profileId] as const,
   scan: (id: number) => ['scan', id] as const,
   results: (scanId: number) => ['results', scanId] as const,
-  filteredResults: (scanId: number, kind: string | null, q: string) =>
-    ['results', scanId, { kind, q }] as const,
+  filteredResults: (scanId: number, filter: ResultFilter) => ['results', scanId, filter] as const,
+  allResults: ['results'] as const,
+  preferences: ['preferences'] as const,
 };
 
 // Reads
@@ -64,13 +76,14 @@ export const useActivity = () =>
 
 export const RESULTS_PAGE = 500;
 
-export const useResults = (scanId: number, kind: string | null, q: string) =>
+export const useResults = (scanId: number, filter: ResultFilter) =>
   useQuery({
-    queryKey: keys.filteredResults(scanId, kind, q),
+    queryKey: keys.filteredResults(scanId, filter),
     queryFn: () => {
       const params = new URLSearchParams({ limit: String(RESULTS_PAGE) });
-      if (kind) params.set('kind', kind);
-      if (q.trim()) params.set('q', q.trim());
+      if (filter.kind) params.set('kind', filter.kind);
+      if (filter.q.trim()) params.set('q', filter.q.trim());
+      if (filter.falsePositives) params.set('false_positives', 'true');
       return get<ResultsPage>(`/scans/${scanId}/results?${params}`);
     },
     placeholderData: (previous) => previous,
@@ -240,4 +253,41 @@ function restore(client: QueryClient, previous: Previous | undefined) {
   if (!previous) return;
   if (previous.scan) client.setQueryData(keys.scan(previous.scanId), previous.scan);
   if (previous.activity) client.setQueryData(keys.activity, previous.activity);
+}
+
+// Reviewing traces
+
+/** "It's me", "not me", or back to "not sure": every list showing the trace follows at once. */
+export function useReviewEntity() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ entity, status }: { entity: Entity; status: EntityStatus }) =>
+      patch<Entity>(`/entities/${entity.id}`, { status }),
+    onMutate: ({ entity, status }) => {
+      const previous = client.getQueriesData<ResultsPage>({ queryKey: keys.allResults });
+      client.setQueriesData<ResultsPage>({ queryKey: keys.allResults }, (page) =>
+        page ? withEntity(page, { ...entity, status }) : page,
+      );
+      return previous;
+    },
+    onError: (error, _vars, previous) => {
+      for (const [key, page] of previous ?? []) client.setQueryData(key, page);
+      failed(error);
+    },
+  });
+}
+
+// Settings
+
+export const usePreferences = () =>
+  useQuery({ queryKey: keys.preferences, queryFn: () => get<Preferences>('/preferences') });
+
+export function useUpdatePreferences() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (changes: { github_token?: string | null; exclude_adult?: boolean }) =>
+      patch<Preferences>('/preferences', changes),
+    onSuccess: (preferences) => client.setQueryData(keys.preferences, preferences),
+    onError: failed,
+  });
 }

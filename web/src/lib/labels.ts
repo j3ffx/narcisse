@@ -67,6 +67,30 @@ export const RELATION_LABELS: Record<string, string> = {
   mentioned_on: 'mentionné sur',
   uses_email: 'utilise l’email',
   uses_username: 'utilise le pseudo',
+  shows_name: 'nom affiché',
+  shows_email: 'email affiché',
+  links_to: 'lien',
+  commits_as: 'commits',
+  publishes_key: 'clé PGP publiée',
+  key_identity: 'identité de la clé',
+};
+
+/** What a search reports, in the order it reads best. */
+export const NOTE_LABELS: [string, (n: number) => string][] = [
+  ['checked', (n) => `${n} vérifié${n > 1 ? 's' : ''}`],
+  ['found', (n) => `${n} trouvé${n > 1 ? 's' : ''}`],
+  ['uncertain', (n) => `${n} indéterminé${n > 1 ? 's' : ''}`],
+  ['blocked', (n) => `${n} bloqué${n > 1 ? 's' : ''} par un anti-robot`],
+  ['unreachable', (n) => `${n} injoignable${n > 1 ? 's' : ''}`],
+  ['skipped', (n) => `${n} ignoré${n > 1 ? 's' : ''} (captcha)`],
+  ['excluded', (n) => `${n} exclu${n > 1 ? 's' : ''} (sites adultes)`],
+];
+
+export const CATEGORY_LABELS: Record<string, string> = {
+  accounts: 'Comptes',
+  code: 'Code',
+  keys: 'Clés',
+  demo: 'Démonstration',
 };
 
 export const FINISHED_RUN: ReadonlySet<RunStatus> = new Set(['failed', 'done', 'cancelled']);

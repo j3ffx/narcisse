@@ -16,6 +16,7 @@ const run = (id: number, done: number, status: Run['status'] = 'running'): Run =
   retry_at: null,
   error_code: null,
   error_params: null,
+  notes: null,
   retryable: false,
   started_at: '2026-01-01T00:00:00Z',
   finished_at: null,

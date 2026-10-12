@@ -22,6 +22,9 @@ const MESSAGES: Record<string, (p: Params) => string> = {
   scan_not_paused: () => 'Ce scan n’est pas en pause.',
   scan_finished: () => 'Ce scan est déjà terminé.',
   run_not_retryable: () => 'Cette recherche ne peut pas être relancée.',
+  entity_not_reviewable: () => 'Cet élément vient de toi : il n’y a rien à trier.',
+  github_token_rejected: () =>
+    'GitHub refuse le token enregistré (expiré ou révoqué ?). Change-le dans les réglages.',
   forbidden_host: () => 'Requête refusée : adresse inattendue.',
   forbidden_origin: () => 'Requête refusée : elle ne vient pas de Narcisse.',
   json_required: () => 'Requête refusée : format inattendu.',

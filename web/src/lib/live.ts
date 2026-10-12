@@ -1,6 +1,15 @@
 // How live events and commands change what the UI holds. Pure functions, tested in live.test.ts.
 import { FINISHED_RUN } from './labels';
-import type { Activity, Result, Run, RunProgress, Scan, ScanDetail } from './types';
+import type {
+  Activity,
+  Entity,
+  Result,
+  ResultsPage,
+  Run,
+  RunProgress,
+  Scan,
+  ScanDetail,
+} from './types';
 
 export function withScan(detail: ScanDetail, scan: Scan): ScanDetail {
   return { ...detail, ...scan, runs: detail.runs };
@@ -20,7 +29,12 @@ export function withProgress(detail: ScanDetail, progress: RunProgress): ScanDet
     ...detail,
     runs: detail.runs.map((r) =>
       r.id === progress.run_id
-        ? { ...r, progress_done: progress.done, progress_total: progress.total }
+        ? {
+            ...r,
+            progress_done: progress.done,
+            progress_total: progress.total,
+            notes: progress.notes ?? r.notes,
+          }
         : r,
     ),
   };
@@ -86,10 +100,29 @@ export function retried(detail: ScanDetail, runId: number): ScanDetail {
   };
 }
 
-/** Whether a result belongs in a list filtered by kind and text. */
-export function matches(result: Result, kind: string | null, q: string): boolean {
+export interface ResultFilter {
+  kind: string | null;
+  q: string;
+  /** Whether traces marked "not me" are shown. */
+  falsePositives: boolean;
+}
+
+/** Whether a result belongs in a filtered list. */
+export function matches(result: Result, { kind, q, falsePositives }: ResultFilter): boolean {
   if (kind && result.entity.kind !== kind) return false;
+  if (!falsePositives && result.entity.status === 'false_positive') return false;
   const text = q.trim().toLowerCase();
   if (!text) return true;
   return [result.entity.display, result.url ?? ''].some((v) => v.toLowerCase().includes(text));
+}
+
+/** A reviewed entity, in a page of results: every result about it follows. */
+export function withEntity(page: ResultsPage, entity: Entity): ResultsPage {
+  if (!page.items.some((r) => r.entity.id === entity.id)) return page;
+  return {
+    ...page,
+    items: page.items.map((r) =>
+      r.entity.id === entity.id ? { ...r, entity: { ...r.entity, status: entity.status } } : r,
+    ),
+  };
 }

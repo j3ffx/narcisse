@@ -27,6 +27,7 @@ const run = (id: number, status: Run['status'] = 'running'): Run => ({
   retry_at: null,
   error_code: null,
   error_params: null,
+  notes: null,
   retryable: false,
   started_at: null,
   finished_at: null,
@@ -57,6 +58,7 @@ const result = (id: number, runId = 1, display = 'https://forum.example.org/u/je
     normalized: display,
     status: 'unreviewed',
     confidence: 0.5,
+    attributes: {},
   },
   relation: 'has_account',
   confidence: 0.5,
@@ -87,7 +89,13 @@ describe('live events', () => {
   });
 
   it('move a progress bar', () => {
-    const updated = withProgress(scan(run(1)), { run_id: 1, scan_id: 1, done: 5, total: 12 });
+    const updated = withProgress(scan(run(1)), {
+      run_id: 1,
+      scan_id: 1,
+      done: 5,
+      total: 12,
+      notes: null,
+    });
     expect(updated.runs[0]?.progress_done).toBe(5);
   });
 
@@ -128,9 +136,13 @@ describe('optimistic commands', () => {
 describe('matches', () => {
   it('filters by kind and by text in the value or the address', () => {
     const r = result(1);
-    expect(matches(r, null, '')).toBe(true);
-    expect(matches(r, 'account', 'FORUM')).toBe(true);
-    expect(matches(r, 'email', '')).toBe(false);
-    expect(matches(r, null, 'photos')).toBe(false);
+    const all = { kind: null, q: '', falsePositives: false };
+    expect(matches(r, all)).toBe(true);
+    expect(matches(r, { ...all, kind: 'account', q: 'FORUM' })).toBe(true);
+    expect(matches(r, { ...all, kind: 'email' })).toBe(false);
+    expect(matches(r, { ...all, q: 'photos' })).toBe(false);
+    const notMe = { ...r, entity: { ...r.entity, status: 'false_positive' as const } };
+    expect(matches(notMe, all)).toBe(false);
+    expect(matches(notMe, { ...all, falsePositives: true })).toBe(true);
   });
 });
