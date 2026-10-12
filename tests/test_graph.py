@@ -88,3 +88,27 @@ async def test_each_live_result_carries_its_edge(make_api: ApiFactory) -> None:
     assert site["profile_id"] == profile
     assert site["edge"]["source_id"] == account["entity"]["id"]
     assert site["edge"]["target_id"] == site["entity"]["id"]
+
+
+async def test_demo_mode_makes_a_fictitious_graph_of_the_size_asked(api: Api) -> None:
+    made = await api.json("POST", "/demo/graph", {"nodes": 500}, status=201)
+    graph = await api.json("GET", f"/profiles/{made['profile_id']}/graph?false_positives=true")
+
+    assert 500 <= len(graph["nodes"]) < 520
+    assert len(graph["edges"]) >= len(graph["nodes"]) - 1  # everything hangs together
+    ids = {n["id"] for n in graph["nodes"]}
+    assert all(e["source_id"] in ids and e["target_id"] in ids for e in graph["edges"])
+    # Chains, not a star: traces found on accounts, and traces found twice.
+    kinds = {n["id"]: n["kind"] for n in graph["nodes"]}
+    assert any(kinds[e["source_id"]] == "account" for e in graph["edges"])
+    targets = [e["target_id"] for e in graph["edges"]]
+    assert len(set(targets)) < len(targets)
+    hosts = {n["display"].split("/")[2] for n in graph["nodes"] if n["kind"] == "account"}
+    assert all(".example." in host for host in hosts)  # reserved domains only
+    profile = await api.json("GET", f"/profiles/{made['profile_id']}")
+    assert len(profile["seeds"]) == 9
+
+
+async def test_only_demo_mode_makes_fictitious_graphs(make_api: ApiFactory) -> None:
+    api = await make_api(None, demo=False)
+    await api.json("POST", "/demo/graph", {"nodes": 100}, status=404)

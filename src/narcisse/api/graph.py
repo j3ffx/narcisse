@@ -7,10 +7,13 @@ from fastapi import APIRouter
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from narcisse import demo_graph
 from narcisse.api.deps import ServicesDep
 from narcisse.domain import EntityStatus
 from narcisse.errors import not_found
 from narcisse.schemas import (
+    DemoGraphIn,
+    DemoGraphOut,
     EdgeOut,
     EntityDetail,
     EntityOut,
@@ -131,3 +134,13 @@ async def get_entity(entity_id: int, s: ServicesDep) -> EntityDetail:
             edges=[EdgeOut.model_validate(e) for e in edges],
             neighbours=[EntityOut.model_validate(n) for n in neighbours],
         )
+
+
+@router.post("/demo/graph", status_code=201)
+async def make_demo_graph(body: DemoGraphIn, s: ServicesDep) -> DemoGraphOut:
+    """A fictitious profile with that many traces (demo mode only: it fills the demo data)."""
+    if not s.settings.demo:
+        raise not_found("route")
+    async with s.db.write() as session:
+        profile = await demo_graph.generate(session, size=body.nodes, now=s.bus.clock.now())
+        return DemoGraphOut(profile_id=profile.id)

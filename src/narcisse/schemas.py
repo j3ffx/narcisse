@@ -200,6 +200,14 @@ class EntityDetail(Schema):
     neighbours: list[EntityOut]
 
 
+class DemoGraphIn(Schema):
+    nodes: int = Field(default=5000, ge=10, le=20_000)
+
+
+class DemoGraphOut(Schema):
+    profile_id: int
+
+
 class ResultsPage(Schema):
     items: list[ResultOut]
     total: int
