@@ -136,10 +136,18 @@ test('the sources and the settings explain themselves', async ({ page }) => {
   await expect(page.getByText('aucun site (rien ne sort de ta machine)')).toBeVisible();
 
   await page.goto('/reglages');
-  await expect(page.getByTestId('github-token-state')).toHaveText('Aucun token enregistré.');
-  await page.getByRole('textbox', { name: 'Token' }).fill('fake-test-token');
-  await page.getByRole('button', { name: 'Enregistrer' }).click();
-  await expect(page.getByTestId('github-token-state')).toHaveText('Un token est enregistré.');
-  await page.getByRole('button', { name: 'Retirer' }).click();
-  await expect(page.getByTestId('github-token-state')).toHaveText('Aucun token enregistré.');
+  const github = page.getByRole('region', { name: 'Token GitHub (facultatif)' });
+  await expect(github.getByTestId('github-token-state')).toHaveText('Aucun token enregistré.');
+  await github.getByRole('textbox', { name: 'Token' }).fill('fake-test-token');
+  await github.getByRole('button', { name: 'Enregistrer' }).click();
+  await expect(github.getByTestId('github-token-state')).toHaveText('Un token est enregistré.');
+  await github.getByRole('button', { name: 'Retirer' }).click();
+  await expect(github.getByTestId('github-token-state')).toHaveText('Aucun token enregistré.');
+
+  const fediverse = page.getByRole('region', { name: 'Instances Mastodon et Fediverse' });
+  await fediverse.getByRole('textbox', { name: 'Instance' }).fill('https://Social.Example.org/');
+  await fediverse.getByRole('button', { name: 'Ajouter' }).click();
+  await expect(fediverse.getByRole('listitem')).toHaveText('social.example.org');
+  await fediverse.getByRole('button', { name: 'Retirer social.example.org' }).click();
+  await expect(fediverse.getByText('Aucune instance ajoutée.')).toBeVisible();
 });
