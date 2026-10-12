@@ -7,10 +7,10 @@ publiques de cette identité, les relie dans un graphe pour montrer comment elle
 évalue ce que chacune expose, et t’aide à faire le ménage : supprimer un compte, demander un
 déréférencement, envoyer une demande RGPD. Puis il suit tes progrès d’un scan à l’autre.
 
-> **En construction.** Les fondations sont là : profils, scans de longue durée suivis en direct,
-> reprise après fermeture du navigateur ou redémarrage. Aucune source réelle n’est encore branchée :
-> seul un module de démonstration, qui invente des résultats sans rien interroger, permet d’essayer.
-> Le [journal des changements](CHANGELOG.md) dira quand la première version sortira.
+> **En construction.** Narcisse cherche déjà tes comptes à partir d’un pseudo (plus de 600 sites),
+> ce que GitHub, Gravatar et les serveurs de clés PGP publient sur toi, et te laisse trier chaque
+> trace (« c’est moi » / « pas moi »). Le graphe, la remédiation et d’autres sources arrivent. Le
+> [journal des changements](CHANGELOG.md) dira quand la première version sortira.
 
 ## Pour qui, pour quoi
 
@@ -40,10 +40,12 @@ discréditer. Ces usages sont souvent illégaux, et toujours contraires à l’e
   ouverts. Les techniques qui sollicitent un service sans s’y connecter (vérifier qu’un email est
   inscrit quelque part, par exemple) sont désactivées par défaut, une par une, et expliquées avant
   que tu les actives.
-- **Poli avec les sites.** Il respecte `robots.txt`, limite son débit par site et s’annonce avec un
-  User-Agent honnête.
-- **Jamais de contournement.** Pas de connexion à ta place, pas de captcha résolu, pas de paywall
-  franchi, pas de faux compte.
+- **Poli avec les sites.** Pour savoir si un compte existe, il demande une seule page par site ;
+  quand il parcourt des pages de lien en lien, il respecte `robots.txt`. Il limite son débit par
+  site et s’annonce toujours avec un User-Agent honnête, jamais comme un navigateur.
+- **Jamais de contournement.** Pas de connexion à ta place, pas de captcha résolu (les sites
+  protégés ne sont pas interrogés, une page anti-robot vaut « je ne sais pas »), pas de paywall
+  franchi, pas de faux compte, jamais la clé d’API de quelqu’un d’autre.
 - **Rien n’est envoyé à ta place.** Narcisse prépare les demandes de suppression ; c’est toujours
   toi qui les envoies.
 - **Gratuit.** Aucune API payante ; un token gratuit (GitHub, par exemple) peut lever des limites,
@@ -108,6 +110,23 @@ Narcisse : il voit la ligne et répond aussi à cette adresse. Sans elle, il ref
 pourrait sinon être détourné par un réseau mal intentionné. Dans le navigateur, tape `narcisse/` (avec
 la barre oblique) la première fois ; ensuite, il la propose de lui-même.
 
+## Les sources
+
+| Source                                 | À partir de         | Ce qu’elle trouve                                                                                                   |
+| -------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Comptes par pseudo (liste WhatsMyName) | un pseudo           | les comptes à ce nom sur plus de 600 sites (réseaux sociaux, jeux, code, forums, sites adultes signalés comme tels) |
+| GitHub                                 | un pseudo, un email | le profil public et les emails visibles dans les commits ; pour un email, les comptes qui l’utilisent               |
+| Gravatar                               | un email            | le profil public et les comptes qu’il liste (seule l’empreinte de l’email est envoyée)                              |
+| Clés PGP publiques (keys.openpgp.org)  | un email            | une clé publiée, et les noms et adresses qu’elle porte                                                              |
+
+Chaque recherche dit ce qu’elle a pu vérifier : par exemple « 640 vérifiés · 12 trouvés · 109
+bloqués par un anti-robot ». Le détail de chaque source (sites contactés, rythme, licence) est dans
+la page « Sources » de Narcisse. Un token GitHub personnel gratuit, dans les réglages, relève la
+limite de GitHub de 60 à 5 000 requêtes par heure ; rien ne l’exige.
+
+En mode démo, seul le module de démonstration est proposé : des identités fictives n’interrogent
+jamais de vrais sites.
+
 ## Ajouter une source
 
 Une source est un fichier dans `src/narcisse/modules/`, avec une classe qui décrit ce qu’elle fait
@@ -119,6 +138,13 @@ d’attente, pause, reprise, erreurs, limites de débit, affichage. Le module de
 ## Contribuer
 
 Les règles du dépôt (commandes, commits, confidentialité, invariants) : [CLAUDE.md](CLAUDE.md).
+
+## Crédits
+
+- Liste des sites : [WhatsMyName](https://github.com/WebBreacher/WhatsMyName), Micah Hoffman et
+  contributeurs, licence [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Copie
+  adaptée (sites interrogés avec la clé d’un tiers retirés), provenance dans
+  `src/narcisse/modules/data/wmn-source.json`.
 
 ## Licence
 

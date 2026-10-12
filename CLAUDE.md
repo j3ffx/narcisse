@@ -71,8 +71,13 @@ fixtures, docs, commit messages or commit metadata.
   fake accounts.
 - **Passive by default.** _Passive_: public APIs and pages, DNS/RDAP, archives, open registries.
   _Light active_ (e.g. "is this e-mail registered on X?" through a password-reset form): opt-in,
-  module by module, **off by default**, explained in the UI before it is turned on. Crawling honours
-  `robots.txt`, is rate-limited per domain and sends an honest, identifiable User-Agent.
+  module by module, **off by default**, explained in the UI before it is turned on. Crawling
+  (following links) honours `robots.txt`; checking whether one profile page exists is not crawling.
+  Every request is rate-limited per domain and sends Narcisse's honest User-Agent, never a browser's.
+- **No circumvention, no borrowed credentials.** Sites behind a captcha or a proof-of-work challenge
+  are not asked; an anti-bot page counts as "couldn't tell". No cookie that accepts a site's terms,
+  no spoofed header, never a third party's API key (sites needing one are removed from the
+  WhatsMyName copy by `scripts/update-wmn.py`).
 - **Nothing is sent on the user's behalf.** Narcisse prepares removal requests (letters, links,
   pre-filled forms); the user always sends them.
 - **100 % local, no telemetry.** The server binds to `127.0.0.1` only, refuses requests whose `Host`
@@ -95,8 +100,11 @@ fixtures, docs, commit messages or commit metadata.
   WhatsMyName's data (CC BY-SA 4.0, credited).
 - **Results stream.** A module yields findings one by one; each is stored and pushed to the UI as it
   arrives. No module returns its findings in one block.
-- **Every source says what it is.** A source that stops working says so; the demo module is labelled
-  as fake wherever it shows, and exists only in demo mode.
+- **Every source says what it is.** A source that stops working says so, and a run reports what it
+  could and couldn't check (`ModuleRun.notes`). Demo mode offers the demo module only, normal mode
+  the real sources only: fictitious identities never reach real sites.
+- **Live checks use public test accounts only** (GitHub's octocat, the `known` accounts WhatsMyName
+  lists per site), never a real person; CI is fully mocked.
 - **Errors:** the UI shows a human message (an error code translated by the UI); stack traces go to
   the log file only.
 - **Accessibility:** contrast ≥ 4.5:1 (tokens), visible focus, keyboard reachable, `alt` text,
