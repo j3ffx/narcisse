@@ -24,7 +24,7 @@ from narcisse.engine.plugin import (
     SourceUnavailable,
     Target,
 )
-from narcisse.modules._text import text_findings
+from narcisse.modules._text import read_on_profiles, text_findings
 
 API = "https://api.github.com"
 REPOS_TO_READ = 5  # the most recently pushed ones
@@ -82,7 +82,10 @@ class GitHub(SourceModule):
         data_source="https://docs.github.com/rest",
     )
 
-    async def run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
+    def run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
+        return read_on_profiles(self._run(ctx, target))
+
+    async def _run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
         if target.kind == EntityKind.EMAIL:
             async for finding in self._by_email(ctx, target.normalized):
                 yield finding

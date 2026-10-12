@@ -1,7 +1,17 @@
-"""Links and addresses read in a profile's free text."""
+"""Links and addresses read in a profile's free text, and the profile each finding was read on."""
+
+from collections.abc import AsyncIterator
 
 from narcisse.domain import EntityKind
-from narcisse.modules._text import emails, html_text, is_profile, links, text_findings
+from narcisse.engine.plugin import Finding
+from narcisse.modules._text import (
+    emails,
+    html_text,
+    is_profile,
+    links,
+    read_on_profiles,
+    text_findings,
+)
 
 
 def test_links_in_plain_text_lose_the_punctuation_that_follows_them() -> None:
@@ -64,3 +74,32 @@ def test_text_findings_tell_where_each_trace_was_read() -> None:
         (EntityKind.EMAIL, "shows_email", "jeanne@example.org"),
     ]
     assert found[0].excerpt == "Lien indiqué dans la description Bluesky."
+
+
+async def test_what_follows_a_profile_is_read_on_it() -> None:
+    async def module() -> AsyncIterator[Finding]:
+        yield Finding(kind=EntityKind.NAME, value="Avant", relation="shows_name")
+        yield Finding(
+            kind=EntityKind.ACCOUNT, value="https://a.example.org/j", relation="has_account"
+        )
+        yield Finding(kind=EntityKind.URL, value="https://jeanne.example.org", relation="links_to")
+        yield Finding(
+            kind=EntityKind.EMAIL,
+            value="jeanne@example.org",
+            relation="shows_email",
+            via=(EntityKind.URL, "https://jeanne.example.org"),
+        )
+        yield Finding(
+            kind=EntityKind.ACCOUNT, value="https://b.example.org/j", relation="has_account"
+        )
+        yield Finding(kind=EntityKind.NAME, value="Jeanne", relation="shows_name")
+
+    found = [f.via async for f in read_on_profiles(module())]
+    assert found == [
+        None,  # nothing read yet: the target
+        None,  # a profile relates to the target
+        (EntityKind.ACCOUNT, "https://a.example.org/j"),
+        (EntityKind.URL, "https://jeanne.example.org"),  # said by the module: kept
+        None,
+        (EntityKind.ACCOUNT, "https://b.example.org/j"),
+    ]

@@ -88,10 +88,12 @@ def findings_for(target: Target, rng: random.Random) -> list[Finding]:
         Finding(
             kind=EntityKind.EMAIL,
             value=f"{h}@example.com",
-            relation="uses_email",
+            relation="shows_email",
             confidence=round(rng.uniform(0.4, 0.9), 2),
-            url=PAGES[0].format(h=h),
-            excerpt=excerpt,
+            url=found[0].value,
+            excerpt=f"{excerpt} Adresse affichée sur ce compte (fictif).",
+            # Read on an account, as a real source would: the graph shows the chain.
+            via=(EntityKind.ACCOUNT, found[0].value),
         )
     )
     found.append(
@@ -100,8 +102,9 @@ def findings_for(target: Target, rng: random.Random) -> list[Finding]:
             value=f"{h}{rng.randint(1, 99)}",
             relation="uses_username",
             confidence=round(rng.uniform(0.2, 0.6), 2),
-            url=PLATFORMS[0][1].format(h=h),
+            url=found[1].value,
             excerpt=excerpt,
+            via=(EntityKind.ACCOUNT, found[1].value),
         )
     )
     found.append(
@@ -110,8 +113,9 @@ def findings_for(target: Target, rng: random.Random) -> list[Finding]:
             value=f"{h.replace('.', '_')}",
             relation="uses_username",
             confidence=round(rng.uniform(0.3, 0.7), 2),
-            url=PLATFORMS[1][1].format(h=h),
+            url=found[2].value,
             excerpt=excerpt,
+            via=(EntityKind.ACCOUNT, found[2].value),
         )
     )
     return found[:STEPS]

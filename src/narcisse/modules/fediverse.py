@@ -21,7 +21,7 @@ from narcisse.engine.plugin import (
     SourceModule,
     Target,
 )
-from narcisse.modules._text import html_text, is_profile, links, text_findings
+from narcisse.modules._text import html_text, is_profile, links, read_on_profiles, text_findings
 
 if TYPE_CHECKING:
     from narcisse.preferences import Preferences
@@ -105,7 +105,10 @@ class Fediverse(SourceModule):
             raise InputRejected("instance_not_listed", host=host)
         return [(host, name)]
 
-    async def run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
+    def run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
+        return read_on_profiles(self._run(ctx, target))
+
+    async def _run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
         places = self._places(ctx, target)
         notes: dict[str, int] = {"checked": 0, "found": 0, "unreachable": 0}
         for done, (host, name) in enumerate(places):

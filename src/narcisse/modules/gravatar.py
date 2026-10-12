@@ -18,6 +18,7 @@ from narcisse.engine.plugin import (
     SourceUnavailable,
     Target,
 )
+from narcisse.modules._text import read_on_profiles
 
 API = "https://api.gravatar.com/v3/profiles"
 
@@ -44,7 +45,10 @@ class Gravatar(SourceModule):
         data_source="https://docs.gravatar.com/api/profiles/rest-api/",
     )
 
-    async def run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
+    def run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
+        return read_on_profiles(self._run(ctx, target))
+
+    async def _run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
         await ctx.progress(0, 1)
         response = await ctx.http.get(f"{API}/{email_hash(target.normalized)}")
         if response.status_code == 404:

@@ -22,7 +22,7 @@ from narcisse.engine.plugin import (
     SourceUnavailable,
     Target,
 )
-from narcisse.modules._text import text_findings
+from narcisse.modules._text import read_on_profiles, text_findings
 from narcisse.normalize import fold
 
 API = "https://api.stackexchange.com/2.3"
@@ -77,7 +77,10 @@ class StackExchange(SourceModule):
             return fold(shown) == target.normalized
         return shown.casefold() == target.value.casefold()
 
-    async def run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
+    def run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
+        return read_on_profiles(self._run(ctx, target))
+
+    async def _run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
         await ctx.progress(0, 2)
         users = await self._get(
             ctx,
@@ -105,6 +108,7 @@ class StackExchange(SourceModule):
                 if other.get("site_url") == "https://stackoverflow.com":
                     continue  # already told
                 url = f"{other['site_url']}/users/{other['user_id']}"
+                origin = f"https://stackoverflow.com/users/{same[0]['user_id']}"
                 yield Finding(
                     kind=EntityKind.ACCOUNT,
                     value=url,
@@ -116,6 +120,7 @@ class StackExchange(SourceModule):
                         "(réseau Stack Exchange), relié à un compte Stack Overflow homonyme."
                     ),
                     attributes={"site": other.get("site_name", "Stack Exchange")},
+                    via=(EntityKind.ACCOUNT, origin),
                 )
         await ctx.progress(2, 2)
 

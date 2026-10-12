@@ -19,7 +19,7 @@ from narcisse.engine.plugin import (
     SourceUnavailable,
     Target,
 )
-from narcisse.modules._text import text_findings
+from narcisse.modules._text import read_on_profiles, text_findings
 
 API = "https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile"
 DEFAULT_DOMAIN = "bsky.social"
@@ -78,7 +78,10 @@ class Bluesky(SourceModule):
             return _profile_handle(value) is not None
         return super().accepts_target(kind, value)
 
-    async def run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
+    def run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
+        return read_on_profiles(self._run(ctx, target))
+
+    async def _run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
         asked = handle_for(target)
         if asked is None:
             return

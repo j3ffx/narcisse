@@ -21,7 +21,7 @@ from narcisse.engine.plugin import (
     SourceUnavailable,
     Target,
 )
-from narcisse.modules._text import text_findings
+from narcisse.modules._text import read_on_profiles, text_findings
 
 API = "https://keybase.io/_/api/1.0/user/lookup.json"
 FIELDS = "basics,profile,proofs_summary,public_keys"
@@ -87,7 +87,10 @@ class Keybase(SourceModule):
         own = [("usernames", target.value)] if _USERNAME.match(target.value) else []
         return own + [(service, target.value) for service in PROVEN_SERVICES]
 
-    async def run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
+    def run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
+        return read_on_profiles(self._run(ctx, target))
+
+    async def _run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
         lookups = self._lookups(target)
         seen: set[str] = set()
         for done, (field, value) in enumerate(lookups):

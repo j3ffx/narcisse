@@ -26,7 +26,7 @@ from narcisse.engine.plugin import (
     SourceUnavailable,
     Target,
 )
-from narcisse.modules._text import text_findings
+from narcisse.modules._text import read_on_profiles, text_findings
 
 MAIN = "gitlab.com"
 INSTANCES = (MAIN, "framagit.org", "salsa.debian.org", "gitlab.gnome.org", "gitlab.freedesktop.org")
@@ -78,7 +78,10 @@ class GitLab(SourceModule):
             return _account_name(value) is not None
         return super().accepts_target(kind, value)
 
-    async def run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
+    def run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
+        return read_on_profiles(self._run(ctx, target))
+
+    async def _run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
         if target.kind == EntityKind.ACCOUNT:
             found = _account_name(target.value)
             places = [found] if found else []

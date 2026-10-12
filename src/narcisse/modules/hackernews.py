@@ -20,7 +20,7 @@ from narcisse.engine.plugin import (
     SourceUnavailable,
     Target,
 )
-from narcisse.modules._text import html_text, text_findings
+from narcisse.modules._text import html_text, read_on_profiles, text_findings
 
 API = "https://hacker-news.firebaseio.com/v0/user"
 # What Hacker News accepts in a username: anything else can't be one.
@@ -57,7 +57,10 @@ class HackerNews(SourceModule):
             return _account_name(value) is not None
         return super().accepts_target(kind, value) and bool(_USERNAME.match(value))
 
-    async def run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
+    def run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
+        return read_on_profiles(self._run(ctx, target))
+
+    async def _run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
         username = (
             _account_name(target.value) if target.kind == EntityKind.ACCOUNT else target.value
         )

@@ -1,10 +1,11 @@
-"""What a profile's free text gives away: the links and e-mail addresses in a bio, an "about",
-a description. Shared by the modules that read profiles (not a module itself: the name starts
-with an underscore).
+"""What a profile gives away: the links and e-mail addresses in a bio, an "about", a description,
+and the profile each finding was read on. Shared by the modules that read profiles (not a module
+itself: the name starts with an underscore).
 """
 
 import re
-from collections.abc import Iterator
+from collections.abc import AsyncIterator, Iterator
+from dataclasses import replace
 from html import unescape
 from html.parser import HTMLParser
 from urllib.parse import urlsplit
@@ -53,6 +54,23 @@ _PREFIXED = {
 }
 # First path segments that are pages of the site, not someone's name.
 _RESERVED = frozenset({"about", "explore", "help", "home", "login", "search", "settings", "share"})
+
+
+# Findings that are a profile: what a module yields next was read on it.
+PROFILE_RELATIONS = frozenset({"has_account", "publishes_key"})
+
+
+async def read_on_profiles(findings: AsyncIterator[Finding]) -> AsyncIterator[Finding]:
+    """Relates what a module reads on a profile to that profile rather than to the target: each
+    finding that follows a profile (an account found, a key's page) starts from it, until the
+    next profile. A finding that says where it was read keeps it."""
+    profile: tuple[EntityKind, str] | None = None
+    async for finding in findings:
+        if finding.relation in PROFILE_RELATIONS:
+            profile = (finding.kind, finding.value)
+        elif profile is not None and finding.via is None:
+            finding = replace(finding, via=profile)
+        yield finding
 
 
 class _Html(HTMLParser):

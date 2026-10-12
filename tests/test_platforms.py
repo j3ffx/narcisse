@@ -435,6 +435,8 @@ async def test_keybase_finds_the_account_and_what_its_proofs_link(
     assert same_trace(found[0].value) == whatsmyname_url("Keybase", "Jeanne_Ex")
     assert found[0].attributes["pgp"] == "AB" * 20
     assert found[2].url == "https://gist.github.com/jeanne-exemple/1"
+    # What the account shows and proves relates to the account.
+    assert {f.via for f in found[1:]} == {(EntityKind.ACCOUNT, "https://keybase.io/Jeanne_Ex")}
 
 
 @respx.mock

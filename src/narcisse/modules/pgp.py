@@ -20,6 +20,7 @@ from narcisse.engine.plugin import (
     SourceUnavailable,
     Target,
 )
+from narcisse.modules._text import read_on_profiles
 from narcisse.normalize import collapse
 
 SERVER = "https://keys.openpgp.org"
@@ -63,7 +64,10 @@ class PgpKeys(SourceModule):
         data_source="https://keys.openpgp.org/about/api",
     )
 
-    async def run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
+    def run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
+        return read_on_profiles(self._run(ctx, target))
+
+    async def _run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
         await ctx.progress(0, 1)
         email = target.normalized
         response = await ctx.http.get(
