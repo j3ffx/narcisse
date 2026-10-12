@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tansta
 import { toast } from 'sonner';
 import { del, get, patch, post } from './api';
 import { errorMessage } from './errors';
+import { withEntity as withEntityInGraph } from './graph';
 import {
   cancelled,
   inActivity,
@@ -14,6 +15,8 @@ import {
 import type {
   Activity,
   AppInfo,
+  EntityDetail,
+  GraphData,
   Module,
   Profile,
   ProfileDetail,
@@ -42,6 +45,11 @@ export const keys = {
   filteredResults: (scanId: number, filter: ResultFilter) => ['results', scanId, filter] as const,
   allResults: ['results'] as const,
   preferences: ['preferences'] as const,
+  graph: (profileId: number, falsePositives: boolean) =>
+    ['graph', profileId, falsePositives] as const,
+  graphs: (profileId: number) => ['graph', profileId] as const,
+  entity: (id: number) => ['entity', id] as const,
+  entities: ['entity'] as const,
 };
 
 // Reads
@@ -57,6 +65,31 @@ export const useProfiles = () =>
 
 export const useProfile = (id: number) =>
   useQuery({ queryKey: keys.profile(id), queryFn: () => get<ProfileDetail>(`/profiles/${id}`) });
+
+export const useGraph = (profileId: number, falsePositives: boolean) =>
+  useQuery({
+    queryKey: keys.graph(profileId, falsePositives),
+    queryFn: () =>
+      get<GraphData>(
+        `/profiles/${profileId}/graph${falsePositives ? '?false_positives=true' : ''}`,
+      ),
+  });
+
+export const useEntityDetail = (id: number | null) =>
+  useQuery({
+    queryKey: keys.entity(id ?? 0),
+    queryFn: () => get<EntityDetail>(`/entities/${id}`),
+    enabled: id !== null,
+  });
+
+export function useMakeDemoGraph() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (nodes: number) => post<{ profile_id: number }>('/demo/graph', { nodes }),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.profiles }),
+    onError: failed,
+  });
+}
 
 export const useScans = (profileId: number) =>
   useQuery({
@@ -265,14 +298,16 @@ export function useReviewEntity() {
     mutationFn: ({ entity, status }: { entity: Entity; status: EntityStatus }) =>
       patch<Entity>(`/entities/${entity.id}`, { status }),
     onMutate: ({ entity, status }) => {
-      const previous = client.getQueriesData<ResultsPage>({ queryKey: keys.allResults });
-      client.setQueriesData<ResultsPage>({ queryKey: keys.allResults }, (page) =>
-        page ? withEntity(page, { ...entity, status }) : page,
-      );
+      const previous = [
+        ...client.getQueriesData({ queryKey: keys.allResults }),
+        ...client.getQueriesData({ queryKey: ['graph'] }),
+        ...client.getQueriesData({ queryKey: keys.entities }),
+      ];
+      reviewed(client, { ...entity, status });
       return previous;
     },
     onError: (error, _vars, previous) => {
-      for (const [key, page] of previous ?? []) client.setQueryData(key, page);
+      for (const [key, data] of previous ?? []) client.setQueryData(key, data);
       failed(error);
     },
   });
@@ -290,4 +325,19 @@ export function useUpdatePreferences() {
     onSuccess: (preferences) => client.setQueryData(keys.preferences, preferences),
     onError: failed,
   });
+}
+
+/** A trace's new status, everywhere the cache shows it. */
+export function reviewed(client: QueryClient, entity: Entity) {
+  client.setQueriesData<ResultsPage>({ queryKey: keys.allResults }, (page) =>
+    page ? withEntity(page, entity) : page,
+  );
+  for (const [key, graph] of client.getQueriesData<GraphData>({ queryKey: ['graph'] })) {
+    if (graph) client.setQueryData(key, withEntityInGraph(graph, entity, key[2] === true));
+  }
+  client.setQueriesData<EntityDetail>({ queryKey: keys.entities }, (detail) =>
+    detail && detail.entity.id === entity.id
+      ? { ...detail, entity: { ...detail.entity, status: entity.status } }
+      : detail,
+  );
 }

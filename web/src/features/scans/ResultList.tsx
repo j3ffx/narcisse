@@ -1,10 +1,10 @@
-import { Button } from '@/components/ui/button';
+import { ReviewButtons } from '@/components/ReviewButtons';
 import { KIND_LABELS, RELATION_LABELS } from '@/lib/labels';
-import { useModules, useReviewEntity } from '@/lib/queries';
-import type { EntityStatus, Result } from '@/lib/types';
+import { useModules } from '@/lib/queries';
+import type { Result } from '@/lib/types';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { cn } from 'cn';
-import { CheckIcon, ExternalLinkIcon, XIcon } from 'lucide-react';
+import { ExternalLinkIcon } from 'lucide-react';
 import { useRef } from 'react';
 
 const ROW_HEIGHT = 92;
@@ -80,45 +80,11 @@ export function ResultList({ items }: { items: Result[] }) {
                   <p className="truncate text-xs text-muted-foreground">{result.excerpt}</p>
                 )}
               </div>
-              <Review result={result} />
+              <ReviewButtons entity={result.entity} />
             </li>
           );
         })}
       </ul>
-    </div>
-  );
-}
-
-/** "It's me" / "not me"; pressing the active one again puts the trace back to "not sure". */
-function Review({ result }: { result: Result }) {
-  const review = useReviewEntity();
-  const { entity } = result;
-  const set = (status: EntityStatus) =>
-    review.mutate({ entity, status: entity.status === status ? 'unreviewed' : status });
-  const confirmed = entity.status === 'confirmed';
-  const rejected = entity.status === 'false_positive';
-  return (
-    <div className="flex shrink-0 gap-1" role="group" aria-label={`Trier ${entity.display}`}>
-      <Button
-        size="sm"
-        variant={confirmed ? 'default' : 'outline'}
-        aria-pressed={confirmed}
-        aria-label="C’est moi"
-        onClick={() => set('confirmed')}
-      >
-        <CheckIcon aria-hidden />
-        <span className="hidden sm:inline">C’est moi</span>
-      </Button>
-      <Button
-        size="sm"
-        variant={rejected ? 'secondary' : 'ghost'}
-        aria-pressed={rejected}
-        aria-label="Pas moi"
-        onClick={() => set('false_positive')}
-      >
-        <XIcon aria-hidden />
-        <span className="hidden sm:inline">Pas moi</span>
-      </Button>
     </div>
   );
 }

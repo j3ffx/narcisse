@@ -103,12 +103,60 @@ export interface Entity {
   attributes: Record<string, unknown>;
 }
 
-export interface Result {
+/** How two traces relate: `source` led to `target`, according to `module`. */
+export interface Edge {
+  id: number;
+  source_id: number;
+  target_id: number;
+  relation: string;
+  module: string;
+  confidence: number | null;
+  first_seen: string;
+  last_seen: string;
+}
+
+export interface GraphNode extends Entity {
+  first_seen: string;
+  last_seen: string;
+  /** The sources that found it ("seed": declared by the user). */
+  modules: string[];
+  evidence_count: number;
+}
+
+export interface GraphData {
+  nodes: GraphNode[];
+  edges: Edge[];
+  /** Too many traces to send them all: the most recently seen ones came. */
+  truncated: boolean;
+}
+
+export interface Evidence {
   id: number;
   scan_id: number;
   run_id: number;
   module: string;
+  relation: string | null;
+  url: string | null;
+  excerpt: string | null;
+  content_hash: string | null;
+  captured_at: string;
+}
+
+export interface EntityDetail {
+  entity: GraphNode;
+  evidence: Evidence[];
+  edges: Edge[];
+  neighbours: Entity[];
+}
+
+export interface Result {
+  id: number;
+  profile_id: number;
+  scan_id: number;
+  run_id: number;
+  module: string;
   entity: Entity;
+  edge: Edge | null;
   relation: string | null;
   confidence: number | null;
   url: string | null;

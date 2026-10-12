@@ -29,18 +29,38 @@ import { useDeleteProfile, useModules, useProfile, useScans, useStartScan } from
 import { formatDate } from '@/lib/time';
 import type { ProfileDetail } from '@/lib/types';
 import { RadarIcon, Trash2Icon } from 'lucide-react';
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { Link, useLocation } from 'wouter';
+import { useTraceViewState } from '@/features/graph/useTraceView';
+import { cn } from 'cn';
 import { SeedsEditor } from './SeedsEditor';
 
-export function ProfilePage({ id }: { id: number }) {
+// The graph's code (WebGL, layout) loads only when a profile's traces are shown.
+const GraphView = lazy(() =>
+  import('@/features/graph/GraphView').then((m) => ({ default: m.GraphView })),
+);
+const TraceList = lazy(() =>
+  import('@/features/graph/TraceList').then((m) => ({ default: m.TraceList })),
+);
+
+export type ProfileTab = 'graphe' | 'liste' | 'elements' | 'scans';
+
+const TABS: [ProfileTab, string][] = [
+  ['graphe', 'Graphe'],
+  ['liste', 'Liste'],
+  ['elements', 'Éléments'],
+  ['scans', 'Scans'],
+];
+
+export function ProfilePage({ id, tab }: { id: number; tab: ProfileTab }) {
   const profile = useProfile(id);
+  const view = useTraceViewState();
   if (profile.isPending) return <Pending label="Chargement du profil…" />;
   if (profile.isError) return <p role="alert">{errorMessage(profile.error)}</p>;
   const data = profile.data;
 
   return (
-    <div className="grid gap-8">
+    <div className="grid gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-sm text-muted-foreground">
@@ -56,8 +76,29 @@ export function ProfilePage({ id }: { id: number }) {
           <DeleteProfile id={id} name={data.name} />
         </div>
       </div>
-      <SeedsEditor profileId={id} seeds={data.seeds} />
-      <ScanHistory profileId={id} />
+      <nav aria-label="Vues du profil" className="flex gap-1 border-b">
+        {TABS.map(([key, title]) => (
+          <Link
+            key={key}
+            href={key === 'graphe' ? `/profils/${id}` : `/profils/${id}/${key}`}
+            aria-current={key === tab ? 'page' : undefined}
+            className={cn(
+              '-mb-px border-b-2 px-3 py-2 text-sm',
+              key === tab
+                ? 'border-primary font-medium text-foreground'
+                : 'border-transparent text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {title}
+          </Link>
+        ))}
+      </nav>
+      <Suspense fallback={<Pending label="Chargement de la vue…" />}>
+        {tab === 'graphe' && <GraphView profileId={id} view={view} />}
+        {tab === 'liste' && <TraceList profileId={id} view={view} />}
+      </Suspense>
+      {tab === 'elements' && <SeedsEditor profileId={id} seeds={data.seeds} />}
+      {tab === 'scans' && <ScanHistory profileId={id} />}
     </div>
   );
 }

@@ -1,18 +1,18 @@
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { get } from '@/lib/api';
+import { withResult as withResultInGraph } from '@/lib/graph';
 import {
   inActivity,
   matches,
-  withEntity,
   withProgress,
   withResult,
   withRun,
   withScan,
   type ResultFilter,
 } from '@/lib/live';
-import { keys } from '@/lib/queries';
-import type { Activity, LiveEvent, ResultsPage, ScanDetail } from '@/lib/types';
+import { keys, reviewed } from '@/lib/queries';
+import type { Activity, GraphData, LiveEvent, ResultsPage, ScanDetail } from '@/lib/types';
 
 export type Connection = 'connecting' | 'live' | 'reconnecting';
 
@@ -134,12 +134,22 @@ function apply(client: QueryClient, event: LiveEvent) {
           total: page.total + 1,
         });
       }
+      // The profile's graph, wherever it is loaded; the trace's detail, if open.
+      for (const [key, graph] of client.getQueriesData<GraphData>({
+        queryKey: keys.graphs(result.profile_id),
+      })) {
+        if (!graph) continue;
+        const next = withResultInGraph(graph, result, key[2] === true);
+        if (next) client.setQueryData(key, next);
+        else void client.invalidateQueries({ queryKey: key, exact: true });
+      }
+      void client.invalidateQueries({ queryKey: keys.entity(result.entity.id) });
+      if (result.edge)
+        void client.invalidateQueries({ queryKey: keys.entity(result.edge.source_id) });
       break;
     }
     case 'entity.updated':
-      client.setQueriesData<ResultsPage>({ queryKey: keys.allResults }, (page) =>
-        page ? withEntity(page, event.data) : page,
-      );
+      reviewed(client, event.data);
       break;
   }
 }

@@ -21,9 +21,15 @@ import {
 } from '@/components/ui/select';
 import { errorMessage } from '@/lib/errors';
 import { PROFILE_KIND_LABELS } from '@/lib/labels';
-import { useCreateProfile, useProfiles } from '@/lib/queries';
+import { useCreateProfile, useInfo, useMakeDemoGraph, useProfiles } from '@/lib/queries';
 import type { ProfileKind } from '@/lib/types';
-import { PlusIcon } from 'lucide-react';
+import { PlusIcon, WaypointsIcon } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useState, type FormEvent } from 'react';
 import { Link, useLocation } from 'wouter';
 
@@ -38,7 +44,10 @@ export function ProfilesPage() {
             Un profil rassemble ce qui t’identifie : noms, pseudos, emails… Narcisse part de là.
           </p>
         </div>
-        <NewProfileDialog />
+        <div className="flex flex-wrap gap-2">
+          <DemoGraphMenu />
+          <NewProfileDialog />
+        </div>
       </div>
       {profiles.isPending && <Pending label="Chargement des profils…" />}
       {profiles.isError && <p role="alert">{errorMessage(profiles.error)}</p>}
@@ -83,7 +92,7 @@ function NewProfileDialog() {
         onSuccess: (profile) => {
           setOpen(false);
           setName('');
-          navigate(`/profils/${profile.id}`);
+          navigate(`/profils/${profile.id}/elements`);
         },
       },
     );
@@ -145,5 +154,32 @@ function NewProfileDialog() {
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Demo mode: a fictitious profile with thousands of traces, to try the graph at scale. */
+function DemoGraphMenu() {
+  const info = useInfo();
+  const make = useMakeDemoGraph();
+  const [, navigate] = useLocation();
+  if (!info.data?.demo) return null;
+  const create = (nodes: number) =>
+    make.mutate(nodes, { onSuccess: ({ profile_id }) => navigate(`/profils/${profile_id}`) });
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" disabled={make.isPending}>
+          <WaypointsIcon aria-hidden />
+          {make.isPending ? 'Création du graphe fictif…' : 'Graphe fictif'}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-auto">
+        {[500, 5000, 20000].map((nodes) => (
+          <DropdownMenuItem key={nodes} onSelect={() => create(nodes)}>
+            Profil fictif de {nodes.toLocaleString('fr-FR')} traces
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

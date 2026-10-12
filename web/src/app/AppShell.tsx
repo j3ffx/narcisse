@@ -11,7 +11,8 @@ import type { Connection } from '@/hooks/useLiveUpdates';
 import { useInfo } from '@/lib/queries';
 import { MonitorIcon, MoonIcon, SunIcon, WifiOffIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
+import { cn } from 'cn';
 import { useTheme, type ThemeChoice } from './theme';
 
 export function AppShell({
@@ -22,6 +23,9 @@ export function AppShell({
   children: ReactNode;
 }) {
   const info = useInfo();
+  const [location] = useLocation();
+  // The graph and the list of a profile take the whole width.
+  const wide = /^\/profils\/\d+(\/liste)?\/?$/.test(location);
   return (
     <div className="min-h-dvh bg-background text-foreground">
       <a
@@ -75,7 +79,7 @@ export function AppShell({
           Mode démo : le module de démonstration invente des résultats, sans rien interroger.
         </p>
       )}
-      <main id="main" className="mx-auto max-w-5xl px-4 py-6">
+      <main id="main" className={cn('mx-auto px-4 py-6', wide ? 'max-w-[110rem]' : 'max-w-5xl')}>
         {children}
       </main>
     </div>

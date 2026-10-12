@@ -1,4 +1,11 @@
-import type { EntityKind, ProfileKind, RunStatus, ScanStatus, SeedKind } from './types';
+import type {
+  EntityKind,
+  EntityStatus,
+  ProfileKind,
+  RunStatus,
+  ScanStatus,
+  SeedKind,
+} from './types';
 
 export const KIND_LABELS: Record<EntityKind, string> = {
   identity: 'Identité',
@@ -42,6 +49,12 @@ export const PROFILE_KIND_LABELS: Record<ProfileKind, string> = {
   personal: 'Perso',
   professional: 'Pro',
   mixed: 'Perso et pro',
+};
+
+export const ENTITY_STATUS_LABELS: Record<EntityStatus, string> = {
+  unreviewed: 'À vérifier',
+  confirmed: 'C’est moi',
+  false_positive: 'Pas moi',
 };
 
 export const SCAN_STATUS_LABELS: Record<ScanStatus, string> = {

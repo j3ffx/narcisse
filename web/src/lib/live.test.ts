@@ -48,9 +48,11 @@ const scan = (...runs: Run[]): ScanDetail => ({
 
 const result = (id: number, runId = 1, display = 'https://forum.example.org/u/jeanne'): Result => ({
   id,
+  profile_id: 1,
   scan_id: 1,
   run_id: runId,
   module: 'demo.fake',
+  edge: null,
   entity: {
     id,
     kind: 'account',
