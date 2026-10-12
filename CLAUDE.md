@@ -17,6 +17,7 @@ uv run narcisse tray             # the same in the background, with a notificati
 uv run narcisse shortcut --demo  # Start menu entry running `narcisse open` (Windows)
 npm run check                    # everything CI runs, but gitleaks on the history and the e2e tests
 npm run e2e                      # Playwright against `narcisse serve --demo`, on a temporary data dir
+npm run bench                    # the graph's benchmark (fictitious graphs of 500 to 20,000 traces)
 ```
 
 `npm ci` points git at `.githooks/`:
@@ -127,6 +128,21 @@ fixtures, docs, commit messages or commit metadata.
   `src/narcisse/web/static/` (ignored), which the Python package serves and ships. `web/e2e/`:
   Playwright against `narcisse serve --demo` on a temporary data dir.
 - `scripts/`: repository checks and git hook helpers.
+
+## Performance
+
+The graph must stay fluid (about 60 frames a second up to 5,000 traces) and no task may block the
+page for 200 ms while a scan streams (`e2e/demo.spec.ts` checks it). `npm run bench` measures it;
+headless Chrome draws WebGL in software unless told to use the GPU, so the benchmark asks for it
+and names the renderer. Last run (2026-10-12, integrated Intel Iris Xe, Chrome headless):
+
+| Traces | First drawing | Layout | Panning and zooming | Worst frame |
+| -----: | ------------: | -----: | ------------------: | ----------: |
+|    500 |         2.1 s |  3.0 s |              60 fps |       17 ms |
+|  5,000 |         1.3 s | 11.7 s |              57 fps |       67 ms |
+| 20,000 |         3.9 s | 15.1 s |              20 fps |      367 ms |
+
+Re-run it after any change to the canvas, and update this table.
 
 ## Dependencies
 

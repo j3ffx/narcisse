@@ -14,6 +14,9 @@ déréférencement, envoyer une demande RGPD. Puis il suit tes progrès d’un s
 > remédiation, les scores et d’autres sources arrivent. Le
 > [journal des changements](CHANGELOG.md) dira quand la première version sortira.
 
+![Le graphe d’un profil fictif en mode démo : une trace sélectionnée et le chemin qui la relie à
+l’identité, le reste atténué, la mini-carte et le détail de la trace](docs/capture-graphe.png)
+
 ## Pour qui, pour quoi
 
 Narcisse est fait pour **se chercher soi-même**, ou chercher quelqu’un qui te l’a **demandé
@@ -75,7 +78,9 @@ navigateur ou arrêter Narcisse : tout reprend où ça en était.
 
 Le profil s’ouvre sur son **graphe** : chaque trace y apparaît au fil du scan, reliée à celle qui y a
 mené (un pseudo → un compte → le site indiqué sur ce compte). Clique une trace pour voir ses preuves
-et ses voisines, cherche-en une (touche `/`), filtre par type, source, statut, confiance ou date. La
+et ses voisines, cherche-en une (touche `/`), filtre par type, source, statut, confiance ou date,
+demande comment deux traces sont reliées (le plus court chemin), replie les traces isolées,
+regroupe par type, par source ou par site, et enregistre la vue pour y revenir. La
 vue **Liste** montre les mêmes traces, avec les mêmes filtres et la même sélection, sous une forme
 que tout le monde peut lire. En mode démo, le bouton « Graphe fictif » crée un profil de 500 à
 20 000 traces inventées, pour voir le graphe à grande échelle.
