@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.telemetry import TelemetryConfig
 
 from narcisse import __version__
-from narcisse.api import profiles, scans
+from narcisse.api import entities, preferences, profiles, scans
 from narcisse.api.deps import Services, ServicesDep
 from narcisse.clock import Clock
 from narcisse.config import Settings
@@ -24,6 +24,7 @@ from narcisse.engine.http import new_transport_client
 from narcisse.engine.plugin import SourceModule
 from narcisse.errors import AppError
 from narcisse.modules import discover
+from narcisse.preferences import Preferences
 from narcisse.schemas import AppInfo
 from narcisse.security import LocalOnlyMiddleware
 from narcisse.storage.database import Database, migrate
@@ -73,9 +74,15 @@ def create_app(
         bus = EventBus(db, Clock(settings.speed))
         await bus.start()
         available = discover() if modules is None else modules
-        offered = {n: m for n, m in available.items() if settings.demo or not m.meta.demo}
+        # Demo mode offers the demo module only: fictitious identities never reach real sites.
+        offered = {n: m for n, m in available.items() if m.meta.demo == settings.demo}
         async with new_transport_client(transport=http_transport) as client:
-            engine = Engine(bus, offered, client)
+            engine = Engine(
+                bus,
+                offered,
+                client,
+                preferences=lambda: Preferences.load(settings.preferences_path),
+            )
             await engine.start()
             app.state.services = Services(settings, db, bus, engine)
             log.info("Narcisse %s ready, data in %s", __version__, settings.data_dir)
@@ -125,6 +132,8 @@ def create_app(
 
     api.include_router(profiles.router)
     api.include_router(scans.router)
+    api.include_router(entities.router)
+    api.include_router(preferences.router)
 
     @api.api_route(
         "/{path:path}", methods=["GET", "POST", "PATCH", "DELETE"], include_in_schema=False

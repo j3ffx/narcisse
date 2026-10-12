@@ -88,6 +88,7 @@ class RunOut(Schema):
     retry_at: datetime | None
     error_code: str | None
     error_params: dict[str, Any] | None
+    notes: dict[str, int] | None
     retryable: bool
     started_at: datetime | None
     finished_at: datetime | None
@@ -126,6 +127,11 @@ class EntityOut(Schema):
     normalized: str
     status: EntityStatus
     confidence: float | None
+    attributes: dict[str, Any]
+
+
+class EntityPatch(Schema):
+    status: EntityStatus
 
 
 class ResultOut(Schema):
@@ -179,6 +185,17 @@ class AppInfo(Schema):
     version: str
     demo: bool
     data_dir: str
+
+
+class PreferencesOut(Schema):
+    github_token_set: bool
+    exclude_adult: bool
+
+
+class PreferencesPatch(Schema):
+    # An empty string (or null) removes the token.
+    github_token: str | None = Field(default=None, max_length=200)
+    exclude_adult: bool | None = None
 
 
 class ErrorOut(Schema):

@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from sqlalchemy import func, or_, select
 
 from narcisse.api.deps import ServicesDep
-from narcisse.domain import EntityKind, ScanStatus
+from narcisse.domain import EntityKind, EntityStatus, ScanStatus
 from narcisse.engine.engine import scan_detail, scan_out
 from narcisse.errors import not_found
 from narcisse.schemas import (
@@ -109,7 +109,9 @@ async def list_results(
     limit: Annotated[int, Query(ge=1, le=500)] = 200,
     kind: EntityKind | None = None,
     q: Annotated[str | None, Query(max_length=200)] = None,
+    false_positives: bool = False,
 ) -> ResultsPage:
+    """A scan's findings, oldest first. Traces marked "not me" are left out unless asked for."""
     query = (
         select(Evidence, Entity, Edge.relation, Edge.confidence)
         .join(Entity, Evidence.entity_id == Entity.id)
@@ -118,6 +120,8 @@ async def list_results(
     )
     if kind is not None:
         query = query.where(Entity.kind == kind)
+    if not false_positives:
+        query = query.where(Entity.status != EntityStatus.FALSE_POSITIVE)
     if q:
         pattern = f"%{q.strip()}%"
         query = query.where(or_(Entity.display.ilike(pattern), Evidence.url.ilike(pattern)))
