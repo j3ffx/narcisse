@@ -206,3 +206,91 @@ test('demo mode draws a fictitious graph of thousands of traces', async ({ page 
   await expect(page.getByTestId('graph-canvas')).toBeVisible();
   await expect(page.getByTestId('trace-count')).toContainText('traces');
 });
+
+test('in the graph: a path, groups, folds, and a view saved then restored', async ({
+  page,
+  request,
+}) => {
+  const made = await request.post('/api/demo/graph', { data: { nodes: 500 } });
+  const { profile_id: id } = (await made.json()) as { profile_id: number };
+  await page.goto(`/profils/${id}`);
+  const canvas = page.getByTestId('graph-canvas');
+  await expect(canvas).toHaveAttribute('data-nodes', /\d+/);
+  const all = Number(await canvas.getAttribute('data-nodes'));
+
+  // How is a trace related to the identity?
+  await page.getByRole('combobox', { name: /Chercher une trace/ }).fill('jeanne');
+  await page.getByRole('option').first().click();
+  await page.getByRole('button', { name: 'toi', exact: true }).click();
+  await expect(page.getByTestId('path')).toContainText('lien');
+
+  // Grouped by site: far fewer nodes.
+  const grouping = page.getByLabel('Regrouper');
+  await grouping.selectOption('site');
+  await expect
+    .poll(async () => Number(await canvas.getAttribute('data-nodes')))
+    .toBeLessThan(all / 2);
+
+  // Saved, changed, restored.
+  await page.getByRole('button', { name: 'Vues' }).click();
+  await page.getByLabel('Enregistrer la vue actuelle').fill('Par site');
+  await page.getByRole('button', { name: 'Enregistrer' }).click();
+  await expect(page.getByText('Vue « Par site » enregistrée.')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await grouping.selectOption('none');
+  await expect(canvas).toHaveAttribute('data-nodes', String(all));
+  await page.getByRole('button', { name: 'Vues' }).click();
+  await page.getByRole('button', { name: 'Par site', exact: true }).click();
+  await expect(grouping).toHaveValue('site');
+
+  // Leaves folded: fewer traces visible, all of them back once unfolded.
+  await grouping.selectOption('none');
+  await page.getByRole('button', { name: 'Replier les feuilles' }).click();
+  await expect
+    .poll(async () => Number(await canvas.getAttribute('data-visible')))
+    .toBeLessThan(all);
+  await page.getByRole('button', { name: 'Replier les feuilles' }).click();
+  await expect(canvas).toHaveAttribute('data-visible', String(all));
+});
+
+test('no long task over 200 ms on the graph while a scan streams into it', async ({
+  page,
+  request,
+}) => {
+  await page.addInitScript(() => {
+    const w = window as unknown as { longTasks: number[] };
+    w.longTasks = [];
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) w.longTasks.push(entry.duration);
+    }).observe({ type: 'longtask', buffered: true });
+  });
+  const id = await demoProfile(request, 'Jeanne Exemple (graphe en direct)');
+  const started = await request.post(`/api/profiles/${id}/scans`, { data: {} });
+  const { id: scanId } = (await started.json()) as { id: number };
+  await page.goto(`/profils/${id}`);
+  const canvas = page.getByTestId('graph-canvas');
+  await expect(canvas).toBeVisible();
+  const first = Number(await canvas.getAttribute('data-nodes'));
+  // Click about while traces keep arriving.
+  await page.getByRole('combobox', { name: /Chercher une trace/ }).fill('jeanne');
+  await page.keyboard.press('Escape');
+  await expect
+    .poll(
+      async () =>
+        (
+          (await (await request.get(`/api/scans/${scanId}`)).json()) as {
+            status: string;
+          }
+        ).status,
+      { timeout: 30_000 },
+    )
+    .toBe('done');
+  await expect
+    .poll(async () => Number(await canvas.getAttribute('data-nodes')))
+    .toBeGreaterThan(first);
+
+  const longTasks = await page.evaluate(
+    () => (window as unknown as { longTasks: number[] }).longTasks,
+  );
+  expect(longTasks.filter((d) => d > 200)).toEqual([]);
+});
