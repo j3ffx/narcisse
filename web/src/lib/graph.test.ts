@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { NO_FILTER, passes, search, withEntity, withResult } from './graph';
+import { NO_FILTER, passes, search, shortestPath, withEntity, withResult } from './graph';
 import type { Edge, GraphData, GraphNode, Result } from './types';
 
 const node = (id: number, display: string, extra: Partial<GraphNode> = {}): GraphNode => ({
@@ -125,5 +125,26 @@ describe('search', () => {
   it('ignores case and accents, and puts the closest first', () => {
     expect(search(nodes, 'ÉLODIE').map((n) => n.id)).toEqual([3, 2, 1]);
     expect(search(nodes, '  ')).toEqual([]);
+  });
+});
+
+describe('shortest path', () => {
+  // 1 → 2 → 3, 1 → 4 → 3, 5 alone; 3 ← 6
+  const chain: GraphData = {
+    nodes: [1, 2, 3, 4, 5, 6].map((id) => node(id, `n${id}`)),
+    edges: [edge(1, 1, 2), edge(2, 2, 3), edge(3, 1, 4), edge(4, 4, 3), edge(5, 6, 3)],
+    truncated: false,
+  };
+
+  it('follows edges either way, the fewest first', () => {
+    expect(shortestPath(chain, 1, 3)).toEqual({ nodes: [1, 2, 3], edges: [1, 2] });
+    expect(shortestPath(chain, 6, 1)).toEqual({ nodes: [6, 3, 2, 1], edges: [5, 2, 1] });
+    expect(shortestPath(chain, 2, 2)).toEqual({ nodes: [2], edges: [] });
+  });
+
+  it('goes round the traces to avoid, or says nothing joins them', () => {
+    expect(shortestPath(chain, 1, 3, new Set([2]))).toEqual({ nodes: [1, 4, 3], edges: [3, 4] });
+    expect(shortestPath(chain, 1, 5)).toBeNull();
+    expect(shortestPath(chain, 1, 3, new Set([3]))).toBeNull();
   });
 });

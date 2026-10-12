@@ -19,12 +19,15 @@ export function TracePanel({
   onClose,
   sourceTitle,
   actions,
+  extra,
 }: {
   id: number;
   onSelect: (id: number) => void;
   onClose: () => void;
   sourceTitle: (name: string) => string;
   actions?: ReactNode;
+  /** A section shown after the trace's facts (e.g. the path finder). */
+  extra?: ReactNode;
 }) {
   const detail = useEntityDetail(id);
   return (
@@ -47,6 +50,7 @@ export function TracePanel({
           onSelect={onSelect}
           sourceTitle={sourceTitle}
           actions={actions}
+          extra={extra}
         />
       )}
     </aside>
@@ -58,11 +62,13 @@ function Detail({
   onSelect,
   sourceTitle,
   actions,
+  extra,
 }: {
   data: EntityDetail;
   onSelect: (id: number) => void;
   sourceTitle: (name: string) => string;
   actions?: ReactNode;
+  extra?: ReactNode;
 }) {
   const { entity } = data;
   const Icon = KIND_ICONS[entity.kind];
@@ -112,6 +118,7 @@ function Detail({
         <dt className="text-muted-foreground">Vue en dernier</dt>
         <dd>{formatDate(entity.last_seen)}</dd>
       </dl>
+      {extra}
       <Section title={`Relations (${data.edges.length})`}>
         <ul className="grid gap-1 text-sm">
           {data.edges.map((edge) => (

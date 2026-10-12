@@ -11,6 +11,7 @@ import {
 } from 'sigma/rendering';
 import { useTheme } from '@/app/theme';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
+import type { GraphPath } from '@/lib/graph';
 import type { GraphData } from '@/lib/types';
 import { Layout, savePositions, savedPositions } from './layout';
 import {
@@ -27,6 +28,8 @@ export interface GraphCanvasHandle {
   show: (id: number) => void;
   /** The whole graph in view. */
   fit: () => void;
+  /** These traces in view (a path). */
+  frame: (ids: number[]) => void;
 }
 
 interface NodeState {
@@ -144,11 +147,23 @@ function createSigma(graph: TraceGraph, container: HTMLElement): TraceSigma {
   return new Sigma(graph, container, options as never) as TraceSigma;
 }
 
+/** Turns a state on for what joins the set, off for what leaves it (if it still exists). */
+function apply(
+  before: ReadonlySet<string>,
+  after: ReadonlySet<string>,
+  set: (key: string, on: boolean) => void,
+  exists: (key: string) => boolean,
+) {
+  for (const key of before) if (!after.has(key) && exists(key)) set(key, false);
+  for (const key of after) if (!before.has(key)) set(key, true);
+}
+
 export function GraphCanvas({
   profileId,
   data,
   hidden,
   selected,
+  path = null,
   onSelect,
   ref,
   label,
@@ -158,6 +173,8 @@ export function GraphCanvas({
   /** Traces the filters leave out. */
   hidden: ReadonlySet<number>;
   selected: number | null;
+  /** A path to show instead of the selection's neighbours. */
+  path?: GraphPath | null;
   onSelect: (id: number | null) => void;
   ref?: Ref<GraphCanvasHandle>;
   /** What the canvas shows, for assistive technologies. */
@@ -193,11 +210,18 @@ export function GraphCanvas({
   }, [profileId]);
 
   // The data: new traces placed, then the layout settles them.
+  const shownHidden = useRef({ nodes: new Set<string>(), edges: new Set<string>() });
+  const shownFocus = useRef({ nodes: new Set<string>(), edges: new Set<string>(), selected: '' });
   const first = useRef(true);
   useEffect(() => {
     const saved = first.current ? savedPositions(profileId) : undefined;
     const added = sync(graph.current, data, theme, saved);
     if (!added.length) return;
+    // A trace drawn again starts with no state: forget what was set on its previous self.
+    for (const key of added) {
+      shownHidden.current.nodes.delete(key);
+      shownFocus.current.nodes.delete(key);
+    }
     if (first.current) {
       first.current = false;
       const known = added.filter((key) => saved?.has(key)).length;
@@ -218,40 +242,74 @@ export function GraphCanvas({
     recolor(graph.current, theme);
   }, [theme]);
 
-  // Filters.
+  // Filters, then focus: only the items whose state changes are touched, so that a result
+  // arriving live costs little however large the graph.
   useEffect(() => {
     const instance = sigma.current;
     if (!instance) return;
     const g = graph.current;
-    g.forEachNode((key) => instance.setNodeState(key, { isHidden: hidden.has(Number(key)) }));
-    g.forEachEdge((key, _a, source, target) =>
-      instance.setEdgeState(key, {
-        isHidden: hidden.has(Number(source)) || hidden.has(Number(target)),
-      }),
+    const nodes = new Set<string>();
+    const edges = new Set<string>();
+    for (const id of hidden) {
+      const key = String(id);
+      if (!g.hasNode(key)) continue;
+      nodes.add(key);
+      g.forEachEdge(key, (edge) => edges.add(edge));
+    }
+    const before = shownHidden.current;
+    apply(
+      before.nodes,
+      nodes,
+      (key, on) => instance.setNodeState(key, { isHidden: on }),
+      g.hasNode.bind(g),
     );
+    apply(
+      before.edges,
+      edges,
+      (key, on) => instance.setEdgeState(key, { isHidden: on }),
+      g.hasEdge.bind(g),
+    );
+    shownHidden.current = { nodes, edges };
   }, [hidden, data]);
 
-  // Selection: the trace and its neighbours in focus.
+  // Focus: a path, or the selected trace and its neighbours.
   useEffect(() => {
     const instance = sigma.current;
     if (!instance) return;
     const g = graph.current;
-    const key = selected === null ? null : String(selected);
-    const focus = new Set<string>();
-    if (key && g.hasNode(key)) {
-      focus.add(key);
-      g.forEachNeighbor(key, (n) => focus.add(n));
+    const key = selected === null ? '' : String(selected);
+    const nodes = new Set<string>();
+    const edges = new Set<string>();
+    if (path) {
+      for (const id of path.nodes) if (g.hasNode(String(id))) nodes.add(String(id));
+      for (const id of path.edges) if (g.hasEdge(String(id))) edges.add(String(id));
+    } else if (key && g.hasNode(key)) {
+      nodes.add(key);
+      g.forEachNeighbor(key, (n) => nodes.add(n));
+      g.forEachEdge(key, (e) => edges.add(e));
     }
-    g.forEachNode((n) =>
-      instance.setNodeState(n, { isHighlighted: focus.has(n), isSelected: n === key }),
+    const before = shownFocus.current;
+    apply(
+      before.nodes,
+      nodes,
+      (n, on) => instance.setNodeState(n, { isHighlighted: on }),
+      g.hasNode.bind(g),
     );
-    g.forEachEdge((e, _a, source, target) =>
-      instance.setEdgeState(e, {
-        isHighlighted: key !== null && (source === key || target === key),
-      }),
+    apply(
+      before.edges,
+      edges,
+      (e, on) => instance.setEdgeState(e, { isHighlighted: on }),
+      g.hasEdge.bind(g),
     );
-    instance.setGraphState({ hasHighlighted: focus.size > 0 });
-  }, [selected, data]);
+    if (before.selected !== key) {
+      if (before.selected && g.hasNode(before.selected)) {
+        instance.setNodeState(before.selected, { isSelected: false });
+      }
+      if (key && g.hasNode(key)) instance.setNodeState(key, { isSelected: true });
+    }
+    instance.setGraphState({ hasHighlighted: nodes.size > 0 });
+    shownFocus.current = { nodes, edges, selected: key };
+  }, [selected, path, data]);
 
   useImperativeHandle(
     ref,
@@ -263,6 +321,30 @@ export function GraphCanvas({
         void instance
           .getCamera()
           .animate({ x: shown.x, y: shown.y, ratio: 0.25 }, { duration: reduced ? 0 : 500 });
+      },
+      frame: (ids) => {
+        const instance = sigma.current;
+        if (!instance) return;
+        const points = ids
+          .map((id) => instance.getNodeDisplayData(String(id)))
+          .filter((d) => d !== undefined);
+        if (!points.length) return;
+        const xs = points.map((p) => p.x);
+        const ys = points.map((p) => p.y);
+        const [minX, maxX, minY, maxY] = [
+          Math.min(...xs),
+          Math.max(...xs),
+          Math.min(...ys),
+          Math.max(...ys),
+        ];
+        void instance.getCamera().animate(
+          {
+            x: (minX + maxX) / 2,
+            y: (minY + maxY) / 2,
+            ratio: Math.min(1, Math.max(0.08, Math.max(maxX - minX, maxY - minY) * 1.4)),
+          },
+          { duration: reduced ? 0 : 500 },
+        );
       },
       fit: () => {
         void sigma.current

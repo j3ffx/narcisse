@@ -127,3 +127,50 @@ export function search(nodes: GraphNode[], query: string, limit = 20): GraphNode
     .slice(0, limit)
     .map(({ node }) => node);
 }
+
+export interface GraphPath {
+  /** Trace ids, from the first to the last. */
+  nodes: number[];
+  /** Edge ids, between consecutive traces. */
+  edges: number[];
+}
+
+/**
+ * The shortest way from one trace to another, whatever the edges' direction ("how is this
+ * account related to my e-mail?"), avoiding the traces in `avoid` (those the filters hide).
+ * Null when nothing joins them.
+ */
+export function shortestPath(
+  data: GraphData,
+  from: number,
+  to: number,
+  avoid: ReadonlySet<number> = new Set(),
+): GraphPath | null {
+  if (avoid.has(from) || avoid.has(to)) return null;
+  const links = new Map<number, [number, number][]>();
+  const link = (a: number, b: number, edge: number) =>
+    links.set(a, [...(links.get(a) ?? []), [b, edge]]);
+  for (const edge of data.edges) {
+    if (avoid.has(edge.source_id) || avoid.has(edge.target_id)) continue;
+    link(edge.source_id, edge.target_id, edge.id);
+    link(edge.target_id, edge.source_id, edge.id);
+  }
+  const came = new Map<number, [number, number] | null>([[from, null]]);
+  const queue = [from];
+  for (let i = 0; i < queue.length && !came.has(to); i++) {
+    const node = queue[i]!;
+    for (const [next, edge] of links.get(node) ?? []) {
+      if (came.has(next)) continue;
+      came.set(next, [node, edge]);
+      queue.push(next);
+    }
+  }
+  if (!came.has(to)) return null;
+  const nodes = [to];
+  const edges: number[] = [];
+  for (let step = came.get(to); step; step = came.get(step[0])) {
+    nodes.unshift(step[0]);
+    edges.unshift(step[1]);
+  }
+  return { nodes, edges };
+}

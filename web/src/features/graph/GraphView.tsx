@@ -3,17 +3,18 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { errorMessage } from '@/lib/errors';
-import { isFiltering } from '@/lib/graph';
+import { isFiltering, type GraphPath } from '@/lib/graph';
 import { KIND_LABELS } from '@/lib/labels';
 import { useGraph } from '@/lib/queries';
 import type { EntityKind, GraphData } from '@/lib/types';
 import { useTheme } from '@/app/theme';
 import { cn } from 'cn';
 import { MaximizeIcon } from 'lucide-react';
-import { useEffect, useMemo, useRef, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { GraphCanvas, type GraphCanvasHandle } from './GraphCanvas';
 import { KIND_COLORS, KIND_ICONS } from './kinds';
 import { TraceFilters } from './TraceFilters';
+import { PathFinder } from './PathFinder';
 import { TracePanel } from './TracePanel';
 import { TraceSearch } from './TraceSearch';
 import { useHidden, useSelectedTrace, useSourceTitle, type TraceView } from './useTraceView';
@@ -66,6 +67,9 @@ export function GraphView({ profileId, view }: { profileId: number; view: TraceV
   const hidden = useHidden(graph.data, view.filter);
   const canvas = useRef<GraphCanvasHandle>(null);
   const sourceTitle = useSourceTitle();
+  // A path holds while its first trace stays selected.
+  const [linked, setLinked] = useState<{ from: number; path: GraphPath } | null>(null);
+  const path = linked && linked.from === selected ? linked.path : null;
 
   // Arriving with a trace selected (from the list, a link): the camera goes to it once drawn.
   const arrived = useRef(false);
@@ -126,6 +130,7 @@ export function GraphView({ profileId, view }: { profileId: number; view: TraceV
               data={data}
               hidden={hidden}
               selected={selected}
+              path={path}
               onSelect={select}
               label={`Graphe de ${data.nodes.length} traces. La vue Liste en donne le même contenu.`}
             />
@@ -139,6 +144,19 @@ export function GraphView({ profileId, view }: { profileId: number; view: TraceV
             onSelect={show}
             onClose={() => select(null)}
             sourceTitle={sourceTitle}
+            extra={
+              <PathFinder
+                data={data}
+                from={selected}
+                hidden={hidden}
+                path={path}
+                onPath={(found) => {
+                  setLinked(found ? { from: selected, path: found } : null);
+                  if (found) canvas.current?.frame(found.nodes);
+                }}
+                onShow={(id) => canvas.current?.show(id)}
+              />
+            }
           />
         )}
       </div>

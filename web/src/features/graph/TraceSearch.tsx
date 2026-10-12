@@ -10,9 +10,18 @@ import { KIND_ICONS } from './kinds';
 export function TraceSearch({
   nodes,
   onPick,
+  label = 'Chercher une trace (raccourci : /)',
+  placeholder = 'Chercher une trace…  /',
+  shortcut = true,
+  className = 'relative min-w-56 flex-1 sm:max-w-sm',
 }: {
   nodes: GraphNode[];
   onPick: (node: GraphNode) => void;
+  label?: string;
+  placeholder?: string;
+  /** Whether "/" focuses it (one search per page). */
+  shortcut?: boolean;
+  className?: string;
 }) {
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
@@ -22,6 +31,7 @@ export function TraceSearch({
   const found = useMemo(() => search(nodes, query, 12), [nodes, query]);
 
   useEffect(() => {
+    if (!shortcut) return;
     const onKey = (event: globalThis.KeyboardEvent) => {
       const target = event.target as HTMLElement;
       if (event.key !== '/' || target.closest('input, textarea, [contenteditable]')) return;
@@ -30,7 +40,7 @@ export function TraceSearch({
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  }, [shortcut]);
 
   const pick = (node: GraphNode) => {
     onPick(node);
@@ -55,7 +65,7 @@ export function TraceSearch({
 
   const expanded = open && query.trim() !== '';
   return (
-    <div className="relative min-w-56 flex-1 sm:max-w-sm">
+    <div className={className}>
       <SearchIcon
         aria-hidden
         className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
@@ -67,8 +77,8 @@ export function TraceSearch({
         aria-controls={listId}
         aria-autocomplete="list"
         aria-activedescendant={expanded && found[active] ? `${listId}-${active}` : undefined}
-        aria-label="Chercher une trace (raccourci : /)"
-        placeholder="Chercher une trace…  /"
+        aria-label={label}
+        placeholder={placeholder}
         className="pl-8"
         value={query}
         onChange={(e) => {
