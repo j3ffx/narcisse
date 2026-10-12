@@ -14,6 +14,7 @@ from fastapi import FastAPI
 
 from narcisse.app import create_app
 from narcisse.config import HOST, Settings
+from narcisse.engine.http import new_transport_client
 from narcisse.engine.plugin import SourceModule
 from narcisse.server import Server
 
@@ -83,6 +84,9 @@ async def make_api(settings: Settings) -> AsyncIterator[ApiFactory]:
     started: list[Api] = []
 
     async def start(modules: dict[str, SourceModule] | None = None, **overrides: Any) -> Api:
+        if modules is not None:
+            # Test modules are real ones as far as the app knows: demo mode would hide them.
+            overrides.setdefault("demo", False)
         app = create_app(
             replace(settings, **overrides), modules=modules, http_transport=NoNetwork()
         )
@@ -125,3 +129,10 @@ async def live_server(settings: Settings) -> AsyncIterator[str]:
     yield f"http://{HOST}:{port}"
     server.should_exit = True
     await task
+
+
+@pytest.fixture
+async def http_client() -> AsyncIterator[httpx.AsyncClient]:
+    """The HTTP client modules get, for tests that mock the network with respx."""
+    async with new_transport_client() as client:
+        yield client

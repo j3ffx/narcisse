@@ -14,6 +14,7 @@ from narcisse.domain import EntityKind, IntrusionLevel
 
 if TYPE_CHECKING:
     from narcisse.engine.http import HttpClient
+    from narcisse.preferences import Preferences
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -37,7 +38,8 @@ class ModuleMeta:
     accepts: frozenset[EntityKind]
     produces: frozenset[EntityKind]
     intrusion: IntrusionLevel = IntrusionLevel.PASSIVE
-    hosts: tuple[str, ...] = ()  # every host the module may contact
+    # Every host the module may contact; `*.example.org` allows one subdomain level.
+    hosts: tuple[str, ...] = ()
     rate_limit: RateLimit | None = None
     max_parallel_runs: int = 2
     licence: str = ""  # licence of reused code or data, if any
@@ -109,12 +111,16 @@ class ModuleContext(Protocol):
     log: logging.Logger
     attempt: int  # 1 for the first attempt
     checkpoint: dict[str, Any] | None  # what `save_checkpoint` last stored, if anything
+    preferences: "Preferences"  # the user's settings for the sources (tokens, exclusions)
 
     async def save_checkpoint(self, data: dict[str, Any]) -> None:
         """Stores where the module is, so that a restart or a retry resumes from there."""
 
-    async def progress(self, done: int, total: int | None) -> None:
-        """Reports progress (shown live, used for the ETA)."""
+    async def progress(
+        self, done: int, total: int | None, notes: dict[str, int] | None = None
+    ) -> None:
+        """Reports progress (shown live, used for the ETA), with counters worth showing
+        ("checked", "unreachable"…): the run keeps the last ones as its report."""
 
     async def sleep(self, seconds: float) -> None:
         """Waits, honouring pause and the clock's speed. Also a pause point."""

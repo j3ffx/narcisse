@@ -68,6 +68,15 @@ def _retry_after(response: httpx.Response, clock: Clock) -> float:
             return DEFAULT_RETRY_AFTER
 
 
+def host_declared(host: str, declared: tuple[str, ...]) -> bool:
+    """Whether `host` is one of the declared hosts. `*.example.org` stands for any single
+    subdomain of example.org (sites that put the username in the domain)."""
+    if host in declared:
+        return True
+    label, _, parent = host.partition(".")
+    return bool(label) and f"*.{parent}" in declared
+
+
 class HttpClient:
     """The client a module uses. Only the hosts its metadata declares are reachable."""
 
@@ -86,7 +95,7 @@ class HttpClient:
 
     def _host(self, url: str) -> str:
         host = urlsplit(url).hostname or ""
-        if host not in self._meta.hosts:
+        if not host_declared(host, self._meta.hosts):
             # A module reaching an undeclared host is a bug: the list of hosts is a promise.
             raise ValueError(f"{self._meta.name} may not contact {host!r}")
         return host

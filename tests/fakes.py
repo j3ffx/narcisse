@@ -45,11 +45,13 @@ class Steps(SourceModule):
         self.max_running = max(self.max_running, self.running)
         try:
             for step in range(first, self.steps):
-                await ctx.progress(step, self.steps)
+                await ctx.progress(step, self.steps, {"checked": step})
                 await ctx.sleep(self.delay)
                 url = f"https://steps.example.org/{target.normalized}/{step}"
                 yield Finding(kind=EntityKind.URL, value=url, relation="mentioned_on", url=url)
                 await ctx.save_checkpoint({"step": step + 1})
+            # The final report always goes through (progress events are spaced out).
+            await ctx.progress(self.steps, self.steps, {"checked": self.steps})
         finally:
             self.running -= 1
 

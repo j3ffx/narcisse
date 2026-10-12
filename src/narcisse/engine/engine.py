@@ -10,6 +10,7 @@ import asyncio
 import hashlib
 import logging
 from collections import Counter
+from collections.abc import Callable
 from contextlib import suppress
 from datetime import datetime, timedelta
 from typing import Any
@@ -40,6 +41,7 @@ from narcisse.engine.plugin import (
 )
 from narcisse.errors import AppError, not_found
 from narcisse.normalize import normalize
+from narcisse.preferences import Preferences
 from narcisse.schemas import EntityOut, ResultOut, RunOut, ScanDetail, ScanOut
 from narcisse.storage.models import Edge, Entity, Evidence, ModuleRun, Profile, Scan
 
@@ -85,6 +87,7 @@ async def upsert_entity(
     now: datetime,
     status: EntityStatus = EntityStatus.UNREVIEWED,
     confidence: float | None = None,
+    attributes: dict[str, Any] | None = None,
 ) -> Entity:
     entity = await session.scalar(
         select(Entity).where(
@@ -101,7 +104,7 @@ async def upsert_entity(
             display=display,
             status=status,
             confidence=confidence,
-            attributes={},
+            attributes=dict(attributes or {}),
             first_seen=now,
             last_seen=now,
         )
@@ -111,6 +114,9 @@ async def upsert_entity(
         entity.last_seen = now
         if confidence is not None:
             entity.confidence = max(entity.confidence or 0.0, confidence)
+        if attributes:
+            # A new dict: SQLAlchemy only sees a JSON column change when it is reassigned.
+            entity.attributes = {**entity.attributes, **attributes}
     return entity
 
 
@@ -164,6 +170,7 @@ class RunContext:
         self.log = logging.getLogger(f"narcisse.modules.{meta.name}")
         self.attempt = run.attempts
         self.checkpoint = run.checkpoint
+        self.preferences = engine.preferences()
         self._last_progress = 0.0
 
     async def save_checkpoint(self, data: dict[str, Any]) -> None:
@@ -176,23 +183,32 @@ class RunContext:
                 update(ModuleRun).where(ModuleRun.id == self._run_id).values(checkpoint=data)
             )
 
-    async def progress(self, done: int, total: int | None) -> None:
+    async def progress(
+        self, done: int, total: int | None, notes: dict[str, int] | None = None
+    ) -> None:
         loop = asyncio.get_running_loop()
         if done != total and loop.time() - self._last_progress < PROGRESS_INTERVAL:
             return
         self._last_progress = loop.time()
-        await self._engine.db.shielded(self._progress(done, total))
+        await self._engine.db.shielded(self._progress(done, total, notes))
 
-    async def _progress(self, done: int, total: int | None) -> None:
+    async def _progress(self, done: int, total: int | None, notes: dict[str, int] | None) -> None:
+        values: dict[str, Any] = {"progress_done": done, "progress_total": total}
+        if notes is not None:
+            values["notes"] = notes
         async with self._engine.bus.transaction() as tx:
             await tx.session.execute(
-                update(ModuleRun)
-                .where(ModuleRun.id == self._run_id)
-                .values(progress_done=done, progress_total=total)
+                update(ModuleRun).where(ModuleRun.id == self._run_id).values(**values)
             )
             tx.emit(
                 "run.progress",
-                {"run_id": self._run_id, "scan_id": self._scan_id, "done": done, "total": total},
+                {
+                    "run_id": self._run_id,
+                    "scan_id": self._scan_id,
+                    "done": done,
+                    "total": total,
+                    "notes": notes,
+                },
                 self._scan_id,
             )
 
@@ -212,8 +228,11 @@ class Engine:
         modules: dict[str, SourceModule],
         http_client: httpx.AsyncClient,
         *,
+        preferences: Callable[[], Preferences] = Preferences,
         max_parallel_runs: int = MAX_PARALLEL_RUNS,
     ) -> None:
+        # Read again for each run, so that a new setting applies to the next search.
+        self.preferences = preferences
         self.bus = bus
         self.db = bus.db
         self.clock: Clock = bus.clock
@@ -532,6 +551,7 @@ class Engine:
                 normalized=normalized,
                 now=now,
                 confidence=finding.confidence,
+                attributes=finding.attributes,
             )
             edge = await upsert_edge(
                 tx.session,

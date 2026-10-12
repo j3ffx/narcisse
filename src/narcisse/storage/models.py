@@ -135,6 +135,8 @@ class ModuleRun(Base):
     retryable: Mapped[bool] = mapped_column(Boolean, default=False)
     # What the module needs to pick up where it stopped (opaque to the engine).
     checkpoint: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    # Counters the module reports along the way ("checked": 640, "unreachable": 12…).
+    notes: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     created_at: Mapped[datetime]
     started_at: Mapped[datetime | None]
     finished_at: Mapped[datetime | None]

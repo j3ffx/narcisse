@@ -61,6 +61,10 @@ class Settings:
         return self.data_dir / "narcisse.sqlite3"
 
     @property
+    def preferences_path(self) -> Path:
+        return self.data_dir / "preferences.json"
+
+    @property
     def log_dir(self) -> Path:
         return self.data_dir / "logs"
 
