@@ -134,14 +134,29 @@ class EntityPatch(Schema):
     status: EntityStatus
 
 
+class EdgeOut(Schema):
+    """How two traces relate: `source` led to `target`, according to `module`."""
+
+    id: int
+    source_id: int
+    target_id: int
+    relation: str
+    module: str
+    confidence: float | None
+    first_seen: datetime
+    last_seen: datetime
+
+
 class ResultOut(Schema):
     """One finding of a scan: the entity, the proof, and where it came from."""
 
     id: int  # evidence id
+    profile_id: int
     scan_id: int
     run_id: int
     module: str
     entity: EntityOut
+    edge: EdgeOut | None
     relation: str | None
     confidence: float | None
     url: str | None

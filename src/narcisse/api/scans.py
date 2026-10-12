@@ -15,6 +15,7 @@ from narcisse.engine.engine import scan_detail, scan_out
 from narcisse.errors import not_found
 from narcisse.schemas import (
     ActivityOut,
+    EdgeOut,
     EntityOut,
     ModuleOut,
     ResultOut,
@@ -114,7 +115,7 @@ async def list_results(
 ) -> ResultsPage:
     """A scan's findings, oldest first. Traces marked "not me" are left out unless asked for."""
     query = (
-        select(Evidence, Entity, Edge.relation, Edge.confidence)
+        select(Evidence, Entity, Edge)
         .join(Entity, Evidence.entity_id == Entity.id)
         .outerjoin(Edge, Evidence.edge_id == Edge.id)
         .where(Evidence.scan_id == scan_id)
@@ -132,17 +133,19 @@ async def list_results(
         items = [
             ResultOut(
                 id=evidence.id,
+                profile_id=entity.profile_id,
                 scan_id=evidence.scan_id,
                 run_id=evidence.run_id,
                 module=evidence.module,
                 entity=EntityOut.model_validate(entity),
-                relation=relation,
-                confidence=confidence,
+                edge=EdgeOut.model_validate(edge) if edge else None,
+                relation=edge.relation if edge else None,
+                confidence=edge.confidence if edge else None,
                 url=evidence.url,
                 excerpt=evidence.excerpt,
                 captured_at=evidence.captured_at,
             )
-            for evidence, entity, relation, confidence in rows
+            for evidence, entity, edge in rows
         ]
     return ResultsPage(items=items, total=total)
 

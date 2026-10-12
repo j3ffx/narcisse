@@ -69,6 +69,10 @@ class Finding:
     excerpt: str | None = None
     content: str | None = None  # what was read (hashed, never stored)
     attributes: dict[str, Any] = field(default_factory=dict)
+    # The trace this one was read on (kind, value), when it isn't the target: a link in a
+    # profile's bio relates to that profile, not to the username that led to it. It must have
+    # been yielded before (or be the target); otherwise the target stands in.
+    via: tuple[EntityKind, str] | None = None
 
 
 class ModuleError(Exception):

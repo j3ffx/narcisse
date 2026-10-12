@@ -74,3 +74,37 @@ class Rejects(SourceModule):
     async def run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
         raise InputRejected("input_rejected")
         yield  # pragma: no cover
+
+
+class Profiles(SourceModule):
+    """Finds an account for the username, then a site and a name read on that account: the
+    shape of a real profile source."""
+
+    meta: ClassVar[ModuleMeta] = meta("test.profiles")
+
+    async def run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
+        account = f"https://social.example.org/@{target.normalized}"
+        yield Finding(kind=EntityKind.ACCOUNT, value=account, relation="has_account", url=account)
+        via = (EntityKind.ACCOUNT, account)
+        yield Finding(
+            kind=EntityKind.URL,
+            value="https://jeanne.example.org",
+            relation="links_to",
+            url=account,
+            via=via,
+        )
+        yield Finding(
+            kind=EntityKind.NAME,
+            value="Jeanne Exemple",
+            relation="shows_name",
+            url=account,
+            via=via,
+        )
+        # A trace that was never yielded: the target stands in.
+        yield Finding(
+            kind=EntityKind.EMAIL,
+            value="jeanne@example.org",
+            relation="shows_email",
+            url=account,
+            via=(EntityKind.ACCOUNT, "https://elsewhere.example.org/jeanne"),
+        )

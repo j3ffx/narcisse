@@ -42,7 +42,7 @@ from narcisse.engine.plugin import (
 from narcisse.errors import AppError, not_found
 from narcisse.normalize import normalize
 from narcisse.preferences import Preferences
-from narcisse.schemas import EntityOut, ResultOut, RunOut, ScanDetail, ScanOut
+from narcisse.schemas import EdgeOut, EntityOut, ResultOut, RunOut, ScanDetail, ScanOut
 from narcisse.storage.models import Edge, Entity, Evidence, ModuleRun, Profile, Scan
 
 log = logging.getLogger(__name__)
@@ -532,6 +532,38 @@ class Engine:
             if not self._stopping:
                 self._wake.set()
 
+    async def _via(
+        self,
+        session: AsyncSession,
+        run: ModuleRun,
+        meta: ModuleMeta,
+        target: Target,
+        finding: Finding,
+    ) -> int:
+        """The entity the finding's edge starts from: the trace it was read on, or the target."""
+        if finding.via is None:
+            return target.entity_id
+        kind, value = finding.via
+        try:
+            normalized = normalize(kind, value)[1]
+        except AppError:
+            normalized = None
+        source = (
+            await session.scalar(
+                select(Entity.id).where(
+                    Entity.profile_id == run.input_entity.profile_id,
+                    Entity.kind == kind,
+                    Entity.normalized == normalized,
+                )
+            )
+            if normalized is not None
+            else None
+        )
+        if source is None:
+            log.warning("%s gave an unknown trace to relate to: %s %r", meta.name, kind, value)
+            return target.entity_id
+        return source
+
     async def _store(
         self, run: ModuleRun, meta: ModuleMeta, target: Target, finding: Finding
     ) -> None:
@@ -545,6 +577,7 @@ class Engine:
             current = await tx.session.get(ModuleRun, run.id)
             if current is None or current.status == RunStatus.CANCELLED:
                 return
+            source_id = await self._via(tx.session, run, meta, target, finding)
             entity = await upsert_entity(
                 tx.session,
                 profile_id=run.input_entity.profile_id,
@@ -555,10 +588,12 @@ class Engine:
                 confidence=finding.confidence,
                 attributes=finding.attributes,
             )
+            if source_id == entity.id:
+                source_id = target.entity_id  # a trace isn't related to itself
             edge = await upsert_edge(
                 tx.session,
                 profile_id=run.input_entity.profile_id,
-                source_id=target.entity_id,
+                source_id=source_id,
                 target_id=entity.id,
                 relation=finding.relation,
                 module=meta.name,
@@ -601,10 +636,12 @@ class Engine:
                 "result.created",
                 ResultOut(
                     id=evidence.id,
+                    profile_id=entity.profile_id,
                     scan_id=run.scan_id,
                     run_id=run.id,
                     module=meta.name,
                     entity=EntityOut.model_validate(entity),
+                    edge=EdgeOut.model_validate(edge),
                     relation=finding.relation,
                     confidence=finding.confidence,
                     url=finding.url,
