@@ -17,5 +17,11 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true
   },
-  "include": ["vite.config.ts", "playwright.config.ts", "e2e/**/*.ts"]
+  "include": [
+    "vite.config.ts",
+    "playwright.config.ts",
+    "playwright.bench.config.ts",
+    "e2e/**/*.ts",
+    "bench/**/*.ts"
+  ]
 }
