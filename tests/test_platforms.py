@@ -1,4 +1,4 @@
-"""The Bluesky, GitLab, Stack Exchange, Hacker News and Keybase modules, against
+"""The Bluesky, GitLab, Stack Exchange, Hacker News, Keybase and Fediverse modules, against
 recorded-style answers (no network)."""
 
 import httpx
@@ -6,8 +6,10 @@ import pytest
 import respx
 
 from narcisse.domain import EntityKind
-from narcisse.engine.plugin import RateLimited, SourceUnavailable, Target
+from narcisse.engine.plugin import InputRejected, RateLimited, SourceUnavailable, Target
 from narcisse.modules.bluesky import Bluesky
+from narcisse.modules.fediverse import INSTANCES, Fediverse
+from narcisse.modules.github import GitHub
 from narcisse.modules.gitlab import INSTANCES as GITLAB_INSTANCES
 from narcisse.modules.gitlab import GitLab
 from narcisse.modules.hackernews import HackerNews
@@ -16,6 +18,7 @@ from narcisse.modules.stackexchange import StackExchange
 from narcisse.modules.whatsmyname import SITES
 from narcisse.normalize import fold, normalize
 from narcisse.preferences import Preferences
+from tests.conftest import ApiFactory
 from tests.module_context import FakeContext, run, target
 
 
@@ -462,3 +465,146 @@ async def test_keybase_skips_values_it_cannot_take(http_client: httpx.AsyncClien
         module, FakeContext(module, http_client), target(EntityKind.USERNAME, "jeanne.exemple")
     )
     assert found == []
+
+
+# Fediverse
+
+MASTODON_ACCOUNT = {
+    "username": "jeanne",
+    "display_name": "Jeanne Exemple",
+    "created_at": "2022-11-05T00:00:00.000Z",
+    "note": '<p>Bonjour ! Avec <a href="https://social.example/@paul" class="u-url mention">'
+    "@paul</a></p>",
+    "fields": [
+        {
+            "name": "Site",
+            "value": '<a href="https://jeanne.example.org" rel="me">jeanne.example.org</a>',
+            "verified_at": "2023-01-01T00:00:00.000+00:00",
+        },
+        {
+            "name": "Code",
+            "value": '<a href="https://github.com/jeanne-exemple">github.com/jeanne-exemple</a>',
+            "verified_at": None,
+        },
+    ],
+}
+
+
+def lookup(host: str) -> str:
+    return f"https://{host}/api/v1/accounts/lookup"
+
+
+@respx.mock
+async def test_fediverse_looks_on_every_listed_instance(http_client: httpx.AsyncClient) -> None:
+    for host in INSTANCES[2:]:
+        respx.get(url__startswith=lookup(host)).respond(404, json={"error": "Record not found"})
+    respx.get(url__startswith=lookup(INSTANCES[0])).respond(200, json=MASTODON_ACCOUNT)
+    respx.get(url__startswith=lookup(INSTANCES[1])).mock(side_effect=httpx.ConnectError("down"))
+    added = respx.get(url__startswith=lookup("social.example.org")).respond(404)
+    module = Fediverse()
+    ctx = FakeContext(
+        module, http_client, preferences=Preferences(fediverse_instances=("social.example.org",))
+    )
+    found = await run(module, ctx, target(EntityKind.USERNAME, "jeanne"))
+
+    assert added.called  # the user's own instance too
+    assert ctx.notes == {"checked": len(INSTANCES), "found": 1, "unreachable": 1}
+    assert [(f.kind, f.value, f.confidence) for f in found] == [
+        (EntityKind.ACCOUNT, "https://mastodon.social/@jeanne", 0.5),
+        (EntityKind.NAME, "Jeanne Exemple", 0.5),
+        # A verified link is the owner's; a mention in the bio is someone else.
+        (EntityKind.URL, "https://jeanne.example.org", 0.9),
+        (EntityKind.ACCOUNT, "https://github.com/jeanne-exemple", 0.6),
+    ]
+    assert same_trace(found[0].value) == whatsmyname_url("Mastodon-mastodon", "jeanne")
+
+
+@respx.mock
+async def test_a_fediverse_handle_is_asked_on_its_own_instance_once_listed(
+    http_client: httpx.AsyncClient,
+) -> None:
+    module = Fediverse()
+    handle = target(EntityKind.USERNAME, "jeanne@social.example.org")
+    with pytest.raises(InputRejected, match="instance_not_listed"):
+        await run(module, FakeContext(module, http_client), handle)
+
+    route = respx.get(url__startswith=lookup("social.example.org")).respond(
+        200, json=MASTODON_ACCOUNT
+    )
+    preferences = Preferences(fediverse_instances=("social.example.org",))
+    found = await run(module, FakeContext(module, http_client, preferences=preferences), handle)
+    assert len(respx.calls) == 1
+    assert route.calls.last.request.url.params["acct"] == "jeanne"
+    assert (found[0].value, found[0].confidence) == ("https://social.example.org/@jeanne", 0.9)
+
+
+@respx.mock
+async def test_fediverse_falls_back_on_webfinger_and_activitypub(
+    http_client: httpx.AsyncClient,
+) -> None:
+    host = "social.example.org"
+    respx.get(url__startswith=lookup(host)).respond(401)
+    respx.get(url__startswith=f"https://{host}/.well-known/webfinger").respond(
+        200,
+        json={
+            "links": [
+                {
+                    "rel": "self",
+                    "type": "application/activity+json",
+                    "href": f"https://{host}/users/jeanne",
+                },
+                {"rel": "http://webfinger.net/rel/profile-page", "href": f"https://{host}/@jeanne"},
+            ]
+        },
+    )
+    actor = respx.get(f"https://{host}/users/jeanne").respond(
+        200,
+        json={
+            "name": "Jeanne",
+            "summary": "<p>jeanne@example.org</p>",
+            "attachment": [
+                {"type": "PropertyValue", "name": "Site", "value": "https://jeanne.example.org"}
+            ],
+        },
+    )
+    module = Fediverse()
+    preferences = Preferences(fediverse_instances=(host,))
+    found = await run(
+        module,
+        FakeContext(module, http_client, preferences=preferences),
+        target(EntityKind.ACCOUNT, f"https://{host}/@jeanne"),
+    )
+    assert actor.calls.last.request.headers["Accept"] == "application/activity+json"
+    # An account given as the seed isn't told again; what its profile shows is.
+    assert [(f.kind, f.value) for f in found] == [
+        (EntityKind.NAME, "Jeanne"),
+        (EntityKind.EMAIL, "jeanne@example.org"),
+        (EntityKind.URL, "https://jeanne.example.org"),
+    ]
+
+
+def test_a_fediverse_handle_goes_to_the_fediverse_module_only() -> None:
+    assert Fediverse().accepts_target(EntityKind.USERNAME, "jeanne@social.example.org")
+    assert Fediverse().accepts_target(EntityKind.ACCOUNT, "https://social.example.org/@jeanne")
+    assert not Fediverse().accepts_target(EntityKind.ACCOUNT, "https://example.org/jeanne")
+    assert not GitHub().accepts_target(EntityKind.USERNAME, "jeanne@social.example.org")
+    assert GitHub().accepts_target(EntityKind.USERNAME, "jeanne")
+
+
+async def test_a_scan_gives_each_seed_to_the_sources_that_can_use_it(
+    make_api: ApiFactory,
+) -> None:
+    api = await make_api({"github": GitHub(), "fediverse": Fediverse(), "bluesky": Bluesky()})
+    profile = await api.profile(
+        ("username", "@jeanne@social.example.org"),
+        ("account", "https://github.com/jeanne-exemple"),
+    )
+    scan = await api.json("POST", f"/profiles/{profile}/scans", {}, status=201)
+    done = await api.wait_scan(scan["id"], lambda s: s["status"] == "done")
+
+    # A handle is a Fediverse thing; a GitHub address, nobody's here (no source reads it).
+    assert [(r["module"], r["input_value"]) for r in done["runs"]] == [
+        ("fediverse", "jeanne@social.example.org")
+    ]
+    assert done["runs"][0]["error_code"] == "instance_not_listed"
+    assert done["runs"][0]["error_params"] == {"host": "social.example.org"}

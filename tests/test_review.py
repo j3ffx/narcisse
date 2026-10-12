@@ -91,9 +91,24 @@ async def test_settings_keep_the_tokens_without_ever_showing_them(
     assert cleared == {**nothing, "exclude_adult": True}
 
 
+async def test_settings_keep_fediverse_instances_as_host_names(make_api: ApiFactory) -> None:
+    api = await make_api(None, demo=False)
+    shown = await api.json(
+        "PATCH",
+        "/preferences",
+        {"fediverse_instances": ["https://Social.Example.org/@jeanne", "social.example.org", " "]},
+    )
+    assert shown["fediverse_instances"] == ["social.example.org"]
+    hosts = {m["name"]: m["hosts"] for m in await api.json("GET", "/modules")}
+    assert "social.example.org" in hosts["fediverse"]
+    assert "social.example.org" not in hosts["github"]
+
+    await api.json("PATCH", "/preferences", {"fediverse_instances": ["pas un domaine"]}, status=422)
+
+
 async def test_each_mode_offers_its_own_sources(make_api: ApiFactory) -> None:
     normal = [m["name"] for m in await (await make_api(None, demo=False)).json("GET", "/modules")]
     demo = [m["name"] for m in await (await make_api(None, demo=True)).json("GET", "/modules")]
     assert demo == ["demo.fake"]  # fictitious identities never reach real sites
-    assert {"whatsmyname", "github", "gravatar", "pgp"} <= set(normal)
+    assert {"whatsmyname", "github", "gravatar", "pgp", "fediverse"} <= set(normal)
     assert "demo.fake" not in normal
