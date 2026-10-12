@@ -31,15 +31,32 @@ export function AppShell({
         Aller au contenu
       </a>
       <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-2.5">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5">
           <Link href="/" className="flex items-center gap-2 font-heading text-lg font-semibold">
             <img src="/favicon.svg" alt="" className="size-6" />
             Narcisse
           </Link>
-          <nav aria-label="Navigation" className="ml-2 text-sm">
-            <Link href="/" className="text-muted-foreground hover:text-foreground">
-              Profils
-            </Link>
+          <nav
+            aria-label="Navigation"
+            className="order-last flex w-full gap-4 text-sm sm:order-none sm:ml-2 sm:w-auto"
+          >
+            {[
+              ['/', 'Profils'],
+              ['/sources', 'Sources'],
+              ['/reglages', 'Réglages'],
+            ].map(([href, label]) => (
+              <Link
+                key={href}
+                href={href!}
+                className={(active) =>
+                  active
+                    ? 'font-medium text-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                }
+              >
+                {label}
+              </Link>
+            ))}
           </nav>
           <div className="ml-auto flex items-center gap-2">
             {connection === 'reconnecting' && (

@@ -3,6 +3,8 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { ProfilePage } from '@/features/profiles/ProfilePage';
 import { ProfilesPage } from '@/features/profiles/ProfilesPage';
 import { ScanPage } from '@/features/scans/ScanPage';
+import { SettingsPage } from '@/features/settings/SettingsPage';
+import { SourcesPage } from '@/features/sources/SourcesPage';
 import { useLiveUpdates } from '@/hooks/useLiveUpdates';
 import { Link, Route, Switch } from 'wouter';
 import { AppShell } from './AppShell';
@@ -15,6 +17,8 @@ export function App() {
         <Switch>
           <Route path="/" component={ProfilesPage} />
           <Route path="/profils/:id">{(p) => <ProfilePage id={Number(p.id)} key={p.id} />}</Route>
+          <Route path="/sources" component={SourcesPage} />
+          <Route path="/reglages" component={SettingsPage} />
           <Route path="/scans/:id">{(p) => <ScanPage id={Number(p.id)} key={p.id} />}</Route>
           <Route>
             <div className="grid gap-2">
