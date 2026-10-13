@@ -1,5 +1,7 @@
 """Another website open in the browser must not read or drive the local server."""
 
+import logging
+
 import pytest
 
 from narcisse.config import maps_to_loopback
@@ -92,3 +94,18 @@ async def test_the_short_name_is_served_only_once_mapped(
     api = await make_api(None, short_host=short_host)
     response = await api.client.get("/api/profiles", headers={"Host": "narcisse"})
     assert response.status_code == status
+
+
+async def test_a_crash_in_the_ui_goes_to_the_log(
+    api: Api, caplog: pytest.LogCaptureFixture
+) -> None:
+    with caplog.at_level(logging.ERROR, logger="narcisse.ui"):
+        await api.json(
+            "POST",
+            "/client-errors",
+            {"message": "boom", "stack": "at draw (graph.js:1)", "where": "/profils/1"},
+            status=204,
+        )
+    assert "the UI failed at /profils/1: boom" in caplog.text
+    assert "graph.js:1" in caplog.text
+    await api.json("POST", "/client-errors", {"message": "x" * 3000}, status=422)

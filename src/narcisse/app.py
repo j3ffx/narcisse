@@ -25,11 +25,12 @@ from narcisse.engine.plugin import SourceModule
 from narcisse.errors import AppError
 from narcisse.modules import discover
 from narcisse.preferences import Preferences
-from narcisse.schemas import AppInfo
+from narcisse.schemas import AppInfo, ClientError
 from narcisse.security import LocalOnlyMiddleware
 from narcisse.storage.database import Database, migrate
 
 log = logging.getLogger(__name__)
+ui_log = logging.getLogger("narcisse.ui")
 
 # Not every system knows this one (Windows doesn't), and browsers expect it for the app manifest.
 mimetypes.add_type("application/manifest+json", ".webmanifest")
@@ -135,6 +136,12 @@ def create_app(
     api.include_router(entities.router)
     api.include_router(graph.router)
     api.include_router(preferences.router)
+
+    @api.post("/client-errors", status_code=204, tags=["meta"])
+    async def client_error(body: ClientError) -> Response:
+        """A crash in the UI, written to the log (where stack traces go), not shown."""
+        ui_log.error("the UI failed at %s: %s\n%s", body.where, body.message, body.stack or "")
+        return Response(status_code=204)
 
     @api.api_route(
         "/{path:path}", methods=["GET", "POST", "PATCH", "DELETE"], include_in_schema=False

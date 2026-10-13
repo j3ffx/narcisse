@@ -1,3 +1,4 @@
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Pending } from '@/components/Pending';
 import {
   AlertDialog,
@@ -93,10 +94,12 @@ export function ProfilePage({ id, tab }: { id: number; tab: ProfileTab }) {
           </Link>
         ))}
       </nav>
-      <Suspense fallback={<Pending label="Chargement de la vue…" />}>
-        {tab === 'graphe' && <GraphView profileId={id} view={view} />}
-        {tab === 'liste' && <TraceList profileId={id} view={view} />}
-      </Suspense>
+      <ErrorBoundary key={tab} label={tab === 'graphe' ? 'Le graphe' : 'Cette vue'}>
+        <Suspense fallback={<Pending label="Chargement de la vue…" />}>
+          {tab === 'graphe' && <GraphView profileId={id} view={view} />}
+          {tab === 'liste' && <TraceList profileId={id} view={view} />}
+        </Suspense>
+      </ErrorBoundary>
       {tab === 'elements' && <SeedsEditor profileId={id} seeds={data.seeds} />}
       {tab === 'scans' && <ScanHistory profileId={id} />}
     </div>

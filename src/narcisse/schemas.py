@@ -231,6 +231,14 @@ class SavedViewOut(Schema):
     updated_at: datetime
 
 
+class ClientError(Schema):
+    """What the UI reports of a crash: for the log, never stored elsewhere."""
+
+    message: str = Field(max_length=2000)
+    stack: str | None = Field(default=None, max_length=20_000)
+    where: str = Field(default="", max_length=500)
+
+
 class DemoGraphIn(Schema):
     nodes: int = Field(default=5000, ge=10, le=20_000)
 
