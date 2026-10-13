@@ -143,3 +143,34 @@ async def test_saved_views_are_kept_per_profile_and_replaced_by_name(api: Api) -
 
     # A profile's views go with it.
     await api.json("DELETE", f"/profiles/{profile}", status=204)
+
+
+async def test_a_page_found_by_hand_becomes_a_trace_of_one_s_own(api: Api) -> None:
+    profile = await api.json("POST", "/profiles", {"name": "Jeanne Exemple"}, status=201)
+    traces = f"/profiles/{profile['id']}/traces"
+    page = await api.json(
+        "POST",
+        traces,
+        {"url": "https://club.example.org/membres/jeanne/", "note": " Ma page   au club "},
+        status=201,
+    )
+    assert (page["kind"], page["status"]) == ("url", "confirmed")
+    account = await api.json(
+        "POST", traces, {"url": "https://social.example.net/@jeanne"}, status=201
+    )
+    assert account["kind"] == "account"
+
+    graph = by_display(await api.json("GET", f"/profiles/{profile['id']}/graph"))
+    assert graph["url:https://club.example.org/membres/jeanne/"]["modules"] == ["manual"]
+    assert "identity:Jeanne Exemple" in graph
+    detail = await api.json("GET", f"/entities/{page['id']}")
+    [proof] = detail["evidence"]
+    assert (proof["module"], proof["scan_id"], proof["relation"]) == (
+        "manual",
+        None,
+        "added_by_hand",
+    )
+    assert proof["excerpt"] == "Ma page au club"
+
+    await api.json("POST", traces, {"url": "pas une adresse"}, status=422)
+    await api.json("POST", "/profiles/999/traces", {"url": "https://example.org/"}, status=404)

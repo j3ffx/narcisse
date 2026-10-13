@@ -135,6 +135,13 @@ class EntityPatch(Schema):
     status: EntityStatus
 
 
+class TraceIn(Schema):
+    """A page the user found themselves (through the assisted search, say)."""
+
+    url: str = Field(max_length=2000)
+    note: str | None = Field(default=None, max_length=500)
+
+
 class EdgeOut(Schema):
     """How two traces relate: `source` led to `target`, according to `module`."""
 
@@ -182,8 +189,8 @@ class GraphOut(Schema):
 
 class EvidenceOut(Schema):
     id: int
-    scan_id: int
-    run_id: int
+    scan_id: int | None  # None: added by hand
+    run_id: int | None
     module: str
     relation: str | None
     url: str | None

@@ -195,8 +195,9 @@ class Evidence(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     entity_id: Mapped[int] = mapped_column(ForeignKey("entity.id", ondelete="CASCADE"), index=True)
     edge_id: Mapped[int | None] = mapped_column(ForeignKey("edge.id", ondelete="SET NULL"))
-    scan_id: Mapped[int] = mapped_column(ForeignKey("scan.id", ondelete="CASCADE"))
-    run_id: Mapped[int] = mapped_column(ForeignKey("module_run.id", ondelete="CASCADE"))
+    # None for a trace the user added by hand: no scan found it.
+    scan_id: Mapped[int | None] = mapped_column(ForeignKey("scan.id", ondelete="CASCADE"))
+    run_id: Mapped[int | None] = mapped_column(ForeignKey("module_run.id", ondelete="CASCADE"))
     module: Mapped[str] = mapped_column(String(100))
     url: Mapped[str | None] = mapped_column(String(2000))
     excerpt: Mapped[str | None] = mapped_column(Text)
