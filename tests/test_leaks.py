@@ -1,13 +1,17 @@
 """The phone, leak and company modules, against recorded-style answers (no network)."""
 
+from typing import Any
+
 import httpx
 import pytest
 import respx
 
 from narcisse.domain import EntityKind
 from narcisse.engine.plugin import InputRejected, RateLimited
+from narcisse.modules.companies import BODACC, SEARCH, Companies, born, person_name
 from narcisse.modules.phone import Phone, describe
 from narcisse.modules.xposedornot import API, XposedOrNot
+from narcisse.normalize import normalize
 from tests.conftest import ApiFactory
 from tests.module_context import FakeContext, run, target
 
@@ -124,3 +128,130 @@ async def test_xposedornot_s_daily_cap(http_client: httpx.AsyncClient) -> None:
             module, FakeContext(module, http_client), target(EntityKind.EMAIL, "j@example.org")
         )
     assert limited.value.retry_after == 3600
+
+
+# Companies
+
+
+def officer(nom: str, prenoms: str, born: str = "1990-04", **more: str) -> dict[str, str]:
+    return {
+        "nom": nom,
+        "prenoms": prenoms,
+        "date_de_naissance": born,
+        "qualite": "Gérant",
+        "type_dirigeant": "personne physique",
+        **more,
+    }
+
+
+def result(siren: str, name: str, *officers: dict[str, str], **more: Any) -> dict[str, Any]:
+    return {
+        "siren": siren,
+        "nom_complet": name,
+        "etat_administratif": "A",
+        "date_creation": "2015-06-01",
+        "siege": {"adresse": "1 RUE DE L'EXEMPLE 75000 PARIS"},
+        "dirigeants": list(officers),
+        **more,
+    }
+
+
+def page(*results: dict[str, Any]) -> dict[str, Any]:
+    return {"results": list(results), "total_pages": 1, "total_results": len(results)}
+
+
+@respx.mock
+async def test_the_companies_a_person_runs_or_that_bear_their_name(
+    http_client: httpx.AsyncClient,
+) -> None:
+    def answer(request: httpx.Request) -> httpx.Response:
+        if request.url.params.get("est_entrepreneur_individuel") == "true":
+            return httpx.Response(
+                200,
+                json=page(
+                    result("123456782", "JEANNE EXEMPLE (EXEMPLE)"),
+                    # Another person's sole trade, found by the search too.
+                    result("732829320", "JEANNOT EXEMPLAIRE"),
+                ),
+            )
+        return httpx.Response(
+            200,
+            json=page(
+                result(
+                    "552100554",
+                    "EXEMPLE CONSEIL",
+                    officer("EXEMPLE (EXEMPLE)", "JEANNE MARIE"),
+                    officer("AUTRE", "PAUL"),
+                ),
+                # The name of a namesake's partner: not her.
+                result("409834013", "AUTRE SOCIETE", officer("EXEMPLE", "LOUISE")),
+            ),
+        )
+
+    route = respx.get(SEARCH).mock(side_effect=answer)
+    module = Companies()
+    ctx = FakeContext(module, http_client)
+    findings = await run(module, ctx, target(EntityKind.NAME, "Jeanne Exemple"))
+
+    first = route.calls[0].request.url.params
+    assert (first["nom_personne"], first["prenoms_personne"]) == ("Exemple", "Jeanne")
+    assert [(f.kind, f.relation, f.value) for f in findings] == [
+        (EntityKind.ORGANIZATION, "company_officer", "EXEMPLE CONSEIL (552100554)"),
+        (EntityKind.ADDRESS, "registered_office", "1 RUE DE L'EXEMPLE 75000 PARIS"),
+        (EntityKind.ORGANIZATION, "sole_trader", "JEANNE EXEMPLE (EXEMPLE) (123456782)"),
+        (EntityKind.ADDRESS, "registered_office", "1 RUE DE L'EXEMPLE 75000 PARIS"),
+    ]
+    assert findings[0].excerpt == (
+        "Jeanne Marie Exemple, gérant, né·e en avril 1990, de EXEMPLE CONSEIL (en activité, "
+        "créée le 2015-06-01). Siège : 1 RUE DE L'EXEMPLE 75000 PARIS."
+    )
+    assert findings[0].url == "https://annuaire-entreprises.data.gouv.fr/entreprise/552100554"
+    assert findings[0].confidence == 0.4
+    assert findings[1].via == (EntityKind.ORGANIZATION, "EXEMPLE CONSEIL (552100554)")
+    assert ctx.notes == {"companies": 2}
+
+
+@respx.mock
+async def test_a_company_s_officers_office_and_notices(http_client: httpx.AsyncClient) -> None:
+    respx.get(SEARCH).respond(
+        200,
+        json=page(result("552100554", "EXEMPLE CONSEIL", officer("EXEMPLE", "JEANNE"))),
+    )
+    bodacc = respx.get(BODACC).respond(
+        200,
+        json={
+            "results": [
+                {
+                    "url_complete": "https://www.bodacc.fr/annonce/exemple-1",
+                    "familleavis_lib": "Créations",
+                    "dateparution": "2015-06-10",
+                    "tribunal": "GREFFE DU TRIBUNAL DE COMMERCE DE PARIS",
+                }
+            ]
+        },
+    )
+    module = Companies()
+    ctx = FakeContext(module, http_client)
+    findings = await run(module, ctx, target(EntityKind.ORGANIZATION, "552 100 554"))
+
+    assert [(f.kind, f.relation, f.value) for f in findings] == [
+        (EntityKind.ORGANIZATION, "registered_as", "EXEMPLE CONSEIL (552100554)"),
+        (EntityKind.ADDRESS, "registered_office", "1 RUE DE L'EXEMPLE 75000 PARIS"),
+        (EntityKind.NAME, "officer", "Jeanne Exemple"),
+        (EntityKind.URL, "legal_notice", "https://www.bodacc.fr/annonce/exemple-1"),
+    ]
+    assert bodacc.calls.last.request.url.params["where"] == 'registre like "552100554"'
+    assert findings[3].excerpt == (
+        "Annonce au BODACC du 2015-06-10 : créations (EXEMPLE CONSEIL, greffe du tribunal de "
+        "commerce de paris)."
+    )
+    assert ctx.notes == {"companies": 1, "officers": 1, "notices": 1}
+
+
+def test_a_company_is_named_with_its_siren_one_trace_per_company() -> None:
+    assert normalize(EntityKind.ORGANIZATION, "EXEMPLE CONSEIL (552100554)")[1] == "552100554"
+    assert normalize(EntityKind.ORGANIZATION, "552 100 554")[1] == "552100554"
+    assert born("1990-04") == "avril 1990"
+    assert born(None) == ""
+    assert person_name("EXEMPLE (DUPONT)", "JEANNE MARIE") == "Jeanne Marie Exemple"
+    assert not Companies().accepts_target(EntityKind.NAME, "Jeanne")
