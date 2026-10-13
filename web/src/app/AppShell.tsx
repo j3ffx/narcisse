@@ -52,6 +52,7 @@ export function AppShell({
             {[
               ['/', 'Profils'],
               ['/sources', 'Sources'],
+              ['/mot-de-passe', 'Mot de passe'],
               ['/reglages', 'Réglages'],
             ].map(([href, label]) => (
               <Link

@@ -103,9 +103,9 @@ async def make_api(settings: Settings) -> AsyncIterator[ApiFactory]:
         if modules is not None:
             # Test modules are real ones as far as the app knows: demo mode would hide them.
             overrides.setdefault("demo", False)
-        app = create_app(
-            replace(settings, **overrides), modules=modules, http_transport=NoNetwork()
-        )
+        # The outside world, as a test fakes it; none by default.
+        transport = overrides.pop("http_transport", None) or NoNetwork()
+        app = create_app(replace(settings, **overrides), modules=modules, http_transport=transport)
         lifespan = app.router.lifespan_context(app)
         await lifespan.__aenter__()
         client = httpx.AsyncClient(

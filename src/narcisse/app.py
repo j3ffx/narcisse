@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.telemetry import TelemetryConfig
 
 from narcisse import __version__
-from narcisse.api import entities, graph, preferences, profiles, scans
+from narcisse.api import entities, graph, passwords, preferences, profiles, scans
 from narcisse.api.deps import Services, ServicesDep
 from narcisse.clock import Clock
 from narcisse.config import Settings
@@ -136,6 +136,7 @@ def create_app(
     api.include_router(entities.router)
     api.include_router(graph.router)
     api.include_router(preferences.router)
+    api.include_router(passwords.router)
 
     @api.post("/client-errors", status_code=204, tags=["meta"])
     async def client_error(body: ClientError) -> Response:

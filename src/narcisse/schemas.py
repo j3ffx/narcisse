@@ -317,3 +317,9 @@ class PreferencesPatch(Schema):
 class ErrorOut(Schema):
     code: str
     params: dict[str, Any] = Field(default_factory=dict)
+
+
+class PasswordRangeOut(Schema):
+    """The hashes Pwned Passwords knows that start like the one asked: (suffix, times seen)."""
+
+    suffixes: list[tuple[str, int]]

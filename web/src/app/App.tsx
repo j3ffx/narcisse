@@ -5,6 +5,7 @@ import { ProfilePage } from '@/features/profiles/ProfilePage';
 import { isProfileTab, type ProfileTab } from '@/features/profiles/tabs';
 import { ProfilesPage } from '@/features/profiles/ProfilesPage';
 import { ScanPage } from '@/features/scans/ScanPage';
+import { PasswordCheck } from '@/features/passwords/PasswordCheck';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { SourcesPage } from '@/features/sources/SourcesPage';
 import { useLiveUpdates } from '@/hooks/useLiveUpdates';
@@ -36,6 +37,7 @@ export function App() {
             </Route>
             <Route path="/sources" component={SourcesPage} />
             <Route path="/reglages" component={SettingsPage} />
+            <Route path="/mot-de-passe" component={PasswordCheck} />
             <Route path="/scans/:id">{(p) => <ScanPage id={Number(p.id)} key={p.id} />}</Route>
             <Route>
               <NotFound />

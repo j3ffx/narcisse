@@ -255,3 +255,31 @@ def test_a_company_is_named_with_its_siren_one_trace_per_company() -> None:
     assert born(None) == ""
     assert person_name("EXEMPLE (DUPONT)", "JEANNE MARIE") == "Jeanne Marie Exemple"
     assert not Companies().accepts_target(EntityKind.NAME, "Jeanne")
+
+
+# Pwned Passwords
+
+
+async def test_a_password_is_checked_by_the_first_characters_of_its_hash(
+    make_api: ApiFactory,
+) -> None:
+    calls: list[httpx.Request] = []
+
+    def answer(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return httpx.Response(
+            200,
+            text=(
+                "1E4C9B93F3F0682250B6CF8331B7EE68FD8:3861493\r\n"
+                "00D4F6E8FA6EECAD2A3AA415EEC418D38EC:0\r\n"  # padding: a decoy
+            ),
+        )
+
+    api = await make_api(None, demo=False, http_transport=httpx.MockTransport(answer))
+    answer_ = await api.json("GET", "/pwned-passwords/5baa6")
+    assert answer_ == {"suffixes": [["1E4C9B93F3F0682250B6CF8331B7EE68FD8", 3861493]]}
+    assert str(calls[0].url) == "https://api.pwnedpasswords.com/range/5BAA6"
+    assert calls[0].headers["Add-Padding"] == "true"
+    # Only five hexadecimal characters ever go out.
+    await api.json("GET", "/pwned-passwords/5baa61e4", status=422)
+    await api.json("GET", "/pwned-passwords/motdepasse", status=422)

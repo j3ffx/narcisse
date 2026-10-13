@@ -59,6 +59,10 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expect(page.getByTestId('source')).toHaveCount(1);
       await audit(page);
 
+      await page.goto('/mot-de-passe');
+      await expect(page.getByLabel('Mot de passe à vérifier')).toBeVisible();
+      await audit(page);
+
       await page.goto('/reglages');
       await expect(page.getByTestId('github-token-state')).toBeVisible();
       await audit(page);
