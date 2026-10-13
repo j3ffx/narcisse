@@ -152,6 +152,7 @@ la barre oblique) la première fois ; ensuite, il la propose de lui-même.
 | Fuites de données (XposedOrNot)         | un email                                              | les fuites connues où il figure : quand, quelles données (mots de passe, adresses, dates de naissance…), si les mots de passe étaient lisibles ; l’adresse est envoyée à XposedOrNot                                                        |
 | Registres d’entreprises (France)        | un nom, une organisation, un SIREN                    | les entreprises que tu diriges ou as dirigées, ou à ton nom : le registre publie le mois et l’année de naissance des dirigeants et le siège, souvent le domicile ; pour une entreprise, ses dirigeants, son siège et ses annonces au BODACC |
 | Numéro de téléphone                     | un téléphone                                          | ce qu’il dit de lui-même, sans rien demander à personne : mobile ou fixe, pays, région, opérateur d’origine                                                                                                                                 |
+| Email inscrit sur un service (actif léger) | un email                                           | si une adresse a un compte sur Docker Hub, Mozilla (Firefox), Last.fm, Pinterest, CodePen, Strava, RocketReach, Quora, SoundCloud ou GitHub — **désactivé par défaut**, à activer site par site dans les réglages (voir plus bas)             |
 
 Chaque recherche dit ce qu’elle a pu vérifier : par exemple « 640 vérifiés · 12 trouvés · 109
 bloqués par un anti-robot ». Le détail de chaque source (sites contactés, rythme, licence) est dans
@@ -165,6 +166,17 @@ Mastodon : seules les instances de la liste sont contactées.
 La page « Mot de passe » vérifie s’il apparaît dans les fuites que recense Pwned Passwords, sans
 qu’il quitte la page : elle en calcule l’empreinte, n’en envoie que les 5 premiers caractères, et
 compare elle-même la réponse. Rien n’est gardé.
+
+### Les sources « actif léger »
+
+Certaines sources ne lisent pas une page publique : elles sollicitent un service pour savoir si une
+adresse email y est inscrite, en interrogeant son formulaire d’inscription (« cette adresse est-elle
+déjà prise ? »), sans jamais s’y connecter, créer de compte ni envoyer d’email au titulaire.
+Narcisse s’en tient aux services qui répondent discrètement. Chacune est **désactivée** tant que tu
+ne l’actives pas, site par site, dans les réglages, où ce qu’elle fait est expliqué avant. Comme
+Narcisse s’annonce avec son User-Agent honnête (jamais celui d’un navigateur), un service qui refuse
+de répondre ou renvoie une page anti-robot vaut « je ne sais pas », jamais un faux « inscrit ». La
+technique est celle de [holehe](https://github.com/megadose/holehe) (GPL-3.0).
 
 ### Les moteurs de recherche
 
@@ -219,6 +231,8 @@ Les règles du dépôt (commandes, commits, confidentialité, invariants) : [CLA
   [BODACC](https://www.bodacc.fr/) (DILA), données publiques de l’État, Licence Ouverte.
 - Téléphones : [libphonenumber](https://github.com/google/libphonenumber) (Google), licence
   Apache 2.0.
+- Vérification d’email « actif léger » : technique de [holehe](https://github.com/megadose/holehe)
+  (megadose), licence GPL-3.0 ; Narcisse en réimplémente une petite sélection de sites silencieux.
 - Serveurs RDAP et WHOIS, bureaux d’enregistrement : données publiques de
   l’[IANA](https://www.iana.org/domains/root/db), copie datée dans
   `src/narcisse/modules/data/registries-source.json`.
