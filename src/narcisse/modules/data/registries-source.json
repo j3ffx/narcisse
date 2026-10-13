@@ -1,0 +1,7 @@
+{
+  "rdap": "https://data.iana.org/rdap/dns.json",
+  "rdap_published": "2026-09-30T23:00:03Z",
+  "registrars": "https://www.iana.org/assignments/registrar-ids/registrar-ids-1.csv",
+  "whois": "whois.iana.org, for the top-level domains without RDAP",
+  "fetched": "2026-10-13"
+}
