@@ -111,4 +111,14 @@ async def test_each_mode_offers_its_own_sources(make_api: ApiFactory) -> None:
     demo = [m["name"] for m in await (await make_api(None, demo=True)).json("GET", "/modules")]
     assert demo == ["demo.fake"]  # fictitious identities never reach real sites
     assert {"whatsmyname", "github", "gravatar", "pgp", "fediverse"} <= set(normal)
+    assert {"registration", "dns", "certificates", "website"} <= set(normal)
     assert "demo.fake" not in normal
+
+
+async def test_the_sources_say_which_hosts_they_learn_when_they_run(make_api: ApiFactory) -> None:
+    api = await make_api(None, demo=False)
+    modules = {m["name"]: m for m in await api.json("GET", "/modules")}
+    # The site of the domain searched: known only then.
+    assert modules["website"]["hosts"] == []
+    assert modules["website"]["other_hosts"] == "le site du domaine fouillé (et son www.)"
+    assert modules["github"]["other_hosts"] == ""

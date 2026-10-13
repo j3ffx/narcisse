@@ -12,6 +12,8 @@ from narcisse.engine.plugin import InputRejected, RateLimited
 from narcisse.modules.certificates import Certificates
 from narcisse.modules.dns_records import Dns, DomainMissing, service_of, soa_email, spf_includes
 from narcisse.modules.registration import HOSTS, RDAP, WHOIS, Registration
+from narcisse.modules.website import Website, siren_valid
+from narcisse.preferences import Preferences
 from tests.fakes import FakeWhois
 from tests.module_context import FakeContext, run, target
 
@@ -447,3 +449,115 @@ async def test_certificates_when_both_logs_are_down(http_client: httpx.AsyncClie
             module, FakeContext(module, http_client), target(EntityKind.DOMAIN, "jeanne-exemple.fr")
         )
     assert limited.value.retry_after == 600
+
+
+# Website
+
+SITE = "https://jeanne-exemple.fr"
+HOME = """<!doctype html><html><head><title>Jeanne Exemple</title>
+<script>var tel = "06 39 98 00 99";</script></head>
+<body><h1>Jeanne Exemple, photographe</h1>
+<p>Écrivez-moi : <a href="mailto:jeanne@jeanne-exemple.fr">jeanne@jeanne-exemple.fr</a></p>
+<nav><a href="/mentions-legales">Mentions légales</a> <a href="/contact/">Me contacter</a>
+<a href="/blog/">Blog</a> <a href="https://elsewhere.example.net/about">À propos d'eux</a></nav>
+<footer><a href="https://social.example.net/@jeanne">Mastodon</a>
+<a href="https://social.example.net/@jeanne">Encore</a></footer>
+</body></html>"""
+LEGAL = """<html><body><h2>Éditeur</h2>
+<p>Le directeur de la publication du site est Madame Jeanne Exemple.</p>
+<p>Siège : 1 rue de l'Exemple
+75000 Paris, téléphone 06 39 98 00 12, SIREN 123 456 782.</p>
+<p>Déclarée en préfecture sous le n° 0784012789.</p>
+<p>L'hébergement du site est assuré par la société Hébergeur Exemple, RCS Exemple 732 829 320,
+2 avenue des Serveurs, 59100 Roubaix, téléphone 01 99 00 12 34.</p>
+</body></html>"""
+
+
+def site(robots: str = "User-agent: *\nDisallow: /contact/\n") -> None:
+    respx.get(f"{SITE}/robots.txt").respond(200, text=robots)
+    respx.get(f"{SITE}/").respond(200, html=HOME)
+    respx.get(f"{SITE}/mentions-legales").respond(200, html=LEGAL)
+
+
+@respx.mock
+async def test_the_site_s_legal_notice_tells_who_runs_it(http_client: httpx.AsyncClient) -> None:
+    site()
+    contact = respx.get(f"{SITE}/contact/").respond(200, html="<p>contact</p>")
+    module = Website()
+    what = target(EntityKind.DOMAIN, "jeanne-exemple.fr")
+    ctx = FakeContext(module, http_client, target=what)
+    findings = await run(module, ctx, what)
+
+    page = (EntityKind.URL, f"{SITE}/mentions-legales")
+    assert [(f.kind, f.relation, f.value, f.via) for f in findings] == [
+        (EntityKind.EMAIL, "shows_email", "jeanne@jeanne-exemple.fr", None),
+        (EntityKind.ACCOUNT, "links_to", "https://social.example.net/@jeanne", None),
+        (EntityKind.URL, "has_page", f"{SITE}/mentions-legales", None),
+        (EntityKind.PHONE, "shows_phone", "06 39 98 00 12", page),
+        (EntityKind.PHONE, "shows_phone", "01 99 00 12 34", page),
+        (EntityKind.ORGANIZATION, "shows_siren", "123456782", page),
+        (EntityKind.ORGANIZATION, "shows_siren", "732829320", page),
+        (EntityKind.NAME, "publisher", "Jeanne Exemple", page),
+        (EntityKind.ADDRESS, "shows_address", "1 rue de l'Exemple, 75000 Paris", page),
+        (EntityKind.ADDRESS, "shows_address", "2 avenue des Serveurs, 59100 Roubaix", page),
+    ]
+    confidence = {f.value: f.confidence for f in findings}
+    # What the notice says of the host: not the user's.
+    assert confidence["01 99 00 12 34"] == 0.3
+    assert confidence["732829320"] == 0.3
+    assert confidence["2 avenue des Serveurs, 59100 Roubaix"] == 0.3
+    assert confidence["Jeanne Exemple"] == 0.7
+    assert "Madame Jeanne Exemple" in (findings[7].excerpt or "")
+    # robots.txt keeps the contact page out; the script's number and the registration number
+    # aren't phones.
+    assert not contact.called
+    assert "06 39 98 00 99" not in confidence
+    assert "0784012789" not in confidence
+    assert ctx.notes == {"pages": 2, "robots": 1}
+
+
+@respx.mock
+async def test_the_site_reached_through_its_www(http_client: httpx.AsyncClient) -> None:
+    respx.get(f"{SITE}/robots.txt").respond(404)
+    respx.get(f"{SITE}/").respond(301, headers={"Location": "https://www.jeanne-exemple.fr/"})
+    respx.get("https://www.jeanne-exemple.fr/robots.txt").respond(404)
+    respx.get("https://www.jeanne-exemple.fr/").respond(
+        200, html="<p>Contact : jeanne@jeanne-exemple.fr</p>"
+    )
+    module = Website()
+    what = target(EntityKind.DOMAIN, "jeanne-exemple.fr")
+    findings = await run(module, FakeContext(module, http_client, target=what), what)
+    assert found(findings) == [(EntityKind.EMAIL, "shows_email", "jeanne@jeanne-exemple.fr")]
+    assert findings[0].url == "https://www.jeanne-exemple.fr/"
+
+
+@respx.mock
+async def test_a_site_that_redirects_elsewhere_is_a_trace(http_client: httpx.AsyncClient) -> None:
+    respx.get(f"{SITE}/robots.txt").respond(404)
+    respx.get(f"{SITE}/").respond(302, headers={"Location": "https://social.example.net/@jeanne"})
+    elsewhere = respx.get("https://social.example.net/@jeanne")
+    module = Website()
+    what = target(EntityKind.DOMAIN, "jeanne-exemple.fr")
+    findings = await run(module, FakeContext(module, http_client, target=what), what)
+    assert found(findings) == [
+        (EntityKind.ACCOUNT, "redirects_to", "https://social.example.net/@jeanne")
+    ]
+    assert not elsewhere.called
+
+
+async def test_the_site_module_may_reach_the_domain_only(http_client: httpx.AsyncClient) -> None:
+    module = Website()
+    what = target(EntityKind.DOMAIN, "jeanne-exemple.fr")
+    assert module.allowed_hosts(Preferences(), what) == (
+        "jeanne-exemple.fr",
+        "www.jeanne-exemple.fr",
+    )
+    assert module.allowed_hosts(Preferences()) == ()
+    assert module.meta.other_hosts
+
+
+@pytest.mark.parametrize(
+    ("digits", "valid"), [("123456782", True), ("123456789", False), ("732829320", True)]
+)
+def test_a_siren_carries_a_luhn_check(digits: str, valid: bool) -> None:
+    assert siren_valid(digits) is valid
