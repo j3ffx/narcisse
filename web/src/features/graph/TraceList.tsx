@@ -113,6 +113,7 @@ export function TraceList({ profileId, view }: { profileId: number; view: TraceV
         </div>
         {selected !== null && (
           <TracePanel
+            profileId={profileId}
             key={selected}
             id={selected}
             onSelect={pick}

@@ -1,3 +1,4 @@
+import { AddAsSeed } from '@/components/AddAsSeed';
 import { Pending } from '@/components/Pending';
 import { ReviewButtons } from '@/components/ReviewButtons';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ const isLink = (text: string) => /^https?:\/\//.test(text);
 
 /** Everything about one trace: what it is, how sure, where it was seen, what it relates to. */
 export function TracePanel({
+  profileId,
   id,
   onSelect,
   onClose,
@@ -21,6 +23,7 @@ export function TracePanel({
   actions,
   extra,
 }: {
+  profileId: number;
   id: number;
   onSelect: (id: number) => void;
   onClose: () => void;
@@ -46,6 +49,7 @@ export function TracePanel({
       {detail.isError && <p role="alert">{errorMessage(detail.error)}</p>}
       {detail.data && (
         <Detail
+          profileId={profileId}
           data={detail.data}
           onSelect={onSelect}
           sourceTitle={sourceTitle}
@@ -58,12 +62,14 @@ export function TracePanel({
 }
 
 function Detail({
+  profileId,
   data,
   onSelect,
   sourceTitle,
   actions,
   extra,
 }: {
+  profileId: number;
   data: EntityDetail;
   onSelect: (id: number) => void;
   sourceTitle: (name: string) => string;
@@ -96,6 +102,7 @@ function Detail({
           )}
         </p>
         {entity.kind !== 'identity' && <ReviewButtons entity={entity} />}
+        <AddAsSeed profileId={profileId} entity={entity} />
         {actions}
       </div>
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">

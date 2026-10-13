@@ -294,6 +294,7 @@ export function GraphView({ profileId, view }: { profileId: number; view: TraceV
         )}
         {selected !== null && selected >= 0 && (
           <TracePanel
+            profileId={profileId}
             key={selected}
             id={selected}
             onSelect={show}

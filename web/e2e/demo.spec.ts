@@ -198,6 +198,30 @@ test('the graph and the list show the same traces and follow one selection', asy
   }
 });
 
+test('a trace found becomes one of the profile’s elements', async ({ page, request }) => {
+  const id = await demoProfile(request, 'Jeanne Exemple (élément ajouté)');
+  const started = await request.post(`/api/profiles/${id}/scans`, { data: {} });
+  const { id: scanId } = (await started.json()) as { id: number };
+  await expect
+    .poll(
+      async () =>
+        ((await (await request.get(`/api/scans/${scanId}`)).json()) as { status: string }).status,
+      { timeout: 30_000 },
+    )
+    .toBe('done');
+
+  await page.goto(`/profils/${id}/liste`);
+  await page.getByRole('combobox', { name: /Chercher une trace/ }).fill('forum.example.org');
+  await page.getByRole('option').first().click();
+  const panel = page.getByTestId('trace-panel');
+  await panel.getByRole('button', { name: 'Ajouter comme élément' }).click();
+  await expect(panel.getByText('Élément du profil')).toBeVisible();
+
+  await page.getByRole('link', { name: 'Éléments' }).click();
+  await expect(page.getByTestId('seed')).toHaveCount(5);
+  await expect(page.getByTestId('seed').last()).toContainText('forum.example.org');
+});
+
 test('demo mode draws a fictitious graph of thousands of traces', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Graphe fictif' }).click();
