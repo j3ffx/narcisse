@@ -51,6 +51,7 @@ const MESSAGES: Record<string, (p: Params) => string> = {
   site_unreachable: (p) => `Le site de ${host(p)} ne répond pas (ni en https, ni en http).`,
   module_crashed: () => 'Le module a rencontré un bug. Le détail est dans le journal.',
   module_unavailable: () => 'Ce module n’est plus disponible (mode démo désactivé ?).',
+  light_active_off: () => 'À activer d’abord dans les réglages (source « actif léger »).',
 };
 
 export function messageFor(code: string, params: Params = {}): string {

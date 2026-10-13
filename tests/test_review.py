@@ -71,6 +71,7 @@ async def test_settings_keep_the_tokens_without_ever_showing_them(
         "exclude_adult": False,
         "fediverse_instances": [],
         "searxng_url": None,
+        "enabled_light_active": [],
     }
     assert await api.json("GET", "/preferences") == nothing
     shown: Any = await api.json(
@@ -90,6 +91,22 @@ async def test_settings_keep_the_tokens_without_ever_showing_them(
 
     cleared = await api.json("PATCH", "/preferences", {"github_token": "", "gitlab_token": None})
     assert cleared == {**nothing, "exclude_adult": True}
+
+
+async def test_settings_remember_which_light_active_sources_are_on(make_api: ApiFactory) -> None:
+    api = await make_api(None, demo=False)
+    shown = await api.json(
+        "PATCH",
+        "/preferences",
+        {"enabled_light_active": ["example_check", "example_check", " ", "other"]},
+    )
+    assert shown["enabled_light_active"] == ["example_check", "other"]
+    assert (await api.json("GET", "/preferences"))["enabled_light_active"] == [
+        "example_check",
+        "other",
+    ]
+    emptied = await api.json("PATCH", "/preferences", {"enabled_light_active": []})
+    assert emptied["enabled_light_active"] == []
 
 
 async def test_settings_keep_fediverse_instances_as_host_names(make_api: ApiFactory) -> None:

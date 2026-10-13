@@ -301,6 +301,7 @@ class PreferencesOut(Schema):
     exclude_adult: bool
     fediverse_instances: list[str]
     searxng_url: str | None
+    enabled_light_active: list[str]
 
 
 class PreferencesPatch(Schema):
@@ -312,6 +313,8 @@ class PreferencesPatch(Schema):
     fediverse_instances: list[str] | None = Field(default=None, max_length=50)
     # The address of the user's SearXNG instance; an empty string (or null) removes it.
     searxng_url: str | None = Field(default=None, max_length=200)
+    # The light-active modules to turn on, by name (the whole set each time, as the UI sends it).
+    enabled_light_active: list[str] | None = Field(default=None, max_length=50)
 
 
 class ErrorOut(Schema):

@@ -4,7 +4,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { errorMessage } from '@/lib/errors';
-import { useInfo, usePreferences, useUpdatePreferences } from '@/lib/queries';
+import { useInfo, useModules, usePreferences, useUpdatePreferences } from '@/lib/queries';
+import type { Module } from '@/lib/types';
 import { XIcon } from 'lucide-react';
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { toast } from 'sonner';
@@ -47,6 +48,7 @@ export function SettingsPage() {
           </Token>
           <FediverseInstances instances={preferences.data.fediverse_instances} />
           <SearxngInstance address={preferences.data.searxng_url} />
+          <LightActive enabled={preferences.data.enabled_light_active} />
           <AdultSites excluded={preferences.data.exclude_adult} />
         </>
       )}
@@ -238,6 +240,62 @@ function SearxngInstance({ address }: { address: string | null }) {
           {value.trim() || !address ? 'Enregistrer' : 'Retirer'}
         </Button>
       </form>
+    </section>
+  );
+}
+
+function LightActive({ enabled }: { enabled: string[] }) {
+  const modules = useModules();
+  const update = useUpdatePreferences();
+  const lightActive = (modules.data ?? []).filter((m) => m.intrusion === 'light_active');
+  if (lightActive.length === 0) return null;
+  const toggle = (module: Module, on: boolean) => {
+    const next = on
+      ? [...enabled, module.name]
+      : enabled.filter((name) => name !== module.name);
+    update.mutate(
+      { enabled_light_active: next },
+      {
+        onSuccess: () =>
+          toast.success(on ? `${module.title} activé.` : `${module.title} désactivé.`),
+      },
+    );
+  };
+  return (
+    <section aria-labelledby="light-active-title" className="grid gap-3">
+      <div>
+        <h2 id="light-active-title" className="font-heading text-lg font-semibold">
+          Sources « actif léger »
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Ces sources ne lisent pas une page publique : elles <strong>sollicitent un service</strong>{' '}
+          pour savoir si une adresse email y est inscrite, via son formulaire de mot de passe oublié,
+          sans jamais s’y connecter, créer de compte ni envoyer d’email au titulaire. Narcisse se
+          limite aux services qui répondent discrètement. Chacune est <strong>désactivée</strong> tant
+          que tu ne l’actives pas ici, et n’est alors utilisée que si tu la coches au moment du scan.
+        </p>
+      </div>
+      <ul className="grid gap-3">
+        {lightActive.map((module) => {
+          const on = enabled.includes(module.name);
+          return (
+            <li key={module.name} className="rounded-md border p-3">
+              <Label className="flex items-start gap-2 font-normal">
+                <Checkbox
+                  className="mt-0.5"
+                  checked={on}
+                  disabled={update.isPending}
+                  onCheckedChange={(checked) => toggle(module, checked === true)}
+                />
+                <span className="grid gap-0.5">
+                  <span className="font-medium text-foreground">{module.title}</span>
+                  <span className="text-sm text-muted-foreground">{module.description}</span>
+                </span>
+              </Label>
+            </li>
+          );
+        })}
+      </ul>
     </section>
   );
 }

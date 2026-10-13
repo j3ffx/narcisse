@@ -24,6 +24,7 @@ def _out(preferences: Preferences) -> PreferencesOut:
         exclude_adult=preferences.exclude_adult,
         fediverse_instances=list(preferences.fediverse_instances),
         searxng_url=preferences.searxng_url,
+        enabled_light_active=list(preferences.enabled_light_active),
     )
 
 
@@ -54,7 +55,7 @@ async def update_preferences(body: PreferencesPatch, s: ServicesDep) -> Preferen
     path = s.settings.preferences_path
     preferences = Preferences.load(path)
     changes = body.model_dump(exclude_unset=True)
-    for key in ("exclude_adult", "fediverse_instances"):
+    for key in ("exclude_adult", "fediverse_instances", "enabled_light_active"):
         if key in changes and changes[key] is None:
             del changes[key]
     for key in TOKENS:
@@ -64,6 +65,10 @@ async def update_preferences(body: PreferencesPatch, s: ServicesDep) -> Preferen
         changes["searxng_url"] = _searxng(changes["searxng_url"])
     if "fediverse_instances" in changes:
         changes["fediverse_instances"] = _instances(changes["fediverse_instances"])
+    if "enabled_light_active" in changes:
+        changes["enabled_light_active"] = tuple(
+            dict.fromkeys(name for name in changes["enabled_light_active"] if name.strip())
+        )
     preferences = replace(preferences, **changes)
     preferences.save(path)
     return _out(preferences)

@@ -223,6 +223,7 @@ export interface Preferences {
   exclude_adult: boolean;
   fediverse_instances: string[];
   searxng_url: string | null;
+  enabled_light_active: string[];
 }
 
 export interface PreferencesChanges {
@@ -231,6 +232,7 @@ export interface PreferencesChanges {
   exclude_adult?: boolean;
   fediverse_instances?: string[];
   searxng_url?: string | null;
+  enabled_light_active?: string[];
 }
 
 export interface EntityUpdate extends Entity {
