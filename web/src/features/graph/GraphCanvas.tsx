@@ -149,7 +149,15 @@ function createSigma(graph: TraceGraph, container: HTMLElement): TraceSigma {
       ],
     },
   };
-  return new Sigma(graph, container, options as never) as TraceSigma;
+  const instance = new Sigma(graph, container, options as never) as TraceSigma;
+  // Sigma 4.0.0 recreates its picking texture at the start of each render, bound to whichever
+  // texture unit is active. After a camera move alone, that is one the node programs read: their
+  // picking pass then fails (a WebGL feedback loop) and nodes stop answering the pointer until a
+  // zoom reprocesses everything. A spare unit, made active before each render, keeps it apart.
+  const gl = instance.getWebGLContext();
+  const spare = gl.TEXTURE0 + Number(gl.getParameter(gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS)) - 1;
+  instance.on('beforeRender', () => gl.activeTexture(spare));
+  return instance;
 }
 
 /** Turns a state on for what joins the set, off for what leaves it (if it still exists). */

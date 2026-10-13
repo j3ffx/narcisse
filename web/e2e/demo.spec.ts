@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { demoProfile, results, run, startScanFromUi } from './helpers';
 
 test('a profile is created and given seeds from the UI', async ({ page }) => {
@@ -252,6 +252,62 @@ test('in the graph: a path, groups, folds, and a view saved then restored', asyn
   await page.getByRole('button', { name: 'Replier les feuilles' }).click();
   await expect(canvas).toHaveAttribute('data-visible', String(all));
 });
+
+test('the traces still answer the pointer once the graph is dragged about', async ({
+  page,
+  request,
+}) => {
+  const made = await request.post('/api/demo/graph', { data: { nodes: 500 } });
+  const { profile_id: id } = (await made.json()) as { profile_id: number };
+  await page.goto(`/profils/${id}`);
+  const canvas = page.getByTestId('graph-canvas');
+  await expect(canvas).toHaveAttribute('data-nodes', /\d+/);
+  await expect(canvas).not.toHaveAttribute('data-settling', { timeout: 30_000 });
+  const box = (await canvas.boundingBox())!;
+  expect(await sweepFindsTrace(page, box)).toBe(true);
+
+  // The stage dragged from a spot with no trace under it, let go while still moving: the graph
+  // glides on (inertia), which redraws it without reprocessing anything.
+  let from = { x: 0, y: 0 };
+  for (const [dx, dy] of [
+    [30, 30],
+    [30, 90],
+    [90, 30],
+    [90, 90],
+  ] as const) {
+    from = { x: box.x + dx, y: box.y + dy };
+    await page.mouse.move(from.x, from.y);
+    await page.waitForTimeout(150);
+    if ((await canvas.evaluate((el) => getComputedStyle(el).cursor)) !== 'pointer') break;
+  }
+  await page.mouse.down();
+  await page.mouse.move(from.x + 120, from.y + 60, { steps: 12 });
+  await page.mouse.up();
+  await page.waitForTimeout(1000);
+
+  expect(await sweepFindsTrace(page, box)).toBe(true);
+});
+
+/** Whether the pointer, swept across the canvas, comes over a trace (sigma then shows a hand). */
+async function sweepFindsTrace(
+  page: Page,
+  box: { x: number; y: number; width: number; height: number },
+): Promise<boolean> {
+  await page.getByTestId('graph-canvas').evaluate((el) => {
+    const w = window as unknown as { overTrace: boolean };
+    w.overTrace = false;
+    new MutationObserver(() => {
+      if (el.style.cursor === 'pointer') w.overTrace = true;
+    }).observe(el, { attributeFilter: ['style'] });
+  });
+  for (let row = 1; row <= 5; row++) {
+    const y = box.y + (box.height * row) / 6;
+    await page.mouse.move(box.x + 10, y);
+    await page.mouse.move(box.x + box.width - 10, y, { steps: 60 });
+  }
+  await page.waitForTimeout(200);
+  return page.evaluate(() => (window as unknown as { overTrace: boolean }).overTrace);
+}
 
 test('no long task over 200 ms on the graph while a scan streams into it', async ({
   page,
