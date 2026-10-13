@@ -12,6 +12,7 @@ import respx
 
 from narcisse.domain import EntityKind
 from narcisse.engine.plugin import Finding, SourceModule
+from narcisse.modules._active import EmailCheck
 from narcisse.modules.codepen import CodePen
 from narcisse.modules.docker import Docker
 from narcisse.modules.firefox import Firefox
@@ -31,7 +32,7 @@ async def check(module: SourceModule, http_client: httpx.AsyncClient) -> list[Fi
     return await run(module, FakeContext(module, http_client), target(EntityKind.EMAIL, ADDR))
 
 
-def assert_registered(module: SourceModule, found: list[Finding]) -> None:
+def assert_registered(module: EmailCheck, found: list[Finding]) -> None:
     assert [(f.kind, f.relation, f.value, f.confidence) for f in found] == [
         (EntityKind.ACCOUNT, "registered_on", module.account_url, 0.5)
     ]
