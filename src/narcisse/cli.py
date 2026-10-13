@@ -18,11 +18,12 @@ import httpx
 import typer
 import uvicorn
 
-from narcisse import __version__
+from narcisse import __version__, searxng
 from narcisse.app import create_app
 from narcisse.config import DEFAULT_PORT, FALLBACK_PORT, HOST, Settings
 from narcisse.desktop import mode, system
 from narcisse.logs import setup_logging
+from narcisse.preferences import Preferences
 from narcisse.server import Server
 
 app = typer.Typer(
@@ -174,6 +175,38 @@ def shortcut(demo: Demo = False) -> None:
     side = "le mode démo" if mode.demo_remembered() else "tes vraies données"
     typer.echo(f"Il ouvre {side} ; la case « Mode démo » du menu de l’icône change de côté.")
     typer.echo("Tape « Narcisse » dans le menu Démarrer pour l’ouvrir, ou épingle-le.")
+
+
+@app.command("searxng")
+def searxng_(
+    start: Annotated[
+        bool, typer.Option(help="La lancer avec Docker (sinon, seulement écrire ses fichiers).")
+    ] = True,
+    port: Annotated[int, typer.Option(help="Port local de l’instance.")] = searxng.PORT,
+) -> None:
+    """Installe ta propre instance SearXNG (Docker) pour la recherche web, et la règle."""
+    folder = searxng.directory()
+    searxng.write(folder, port)
+    typer.echo(f"Fichiers de SearXNG : {folder}")
+    if not start:
+        typer.echo("Lance-la avec « docker compose up -d » dans ce dossier.")
+        return
+    if searxng.docker() is None:
+        typer.echo("Docker est introuvable : installe Docker Desktop, puis relance la commande.")
+        raise typer.Exit(1)
+    typer.echo("Lancement (le premier téléchargement prend une minute ou deux)…")
+    started, said = searxng.start(folder)
+    if not started:
+        typer.echo(f"Docker n’a pas pu la lancer (Docker Desktop est-il démarré ?) :\n{said}")
+        raise typer.Exit(1)
+    address = searxng.url(port)
+    if not searxng.ready(address):
+        typer.echo(f"SearXNG ne répond pas encore sur {address} : réessaie dans un moment.")
+        raise typer.Exit(1)
+    # The source is a real one: the setting goes to the user's own data, not the demo's.
+    path = Settings.from_env(demo=False).preferences_path
+    replace(Preferences.load(path), searxng_url=address).save(path)
+    typer.echo(f"SearXNG tourne sur {address}, et Narcisse s’en sert pour la recherche web.")
 
 
 @app.command()

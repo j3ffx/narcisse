@@ -1,12 +1,22 @@
 """The archive and web search modules, against recorded-style answers (no network)."""
 
+import re
+from pathlib import Path
+from typing import Any
+
 import httpx
 import pytest
 import respx
+from typer.testing import CliRunner
 
+from narcisse import cli, searxng
+from narcisse.config import Settings
 from narcisse.domain import EntityKind
-from narcisse.engine.plugin import SourceUnavailable
+from narcisse.engine.plugin import SourceUnavailable, Target
+from narcisse.modules.searxng import SearXNG, mentions
 from narcisse.modules.wayback import CDX, Wayback, notable
+from narcisse.preferences import Preferences
+from tests.conftest import ApiFactory
 from tests.module_context import FakeContext, run, target
 
 # Wayback Machine
@@ -125,3 +135,165 @@ async def test_the_archive_offline(http_client: httpx.AsyncClient) -> None:
 )
 def test_pages_about_the_owner(url: str, expected: bool) -> None:
     assert notable(url, "text/html") is expected
+
+
+# SearXNG
+
+INSTANCE = "http://127.0.0.1:8888"
+WITH_INSTANCE = Preferences(searxng_url=INSTANCE)
+
+
+def results(*items: dict[str, Any]) -> dict[str, Any]:
+    return {"query": "q", "results": list(items)}
+
+
+@respx.mock
+async def test_searxng_keeps_the_pages_that_name_you(http_client: httpx.AsyncClient) -> None:
+    route = respx.get(f"{INSTANCE}/search").mock(
+        side_effect=[
+            httpx.Response(
+                200,
+                json=results(
+                    {
+                        "url": "https://club.example.org/membres/jeanne",
+                        "title": "Jeanne Exemple, trésorière",
+                        "content": "Le bureau du club : Jeanne Exemple…",
+                        "engines": ["duckduckgo", "brave"],
+                    },
+                    # A near match the engine also gave: left out.
+                    {"url": "https://example.net/jean", "title": "Jean Exemplaire", "content": ""},
+                    {
+                        "url": "https://social.example.net/@jeanne",
+                        "title": "Élodie (JEANNE EXEMPLE)",
+                    },
+                ),
+            ),
+            httpx.Response(200, json=results()),
+        ]
+    )
+    module = SearXNG()
+    ctx = FakeContext(module, http_client, preferences=WITH_INSTANCE)
+    findings = await run(module, ctx, target(EntityKind.NAME, "Jeanne Exemple"))
+
+    assert route.calls[0].request.url.params["q"] == '"Jeanne Exemple"'
+    assert route.calls[0].request.url.params["format"] == "json"
+    assert [(f.kind, f.relation, f.value) for f in findings] == [
+        (EntityKind.URL, "mentioned_on", "https://club.example.org/membres/jeanne"),
+        (EntityKind.ACCOUNT, "mentioned_on", "https://social.example.net/@jeanne"),
+    ]
+    assert findings[0].confidence == 0.3
+    assert findings[0].excerpt == "Jeanne Exemple, trésorière — Le bureau du club : Jeanne Exemple…"
+    assert findings[0].attributes == {"engines": ["duckduckgo", "brave"]}
+    assert ctx.notes == {"results": 3, "found": 2}
+
+
+@respx.mock
+async def test_a_domain_is_searched_outside_of_itself(http_client: httpx.AsyncClient) -> None:
+    route = respx.get(f"{INSTANCE}/search").respond(
+        200,
+        json=results(
+            {"url": "https://jeanne-exemple.fr/blog", "title": "jeanne-exemple.fr"},
+            {"url": "https://annuaire.example.org/sites", "content": "voir jeanne-exemple.fr"},
+        ),
+    )
+    module = SearXNG()
+    findings = await run(
+        module,
+        FakeContext(module, http_client, preferences=WITH_INSTANCE),
+        target(EntityKind.DOMAIN, "jeanne-exemple.fr"),
+    )
+    assert route.calls[0].request.url.params["q"] == '"jeanne-exemple.fr" -site:jeanne-exemple.fr'
+    assert [f.value for f in findings] == ["https://annuaire.example.org/sites"]
+
+
+def test_a_phone_is_found_however_it_is_written() -> None:
+    phone = Target(
+        entity_id=1, kind=EntityKind.PHONE, value="06 39 98 00 00", normalized="0639980000"
+    )
+    assert mentions(phone, {"content": "Appelez le +33 6 39 98 00 00"})
+    assert not mentions(phone, {"content": "Appelez le 06 39 98 00 01"})
+
+
+@respx.mock
+async def test_an_instance_without_json(http_client: httpx.AsyncClient) -> None:
+    respx.get(f"{INSTANCE}/search").respond(403)
+    module = SearXNG()
+    with pytest.raises(SourceUnavailable) as refused:
+        await run(
+            module,
+            FakeContext(module, http_client, preferences=WITH_INSTANCE),
+            target(EntityKind.NAME, "Jeanne Exemple"),
+        )
+    assert refused.value.code == "searxng_json_off"
+
+
+def test_searxng_needs_an_instance_and_reaches_it_only() -> None:
+    module = SearXNG()
+    assert module.unavailable(Preferences()) == "searxng_not_set"
+    assert module.unavailable(WITH_INSTANCE) is None
+    assert module.allowed_hosts(WITH_INSTANCE) == ("127.0.0.1",)
+    assert module.allowed_hosts(Preferences()) == ()
+
+
+async def test_a_source_that_can_t_run_is_left_out_of_scans(
+    make_api: ApiFactory, tmp_path: Path
+) -> None:
+    api = await make_api({"searxng": SearXNG()}, demo=False)
+    listed = await api.json("GET", "/modules")
+    assert listed[0]["unavailable"] == "searxng_not_set"
+    profile = await api.json("POST", "/profiles", {"name": "Jeanne Exemple"}, status=201)
+    await api.json(
+        "POST",
+        f"/profiles/{profile['id']}/seeds",
+        {"kind": "name", "value": "Jeanne Exemple"},
+        status=201,
+    )
+    refused = await api.client.post(f"/api/profiles/{profile['id']}/scans", json={})
+    assert refused.status_code == 409
+    assert refused.json()["code"] == "nothing_to_scan"
+
+    shown = await api.json("PATCH", "/preferences", {"searxng_url": " http://127.0.0.1:8888/ "})
+    assert shown["searxng_url"] == "http://127.0.0.1:8888"
+    assert (await api.json("GET", "/modules"))[0]["unavailable"] is None
+    await api.json("PATCH", "/preferences", {"searxng_url": "pas une adresse"}, status=422)
+    assert (await api.json("PATCH", "/preferences", {"searxng_url": ""}))["searxng_url"] is None
+
+
+def test_narcisse_writes_a_searxng_of_one_s_own(monkeypatch: pytest.MonkeyPatch) -> None:
+    folder = searxng.directory()
+    assert CliRunner().invoke(cli.app, ["searxng", "--no-start"]).exit_code == 0
+    compose = (folder / "docker-compose.yml").read_text(encoding="utf-8")
+    settings = (folder / "config" / "settings.yml").read_text(encoding="utf-8")
+    assert '"127.0.0.1:8888:8080"' in compose  # this machine only
+    assert "- json" in settings
+    assert "limiter: false" in settings
+    secret = re.search(r'secret_key: "([0-9a-f]{64})"', settings)
+    assert secret is not None
+    # Written again: the secret stays.
+    CliRunner().invoke(cli.app, ["searxng", "--no-start"])
+    assert (folder / "config" / "settings.yml").read_text(encoding="utf-8") == settings
+
+
+def test_narcisse_starts_its_searxng_and_sets_it(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("NARCISSE_DATA_DIR", str(tmp_path / "data"))
+    started: list[Path] = []
+
+    def start(folder: Path) -> tuple[bool, str]:
+        started.append(folder)
+        return True, ""
+
+    monkeypatch.setattr(searxng, "docker", lambda: "docker")
+    monkeypatch.setattr(searxng, "start", start)
+    monkeypatch.setattr(searxng, "ready", lambda address: True)
+    result = CliRunner().invoke(cli.app, ["searxng"])
+    assert result.exit_code == 0, result.output
+    assert started == [searxng.directory()]
+    saved = Preferences.load(Settings.from_env(demo=False).preferences_path)
+    assert saved.searxng_url == "http://127.0.0.1:8888"
+
+    monkeypatch.setattr(searxng, "start", lambda folder: (False, "daemon not running"))
+    failed = CliRunner().invoke(cli.app, ["searxng"])
+    assert failed.exit_code == 1
+    assert "Docker Desktop" in failed.output

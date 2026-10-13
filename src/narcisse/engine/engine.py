@@ -301,6 +301,8 @@ class Engine:
             unknown = [n for n in names if n not in self.modules]
             if unknown:
                 raise AppError("unknown_module", status=422, params={"modules": unknown})
+            preferences = self.preferences()
+            names = [n for n in names if self.modules[n].unavailable(preferences) is None]
 
             identity = await upsert_entity(
                 tx.session,

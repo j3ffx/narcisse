@@ -267,6 +267,8 @@ class ModuleOut(Schema):
     intrusion: IntrusionLevel
     hosts: list[str]
     other_hosts: str
+    # Why it can't run with the current settings (an error code), or null.
+    unavailable: str | None
     rate_limit: RateLimitOut | None
     licence: str
     data_source: str
@@ -291,6 +293,7 @@ class PreferencesOut(Schema):
     gitlab_token_set: bool
     exclude_adult: bool
     fediverse_instances: list[str]
+    searxng_url: str | None
 
 
 class PreferencesPatch(Schema):
@@ -300,6 +303,8 @@ class PreferencesPatch(Schema):
     exclude_adult: bool | None = None
     # Host names, or addresses of the instances (https://example.social/…).
     fediverse_instances: list[str] | None = Field(default=None, max_length=50)
+    # The address of the user's SearXNG instance; an empty string (or null) removes it.
+    searxng_url: str | None = Field(default=None, max_length=200)
 
 
 class ErrorOut(Schema):

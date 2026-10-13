@@ -19,6 +19,8 @@ class Preferences:
     exclude_adult: bool = False
     # Fediverse instances to look on, besides the ones the module knows (host names).
     fediverse_instances: tuple[str, ...] = ()
+    # The user's own SearXNG instance (its address), for the web search source. Optional.
+    searxng_url: str | None = None
 
     @classmethod
     def load(cls, path: Path) -> "Preferences":

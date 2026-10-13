@@ -47,6 +47,7 @@ async def list_modules(s: ServicesDep) -> list[ModuleOut]:
                 "accepts": sorted(m.meta.accepts),
                 "produces": sorted(m.meta.produces),
                 "hosts": list(m.allowed_hosts(preferences)),
+                "unavailable": m.unavailable(preferences),
                 "rate_limit": vars(m.meta.rate_limit) if m.meta.rate_limit else None,
             }
         )

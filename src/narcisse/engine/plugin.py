@@ -147,6 +147,11 @@ class SourceModule(ABC):
             return False
         return kind in self.meta.accepts
 
+    def unavailable(self, preferences: "Preferences") -> str | None:
+        """Why the module can't run with these settings (an error code the UI explains, e.g. an
+        instance to set first), or None. An unavailable module is left out of scans."""
+        return None
+
     def allowed_hosts(
         self, preferences: "Preferences", target: Target | None = None
     ) -> tuple[str, ...]:

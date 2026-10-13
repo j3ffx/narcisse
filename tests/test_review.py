@@ -70,6 +70,7 @@ async def test_settings_keep_the_tokens_without_ever_showing_them(
         "gitlab_token_set": False,
         "exclude_adult": False,
         "fediverse_instances": [],
+        "searxng_url": None,
     }
     assert await api.json("GET", "/preferences") == nothing
     shown: Any = await api.json(
