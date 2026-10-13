@@ -23,6 +23,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
     test.use({ colorScheme });
 
     test('every screen meets WCAG 2.1 AA', async ({ page, request }) => {
+      test.setTimeout(60_000); // a dozen screens, a scan to wait for
       const id = await demoProfile(request, `Jeanne Exemple (${colorScheme})`);
       await page.goto('/');
       await expect(page.getByRole('heading', { name: 'Profils' })).toBeVisible();
@@ -30,6 +31,10 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
       await page.goto(`/profils/${id}/elements`);
       await expect(page.getByTestId('seed')).toHaveCount(4);
+      await audit(page);
+
+      await page.goto(`/profils/${id}/recherche`);
+      await expect(page.getByTestId('assisted-seed').first()).toBeVisible();
       await audit(page);
 
       await startScanFromUi(page, id);

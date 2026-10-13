@@ -1,7 +1,8 @@
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { ProfilePage, type ProfileTab } from '@/features/profiles/ProfilePage';
+import { ProfilePage } from '@/features/profiles/ProfilePage';
+import { isProfileTab, type ProfileTab } from '@/features/profiles/tabs';
 import { ProfilesPage } from '@/features/profiles/ProfilesPage';
 import { ScanPage } from '@/features/scans/ScanPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
@@ -22,7 +23,7 @@ export function App() {
             <Route path="/" component={ProfilesPage} />
             <Route path="/profils/:id/:tab?">
               {(p) =>
-                p.tab === undefined || ['liste', 'elements', 'scans'].includes(p.tab) ? (
+                p.tab === undefined || isProfileTab(p.tab) ? (
                   <ProfilePage
                     id={Number(p.id)}
                     key={p.id}

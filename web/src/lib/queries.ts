@@ -202,6 +202,16 @@ export function useAddSeed(profileId: number) {
   });
 }
 
+/** A page the user found themselves, added to their traces. */
+export function useAddTrace(profileId: number) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { url: string; note: string }) =>
+      post<Entity>(`/profiles/${profileId}/traces`, body),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.graphs(profileId) }),
+  });
+}
+
 export function useUpdateSeed(profileId: number) {
   const client = useQueryClient();
   return useMutation({

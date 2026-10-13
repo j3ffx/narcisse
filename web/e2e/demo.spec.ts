@@ -222,6 +222,32 @@ test('a trace found becomes one of the profile’s elements', async ({ page, req
   await expect(page.getByTestId('seed').last()).toContainText('forum.example.org');
 });
 
+test('the assisted search prepares the queries and takes back what the user found', async ({
+  page,
+  request,
+}) => {
+  const id = await demoProfile(request, 'Jeanne Exemple (recherche)');
+  await page.goto(`/profils/${id}/recherche`);
+  // One group per element worth searching (the domain, the name, the email, the username).
+  await expect(page.getByTestId('assisted-seed')).toHaveCount(4);
+  const google = page
+    .getByRole('link', { name: /Chercher "Jeanne Exemple \(recherche\)" sur Google/ })
+    .first();
+  await expect(google).toHaveAttribute('href', /^https:\/\/www\.google\.com\/search\?q=%22Jeanne/);
+  await expect(google).toHaveAttribute('target', '_blank');
+
+  await page
+    .getByLabel('Adresse d’une page qui parle de toi')
+    .fill('https://club.example.org/jeanne');
+  await page.getByLabel('Ce qu’elle dit de toi (facultatif)').fill('Mon nom dans un compte rendu');
+  await page.getByRole('button', { name: 'Ajouter à mes traces' }).click();
+  await page.getByRole('link', { name: 'la voir dans le graphe' }).click();
+  const panel = page.getByTestId('trace-panel');
+  await expect(panel.getByTestId('trace-value')).toHaveText('https://club.example.org/jeanne');
+  await expect(panel.getByText('Mon nom dans un compte rendu')).toBeVisible();
+  await expect(panel.getByText('Statut').locator('+ dd')).toHaveText('C’est moi');
+});
+
 test('demo mode draws a fictitious graph of thousands of traces', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Graphe fictif' }).click();

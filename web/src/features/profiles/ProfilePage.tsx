@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { ScanStatusBadge } from '@/features/scans/status';
-import { errorMessage } from '@/lib/errors';
+import { errorMessage, messageFor } from '@/lib/errors';
 import { KIND_LABELS, PROFILE_KIND_LABELS } from '@/lib/labels';
 import { useDeleteProfile, useModules, useProfile, useScans, useStartScan } from '@/lib/queries';
 import { formatDate } from '@/lib/time';
@@ -34,7 +34,9 @@ import { lazy, Suspense, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useTraceViewState } from '@/features/graph/useTraceView';
 import { cn } from 'cn';
+import { AssistedSearch } from '@/features/search/AssistedSearch';
 import { SeedsEditor } from './SeedsEditor';
+import { TABS, type ProfileTab } from './tabs';
 
 // The graph's code (WebGL, layout) loads only when a profile's traces are shown.
 const GraphView = lazy(() =>
@@ -43,15 +45,6 @@ const GraphView = lazy(() =>
 const TraceList = lazy(() =>
   import('@/features/graph/TraceList').then((m) => ({ default: m.TraceList })),
 );
-
-export type ProfileTab = 'graphe' | 'liste' | 'elements' | 'scans';
-
-const TABS: [ProfileTab, string][] = [
-  ['graphe', 'Graphe'],
-  ['liste', 'Liste'],
-  ['elements', 'Éléments'],
-  ['scans', 'Scans'],
-];
 
 export function ProfilePage({ id, tab }: { id: number; tab: ProfileTab }) {
   const profile = useProfile(id);
@@ -101,6 +94,7 @@ export function ProfilePage({ id, tab }: { id: number; tab: ProfileTab }) {
         </Suspense>
       </ErrorBoundary>
       {tab === 'elements' && <SeedsEditor profileId={id} seeds={data.seeds} />}
+      {tab === 'recherche' && <AssistedSearch profileId={id} seeds={data.seeds} />}
       {tab === 'scans' && <ScanHistory profileId={id} />}
     </div>
   );
@@ -115,7 +109,11 @@ function StartScanDialog({ profile }: { profile: ProfileDetail }) {
   const watched = profile.seeds.filter((s) => s.status === 'watch');
   const kinds = new Set(watched.map((s) => s.kind));
   const usable = (modules.data ?? []).filter((m) => m.accepts.some((k) => kinds.has(k as never)));
-  const selected = chosen ?? usable.map((m) => m.name);
+  // A source the settings don't let run is shown, unticked, with what it needs.
+  const ready = usable.filter((m) => m.unavailable === null);
+  const selected = (chosen ?? ready.map((m) => m.name)).filter((name) =>
+    ready.some((m) => m.name === name),
+  );
 
   const launch = () =>
     start.mutate(selected, {
@@ -165,6 +163,8 @@ function StartScanDialog({ profile }: { profile: ProfileDetail }) {
                 <li key={module.name} className="flex gap-3">
                   <Checkbox
                     id={id}
+                    disabled={module.unavailable !== null}
+                    aria-describedby={module.unavailable ? `${id}-needs` : undefined}
                     checked={selected.includes(module.name)}
                     onCheckedChange={(checked) =>
                       setChosen(
@@ -184,6 +184,14 @@ function StartScanDialog({ profile }: { profile: ProfileDetail }) {
                       )}
                     </Label>
                     <p className="text-sm text-muted-foreground">{module.description}</p>
+                    {module.unavailable && (
+                      <p id={`${id}-needs`} className="text-sm">
+                        {messageFor(module.unavailable)}{' '}
+                        <Link href="/reglages" className="underline underline-offset-2">
+                          Réglages
+                        </Link>
+                      </p>
+                    )}
                     <p className="text-xs text-muted-foreground">
                       Accepte :{' '}
                       {module.accepts

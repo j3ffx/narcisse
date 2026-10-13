@@ -46,6 +46,7 @@ export function SettingsPage() {
             site. Il se crée dans GitLab : Preferences → Access tokens.
           </Token>
           <FediverseInstances instances={preferences.data.fediverse_instances} />
+          <SearxngInstance address={preferences.data.searxng_url} />
           <AdultSites excluded={preferences.data.exclude_adult} />
         </>
       )}
@@ -191,6 +192,50 @@ function FediverseInstances({ instances }: { instances: string[] }) {
         </div>
         <Button type="submit" disabled={!instance.trim() || update.isPending}>
           Ajouter
+        </Button>
+      </form>
+    </section>
+  );
+}
+
+function SearxngInstance({ address }: { address: string | null }) {
+  const [value, setValue] = useState(address ?? '');
+  const update = useUpdatePreferences();
+  const save = (event: FormEvent) => {
+    event.preventDefault();
+    update.mutate(
+      { searxng_url: value.trim() || null },
+      { onSuccess: (saved) => setValue(saved.searxng_url ?? '') },
+    );
+  };
+  return (
+    <section aria-labelledby="searxng-title" className="grid gap-3">
+      <div>
+        <h2 id="searxng-title" className="font-heading text-lg font-semibold">
+          Recherche web : ton instance SearXNG (facultatif)
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Narcisse n’interroge jamais un moteur de recherche lui-même. SearXNG, un métamoteur qui
+          tourne chez toi, peut le faire pendant les scans. Pour en installer une avec Docker :{' '}
+          <code className="text-foreground">uv run narcisse searxng</code>, qui la lance et règle
+          son adresse ici. Sans elle, l’onglet « Recherche » d’un profil te prépare les recherches à
+          faire toi-même.
+        </p>
+      </div>
+      <form onSubmit={save} className="flex flex-wrap items-end gap-2">
+        <div className="grid min-w-64 flex-1 gap-1.5">
+          <Label htmlFor="searxng-url">Adresse de l’instance</Label>
+          <Input
+            id="searxng-url"
+            type="url"
+            spellCheck={false}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder="http://127.0.0.1:8888"
+          />
+        </div>
+        <Button type="submit" disabled={update.isPending || value.trim() === (address ?? '')}>
+          {value.trim() || !address ? 'Enregistrer' : 'Retirer'}
         </Button>
       </form>
     </section>

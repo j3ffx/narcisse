@@ -43,6 +43,10 @@ const MESSAGES: Record<string, (p: Params) => string> = {
   no_registry: (p) =>
     `Aucun registre public connu pour l’extension .${typeof p.tld === 'string' ? p.tld : '?'}.`,
   domain_not_found: () => 'Ce domaine n’existe pas dans le DNS.',
+  searxng_not_set: () => 'Il lui faut l’adresse de ton instance SearXNG, dans les réglages.',
+  searxng_json_off: (p) =>
+    `${host(p)} refuse les résultats en JSON : active « json » dans « search: formats » de son settings.yml.`,
+  invalid_searxng_url: () => 'Cette adresse n’a pas l’air valide (http://… ou https://…).',
   site_unreachable: (p) => `Le site de ${host(p)} ne répond pas (ni en https, ni en http).`,
   module_crashed: () => 'Le module a rencontré un bug. Le détail est dans le journal.',
   module_unavailable: () => 'Ce module n’est plus disponible (mode démo désactivé ?).',

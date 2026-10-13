@@ -46,7 +46,10 @@ export function useHidden(data: GraphData | undefined, filter: TraceFilter): Set
 export function useSourceTitle(): (name: string) => string {
   const modules = useModules();
   return useCallback(
-    (name: string) => modules.data?.find((m) => m.name === name)?.title ?? name,
+    (name: string) =>
+      name === 'manual'
+        ? 'ajoutée par toi'
+        : (modules.data?.find((m) => m.name === name)?.title ?? name),
     [modules.data],
   );
 }

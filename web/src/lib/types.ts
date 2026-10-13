@@ -190,6 +190,8 @@ export interface Module {
   hosts: string[];
   /** What it contacts besides `hosts`, known only when it runs. */
   other_hosts: string;
+  /** Why it can't run with the current settings (an error code), or null. */
+  unavailable: string | null;
   rate_limit: { requests: number; per_seconds: number } | null;
   licence: string;
   data_source: string;
@@ -220,6 +222,7 @@ export interface Preferences {
   gitlab_token_set: boolean;
   exclude_adult: boolean;
   fediverse_instances: string[];
+  searxng_url: string | null;
 }
 
 export interface PreferencesChanges {
@@ -227,6 +230,7 @@ export interface PreferencesChanges {
   gitlab_token?: string | null;
   exclude_adult?: boolean;
   fediverse_instances?: string[];
+  searxng_url?: string | null;
 }
 
 export interface EntityUpdate extends Entity {

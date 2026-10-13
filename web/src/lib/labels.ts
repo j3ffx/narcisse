@@ -103,6 +103,9 @@ export const RELATION_LABELS: Record<string, string> = {
   shows_siren: 'SIREN affiché',
   publisher: 'éditeur du site',
   redirects_to: 'redirige vers',
+  archived_at: 'archivé',
+  archived_page: 'page archivée',
+  added_by_hand: 'ajouté par toi',
 };
 
 /** What a search reports, in the order it reads best. */
@@ -126,6 +129,10 @@ export const NOTE_LABELS: [string, (n: number) => string][] = [
   ['subdomains', (n) => `${n} sous-domaine${n > 1 ? 's' : ''}`],
   ['truncated', (n) => `${n} de plus non montré${n > 1 ? 's' : ''}`],
   ['pages', (n) => `${n} page${n > 1 ? 's' : ''} lue${n > 1 ? 's' : ''}`],
+  ['archived', (n) => `${n} page${n > 1 ? 's' : ''} archivée${n > 1 ? 's' : ''}`],
+  ['notable', (n) => `${n} qui parle${n > 1 ? 'nt' : ''} de toi`],
+  ['archive_excluded', () => 'exclu des archives par son propriétaire'],
+  ['results', (n) => `${n} résultat${n > 1 ? 's' : ''}`],
   ['robots', (n) => `${n} page${n > 1 ? 's' : ''} exclue${n > 1 ? 's' : ''} par robots.txt`],
 ];
 
@@ -136,6 +143,8 @@ export const CATEGORY_LABELS: Record<string, string> = {
   code: 'Code',
   keys: 'Clés',
   domains: 'Domaines',
+  archives: 'Archives',
+  web: 'Web',
   demo: 'Démonstration',
 };
 
