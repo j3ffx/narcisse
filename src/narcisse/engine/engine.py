@@ -594,15 +594,21 @@ class Engine:
             )
             if source_id == entity.id:
                 source_id = target.entity_id  # a trace isn't related to itself
-            edge = await upsert_edge(
-                tx.session,
-                profile_id=run.input_entity.profile_id,
-                source_id=source_id,
-                target_id=entity.id,
-                relation=finding.relation,
-                module=meta.name,
-                now=now,
-                confidence=finding.confidence,
+            # A finding about the target itself (what a phone number is) adds a proof and
+            # attributes to it, and no edge.
+            edge = (
+                None
+                if entity.id == target.entity_id
+                else await upsert_edge(
+                    tx.session,
+                    profile_id=run.input_entity.profile_id,
+                    source_id=source_id,
+                    target_id=entity.id,
+                    relation=finding.relation,
+                    module=meta.name,
+                    now=now,
+                    confidence=finding.confidence,
+                )
             )
             duplicate = await tx.session.scalar(
                 select(Evidence.id).where(
@@ -618,7 +624,7 @@ class Engine:
             )
             evidence = Evidence(
                 entity_id=entity.id,
-                edge_id=edge.id,
+                edge_id=edge.id if edge else None,
                 scan_id=run.scan_id,
                 run_id=run.id,
                 module=meta.name,
@@ -645,7 +651,7 @@ class Engine:
                     run_id=run.id,
                     module=meta.name,
                     entity=EntityOut.model_validate(entity),
-                    edge=EdgeOut.model_validate(edge),
+                    edge=EdgeOut.model_validate(edge) if edge else None,
                     relation=finding.relation,
                     confidence=finding.confidence,
                     url=finding.url,
