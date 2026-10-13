@@ -162,6 +162,25 @@ async def test_a_subdomain_is_looked_up_through_its_parent(http_client: httpx.As
 
 
 @respx.mock
+async def test_a_subdomain_of_a_public_suffix_climbs_past_a_400(
+    http_client: httpx.AsyncClient,
+) -> None:
+    # Google's .dev RDAP answers 400 for nuagerie.pages.dev (not a registrable name); the run must
+    # not fail, it climbs to pages.dev. Reported by the user on their real data (2026-10-13).
+    base = RDAP["dev"]
+    respx.get(f"{base}domain/nuagerie.pages.dev").respond(400)
+    respx.get(f"{base}domain/pages.dev").respond(
+        200, json={"entities": [entity(["registrar"], ["fn", {}, "text", "Cloudflare"])]}
+    )
+    module = Registration()
+    findings = await run(
+        module, FakeContext(module, http_client), target(EntityKind.DOMAIN, "nuagerie.pages.dev")
+    )
+    assert found(findings) == [(EntityKind.ORGANIZATION, "registered_with", "Cloudflare")]
+    assert "domaine parent de nuagerie.pages.dev" in (findings[0].excerpt or "")
+
+
+@respx.mock
 async def test_an_unregistered_domain(http_client: httpx.AsyncClient) -> None:
     respx.get(url__startswith="https://rdap.nic.fr/domain/").respond(404)
     module = Registration()

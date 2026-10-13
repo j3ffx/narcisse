@@ -364,7 +364,10 @@ class Registration(SourceModule):
 
     async def _rdap(self, ctx: ModuleContext, url: str) -> dict[str, Any] | None:
         response = await ctx.http.get(url, headers={"Accept": f"{RDAP_JSON}, application/json"})
-        if response.status_code == 404:
+        # 404, and 400 ("bad request"), both mean the registry won't register this name: a free
+        # domain, or a subdomain of a public suffix (nuagerie.pages.dev under pages.dev). The run
+        # then climbs to the parent instead of failing. Rate limits and 5xx are caught upstream.
+        if response.status_code in (400, 404):
             return None
         host = urlsplit(url).hostname
         if response.status_code >= 400:
