@@ -266,6 +266,7 @@ class ModuleOut(Schema):
     produces: list[EntityKind]
     intrusion: IntrusionLevel
     hosts: list[str]
+    other_hosts: str
     rate_limit: RateLimitOut | None
     licence: str
     data_source: str

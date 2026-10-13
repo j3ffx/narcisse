@@ -1,4 +1,5 @@
-"""HTTP for modules: honest User-Agent, per-domain pacing, robots.txt, errors the UI can explain."""
+"""HTTP for modules: honest User-Agent, per-domain pacing, robots.txt, errors the UI can explain.
+WHOIS (port 43) goes through the same gate: declared hosts, pacing, the same errors."""
 
 import asyncio
 from collections import defaultdict
@@ -18,6 +19,11 @@ USER_AGENT = f"Narcisse/{__version__} (self-OSINT tool; +https://github.com/j3ff
 TIMEOUT = httpx.Timeout(20.0, connect=10.0)
 # Without a Retry-After header, a 429 means "come back in a minute".
 DEFAULT_RETRY_AFTER = 60.0
+WHOIS_PORT = 43
+WHOIS_TIMEOUT = 20.0
+WHOIS_MAX_BYTES = 256 * 1024  # a WHOIS answer is a few kilobytes; more is not one
+# How WHOIS connects (tests put a fake server in its place).
+open_connection = asyncio.open_connection
 
 
 def new_transport_client(**kwargs: Any) -> httpx.AsyncClient:
@@ -103,12 +109,15 @@ class HttpClient:
             raise ValueError(f"{self._meta.name} may not contact {host!r}")
         return host
 
-    async def request(self, method: str, url: str, **kwargs: Any) -> httpx.Response:
-        host = self._host(url)
+    async def _wait_turn(self, host: str) -> None:
         if blocked := self._pacer.blocked_until(host):
             raise RateLimited(self._clock.seconds_until(blocked), host=host)
         interval = self._meta.rate_limit.interval if self._meta.rate_limit else 0.0
         await self._pacer.wait_turn(host, interval)
+
+    async def request(self, method: str, url: str, **kwargs: Any) -> httpx.Response:
+        host = self._host(url)
+        await self._wait_turn(host)
         try:
             response = await self._client.request(method, url, **kwargs)
         except httpx.TimeoutException as exc:
@@ -144,3 +153,27 @@ class HttpClient:
                 parser.parse(response.text.splitlines())
             self._robots[host] = parser
         return parser.can_fetch(USER_AGENT, url)
+
+    async def whois(self, server: str, query: str) -> str:
+        """Asks a WHOIS server (RFC 3912) about `query`, and returns its answer as text."""
+        host = self._host(f"whois://{server}")
+        await self._wait_turn(host)
+        try:
+            async with asyncio.timeout(WHOIS_TIMEOUT):
+                reader, writer = await open_connection(host, WHOIS_PORT)
+                try:
+                    writer.write(f"{query}\r\n".encode())
+                    await writer.drain()
+                    answer = b""
+                    while len(answer) < WHOIS_MAX_BYTES and (chunk := await reader.read(65536)):
+                        answer += chunk
+                finally:
+                    writer.close()
+        except TimeoutError as exc:
+            raise TransientError("source_timeout", host=host) from exc
+        except OSError as exc:
+            raise TransientError("network_error", host=host) from exc
+        try:
+            return answer.decode("utf-8")
+        except UnicodeDecodeError:
+            return answer.decode("latin-1")  # some registries still answer in Latin-1

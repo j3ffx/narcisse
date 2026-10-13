@@ -40,6 +40,9 @@ class ModuleMeta:
     intrusion: IntrusionLevel = IntrusionLevel.PASSIVE
     # Every host the module may contact; `*.example.org` allows one subdomain level.
     hosts: tuple[str, ...] = ()
+    # What else it contacts, known only when it runs (in French, for the Sources page): e.g. "le
+    # site du domaine fouillé". Each run still declares those hosts (`allowed_hosts`).
+    other_hosts: str = ""
     rate_limit: RateLimit | None = None
     max_parallel_runs: int = 2
     licence: str = ""  # licence of reused code or data, if any
@@ -144,9 +147,12 @@ class SourceModule(ABC):
             return False
         return kind in self.meta.accepts
 
-    def allowed_hosts(self, preferences: "Preferences") -> tuple[str, ...]:
+    def allowed_hosts(
+        self, preferences: "Preferences", target: Target | None = None
+    ) -> tuple[str, ...]:
         """The hosts a run may contact: the declared ones, plus those the user added in the
-        settings, for a module that lets them."""
+        settings, for a module that lets them, or the target's own (a domain's site). Without a
+        target: the hosts known in advance, for the Sources page."""
         return self.meta.hosts
 
     @abstractmethod

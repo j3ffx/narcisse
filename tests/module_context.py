@@ -22,10 +22,11 @@ class FakeContext:
         *,
         preferences: Preferences | None = None,
         checkpoint: dict[str, Any] | None = None,
+        target: Target | None = None,
     ) -> None:
         clock = Clock(speed=1000)
         self.preferences = preferences or Preferences()
-        hosts = module.allowed_hosts(self.preferences)
+        hosts = module.allowed_hosts(self.preferences, target)
         self.http = HttpClient(client, DomainPacer(clock), module.meta, clock, hosts)
         self.log = logging.getLogger("test-module")
         self.attempt = 1

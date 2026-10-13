@@ -9,7 +9,7 @@ import respx
 from narcisse.clock import Clock
 from narcisse.engine.http import USER_AGENT, DomainPacer, HttpClient, new_transport_client
 from narcisse.engine.plugin import ModuleMeta, RateLimit, RateLimited, TransientError
-from tests.fakes import meta
+from tests.fakes import FakeWhois, meta
 
 SOURCE = ModuleMeta(
     **{
@@ -109,3 +109,26 @@ async def test_a_missing_or_forbidden_robots_txt(
 ) -> None:
     respx.get("https://www.example.org/robots.txt").respond(status)
     assert await http.allowed_by_robots("https://www.example.org/jeanne") is allowed
+
+
+WHOIS_SOURCE = ModuleMeta(**{**vars(SOURCE), "hosts": ("whois.example.net",)})
+
+
+async def test_whois_asks_a_declared_server(clock: Clock, whois: FakeWhois) -> None:
+    whois.answers[("whois.example.net", "jeanne-exemple.test")] = "Domain: jeanne-exemple.test\n"
+    async with new_transport_client() as client:
+        http = HttpClient(client, DomainPacer(clock), WHOIS_SOURCE, clock)
+        assert await http.whois("whois.example.net", "jeanne-exemple.test") == (
+            "Domain: jeanne-exemple.test\n"
+        )
+        assert whois.asked == [("whois.example.net", "jeanne-exemple.test")]
+        with pytest.raises(ValueError, match="may not contact"):
+            await http.whois("whois.elsewhere.example.net", "jeanne-exemple.test")
+
+
+async def test_an_unreachable_whois_server_is_a_network_error(clock: Clock) -> None:
+    async with new_transport_client() as client:
+        http = HttpClient(client, DomainPacer(clock), WHOIS_SOURCE, clock)
+        with pytest.raises(TransientError) as failed:
+            await http.whois("whois.example.net", "jeanne-exemple.test")
+    assert failed.value.code == "network_error"

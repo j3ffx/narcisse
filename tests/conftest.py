@@ -14,9 +14,11 @@ from fastapi import FastAPI
 
 from narcisse.app import create_app
 from narcisse.config import HOST, Settings
+from narcisse.engine import http
 from narcisse.engine.http import new_transport_client
 from narcisse.engine.plugin import SourceModule
 from narcisse.server import Server
+from tests.fakes import FakeWhois
 
 # Fast enough for a 30 s fake run to take 0.15 s, slow enough to pause it in between.
 FAST = 200.0
@@ -31,6 +33,14 @@ class NoNetwork(httpx.AsyncBaseTransport):
 def own_config_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """The desktop's choices (demo or real side) go to the test's directory, never the user's."""
     monkeypatch.setenv("NARCISSE_CONFIG_DIR", str(tmp_path / "config"))
+
+
+@pytest.fixture(autouse=True)
+def whois(monkeypatch: pytest.MonkeyPatch) -> FakeWhois:
+    """WHOIS servers for the tests that need some; any other connection is refused."""
+    fake = FakeWhois()
+    monkeypatch.setattr(http, "open_connection", fake.open_connection)
+    return fake
 
 
 @pytest.fixture

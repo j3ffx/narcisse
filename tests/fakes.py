@@ -1,5 +1,6 @@
 """Modules whose behaviour tests control precisely."""
 
+import asyncio
 from collections.abc import AsyncIterator
 from typing import ClassVar
 
@@ -108,3 +109,35 @@ class Profiles(SourceModule):
             url=account,
             via=(EntityKind.ACCOUNT, "https://elsewhere.example.org/jeanne"),
         )
+
+
+class FakeWhois:
+    """WHOIS servers that answer from a table: (server, query) → text. Any other connection is
+    refused, as no test may reach the network."""
+
+    def __init__(self) -> None:
+        self.answers: dict[tuple[str, str], str] = {}
+        self.asked: list[tuple[str, str]] = []
+
+    async def open_connection(self, host: str, port: int) -> tuple[asyncio.StreamReader, "_Writer"]:
+        if port != 43 or not any(server == host for server, _ in self.answers):
+            raise ConnectionRefusedError(f"no fake WHOIS server for {host}:{port}")
+        reader = asyncio.StreamReader()
+        return reader, _Writer(self, host, reader)
+
+
+class _Writer:
+    def __init__(self, whois: FakeWhois, host: str, reader: asyncio.StreamReader) -> None:
+        self._whois, self._host, self._reader = whois, host, reader
+
+    def write(self, data: bytes) -> None:
+        query = data.decode().strip()
+        self._whois.asked.append((self._host, query))
+        self._reader.feed_data(self._whois.answers.get((self._host, query), "").encode())
+        self._reader.feed_eof()
+
+    async def drain(self) -> None:
+        return None
+
+    def close(self) -> None:
+        return None

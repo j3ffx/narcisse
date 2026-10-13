@@ -81,7 +81,9 @@ class Fediverse(SourceModule):
         data_source="https://docs.joinmastodon.org/methods/accounts/#lookup",
     )
 
-    def allowed_hosts(self, preferences: "Preferences") -> tuple[str, ...]:
+    def allowed_hosts(
+        self, preferences: "Preferences", target: Target | None = None
+    ) -> tuple[str, ...]:
         return tuple(dict.fromkeys(INSTANCES + preferences.fediverse_instances))
 
     def accepts_target(self, kind: EntityKind, value: str) -> bool:
