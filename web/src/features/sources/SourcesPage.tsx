@@ -52,7 +52,7 @@ function SourceCard({ module }: { module: Module }) {
         <dd>{module.produces.map((k) => KIND_LABELS[k]).join(', ')}</dd>
         <dt className="text-muted-foreground">Contacte</dt>
         <dd>
-          <Hosts hosts={module.hosts} />
+          <Hosts hosts={module.hosts} other={module.other_hosts} />
         </dd>
         {rate && (
           <>
@@ -89,9 +89,9 @@ function SourceCard({ module }: { module: Module }) {
   );
 }
 
-function Hosts({ hosts }: { hosts: string[] }) {
-  if (hosts.length === 0) return <>aucun site (rien ne sort de ta machine)</>;
-  if (hosts.length <= SHOWN_HOSTS) return <>{hosts.join(', ')}</>;
+function Hosts({ hosts, other }: { hosts: string[]; other: string }) {
+  if (hosts.length === 0) return <>{other || 'aucun site (rien ne sort de ta machine)'}</>;
+  if (hosts.length <= SHOWN_HOSTS) return <>{[...hosts, ...(other ? [other] : [])].join(', ')}</>;
   return (
     <details>
       <summary className="cursor-pointer">{hosts.length} sites (voir la liste)</summary>

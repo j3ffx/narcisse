@@ -88,6 +88,21 @@ export const RELATION_LABELS: Record<string, string> = {
   key_identity: 'identité de la clé',
   proves: 'preuve d’identité',
   handle_domain: 'domaine du pseudo',
+  registered_with: 'enregistré chez',
+  registrant: 'titulaire',
+  administrative_contact: 'contact administratif',
+  technical_contact: 'contact technique',
+  uses_service: 'utilise',
+  dmarc_reports: 'rapports DMARC',
+  dns_contact: 'contact DNS',
+  subdomain: 'sous-domaine',
+  certificate_email: 'email d’un certificat',
+  has_page: 'page',
+  shows_phone: 'téléphone affiché',
+  shows_address: 'adresse affichée',
+  shows_siren: 'SIREN affiché',
+  publisher: 'éditeur du site',
+  redirects_to: 'redirige vers',
 };
 
 /** What a search reports, in the order it reads best. */
@@ -99,6 +114,19 @@ export const NOTE_LABELS: [string, (n: number) => string][] = [
   ['unreachable', (n) => `${n} injoignable${n > 1 ? 's' : ''}`],
   ['skipped', (n) => `${n} ignoré${n > 1 ? 's' : ''} (captcha)`],
   ['excluded', (n) => `${n} exclu${n > 1 ? 's' : ''} (sites adultes)`],
+  ['published', (n) => `${n} coordonnée${n > 1 ? 's' : ''} publiée${n > 1 ? 's' : ''}`],
+  [
+    'redacted',
+    (n) => `${n} coordonnée${n > 1 ? 's' : ''} masquée${n > 1 ? 's' : ''} par le registre`,
+  ],
+  ['unregistered', () => 'domaine libre (pas enregistré)'],
+  ['records', (n) => `${n} enregistrement${n > 1 ? 's' : ''} DNS lu${n > 1 ? 's' : ''}`],
+  ['services', (n) => `${n} service${n > 1 ? 's' : ''} reconnu${n > 1 ? 's' : ''}`],
+  ['certificates', (n) => `${n} certificat${n > 1 ? 's' : ''}`],
+  ['subdomains', (n) => `${n} sous-domaine${n > 1 ? 's' : ''}`],
+  ['truncated', (n) => `${n} de plus non montré${n > 1 ? 's' : ''}`],
+  ['pages', (n) => `${n} page${n > 1 ? 's' : ''} lue${n > 1 ? 's' : ''}`],
+  ['robots', (n) => `${n} page${n > 1 ? 's' : ''} exclue${n > 1 ? 's' : ''} par robots.txt`],
 ];
 
 export const CATEGORY_LABELS: Record<string, string> = {
@@ -107,6 +135,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
   forums: 'Forums',
   code: 'Code',
   keys: 'Clés',
+  domains: 'Domaines',
   demo: 'Démonstration',
 };
 

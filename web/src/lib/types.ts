@@ -188,6 +188,8 @@ export interface Module {
   produces: EntityKind[];
   intrusion: 'passive' | 'light_active';
   hosts: string[];
+  /** What it contacts besides `hosts`, known only when it runs. */
+  other_hosts: string;
   rate_limit: { requests: number; per_seconds: number } | null;
   licence: string;
   data_source: string;

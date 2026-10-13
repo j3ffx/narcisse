@@ -40,6 +40,10 @@ const MESSAGES: Record<string, (p: Params) => string> = {
   source_unavailable: (p) => `${host(p)} est indisponible pour le moment.`,
   source_refused: (p) => `${host(p)} a refusé la demande${p.status ? ` (${p.status})` : ''}.`,
   input_rejected: () => 'Cette source ne sait pas traiter cet élément.',
+  no_registry: (p) =>
+    `Aucun registre public connu pour l’extension .${typeof p.tld === 'string' ? p.tld : '?'}.`,
+  domain_not_found: () => 'Ce domaine n’existe pas dans le DNS.',
+  site_unreachable: (p) => `Le site de ${host(p)} ne répond pas (ni en https, ni en http).`,
   module_crashed: () => 'Le module a rencontré un bug. Le détail est dans le journal.',
   module_unavailable: () => 'Ce module n’est plus disponible (mode démo désactivé ?).',
 };
