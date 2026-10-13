@@ -5,6 +5,8 @@ import unicodedata
 from contextlib import suppress
 from urllib.parse import urlsplit, urlunsplit
 
+import phonenumbers
+
 from narcisse.domain import EntityKind
 from narcisse.errors import AppError
 
@@ -15,6 +17,10 @@ _PHONE = re.compile(r"^\+?\d{8,15}$")
 _DOMAIN = re.compile(r"^(?=.{1,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9-]{2,63}$")
 _USERNAME = re.compile(r"^[^\s/]{1,100}$")
 _SIREN_OR_SIRET = re.compile(r"^(\d{9}|\d{14})$")
+# A company named with its SIREN (or SIRET) in brackets is the same company as that number.
+_NAMED_SIREN = re.compile(r"\((\d{3} ?\d{3} ?\d{3}(?: ?\d{5})?)\)\s*$")
+# Numbers written without a country code are French: the tool is French first.
+DEFAULT_PHONE_REGION = "FR"
 
 
 def _invalid(kind: EntityKind) -> AppError:
@@ -54,6 +60,19 @@ def _url(value: str, kind: EntityKind) -> str:
     return urlunsplit(("https", netloc, path, parts.query, ""))
 
 
+def phone_e164(digits: str) -> str:
+    """One form for a number however it is written: « 01 99 00 12 34 » and « +33 1 99 00 12 34 »
+    are +33199001234. A number without its country code is taken as French; one that can't be a
+    number anywhere stays as written (digits only)."""
+    try:
+        number = phonenumbers.parse(digits, DEFAULT_PHONE_REGION)
+    except phonenumbers.NumberParseException:
+        return digits
+    if not phonenumbers.is_possible_number(number):
+        return digits
+    return phonenumbers.format_number(number, phonenumbers.PhoneNumberFormat.E164)
+
+
 def normalize(kind: EntityKind, value: str) -> tuple[str, str]:
     """Returns (display form, normalized form), or raises `invalid_value`."""
     display = collapse(value)
@@ -77,7 +96,7 @@ def normalize(kind: EntityKind, value: str) -> tuple[str, str]:
                 digits = "+" + digits[2:]
             if not _PHONE.match(digits):
                 raise _invalid(kind)
-            normalized = digits
+            normalized = phone_e164(digits)
         case EntityKind.DOMAIN:
             normalized = _domain(display)
             if not _DOMAIN.match(normalized):
@@ -85,7 +104,12 @@ def normalize(kind: EntityKind, value: str) -> tuple[str, str]:
             display = normalized
         case EntityKind.ORGANIZATION:
             digits = display.replace(" ", "")
-            normalized = digits if _SIREN_OR_SIRET.match(digits) else fold(display)
+            if _SIREN_OR_SIRET.match(digits):
+                normalized = digits
+            elif number := _NAMED_SIREN.search(display):
+                normalized = number.group(1).replace(" ", "")  # « Exemple SARL (123 456 782) »
+            else:
+                normalized = fold(display)
         case EntityKind.ACCOUNT | EntityKind.URL:
             normalized = _url(display, kind)
         case EntityKind.LEAK | EntityKind.PHOTO:

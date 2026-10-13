@@ -18,6 +18,16 @@ from narcisse.normalize import normalize
         (EntityKind.DOMAIN, "https://www.Example.org/contact", "example.org", "example.org"),
         (EntityKind.DOMAIN, "café.example", "xn--caf-dma.example", "xn--caf-dma.example"),
         (EntityKind.ORGANIZATION, "123 456 789", "123 456 789", "123456789"),
+        (
+            EntityKind.ORGANIZATION,
+            "Exemple SARL (123 456 782)",
+            "Exemple SARL (123 456 782)",
+            "123456782",
+        ),
+        # One form for a number however it is written; French when no country code is given.
+        (EntityKind.PHONE, "06 39 98 00 00", "06 39 98 00 00", "+33639980000"),
+        (EntityKind.PHONE, "01-99-00-12-34", "01-99-00-12-34", "+33199001234"),
+        (EntityKind.PHONE, "+1 650 253 0000", "+1 650 253 0000", "+16502530000"),
         (EntityKind.ORGANIZATION, "Société Exemple", "Société Exemple", "societe exemple"),
         (
             EntityKind.ACCOUNT,
