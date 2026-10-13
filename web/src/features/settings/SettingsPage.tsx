@@ -250,9 +250,7 @@ function LightActive({ enabled }: { enabled: string[] }) {
   const lightActive = (modules.data ?? []).filter((m) => m.intrusion === 'light_active');
   if (lightActive.length === 0) return null;
   const toggle = (module: Module, on: boolean) => {
-    const next = on
-      ? [...enabled, module.name]
-      : enabled.filter((name) => name !== module.name);
+    const next = on ? [...enabled, module.name] : enabled.filter((name) => name !== module.name);
     update.mutate(
       { enabled_light_active: next },
       {
@@ -268,11 +266,12 @@ function LightActive({ enabled }: { enabled: string[] }) {
           Sources « actif léger »
         </h2>
         <p className="text-sm text-muted-foreground">
-          Ces sources ne lisent pas une page publique : elles <strong>sollicitent un service</strong>{' '}
-          pour savoir si une adresse email y est inscrite, via son formulaire de mot de passe oublié,
-          sans jamais s’y connecter, créer de compte ni envoyer d’email au titulaire. Narcisse se
-          limite aux services qui répondent discrètement. Chacune est <strong>désactivée</strong> tant
-          que tu ne l’actives pas ici, et n’est alors utilisée que si tu la coches au moment du scan.
+          Ces sources ne lisent pas une page publique : elles{' '}
+          <strong>sollicitent un service</strong> pour savoir si une adresse email y est inscrite,
+          en interrogeant son formulaire d’inscription, sans jamais s’y connecter, créer de compte
+          ni envoyer d’email au titulaire. Narcisse se limite aux services qui répondent
+          discrètement. Chacune est <strong>désactivée</strong> tant que tu ne l’actives pas ici, et
+          n’est alors utilisée que si tu la coches au moment du scan.
         </p>
       </div>
       <ul className="grid gap-3">
