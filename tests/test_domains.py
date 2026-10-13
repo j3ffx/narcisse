@@ -9,6 +9,7 @@ import respx
 
 from narcisse.domain import EntityKind
 from narcisse.engine.plugin import InputRejected
+from narcisse.modules.dns_records import Dns, DomainMissing, service_of, soa_email, spf_includes
 from narcisse.modules.registration import HOSTS, RDAP, WHOIS, Registration
 from tests.fakes import FakeWhois
 from tests.module_context import FakeContext, run, target
@@ -253,3 +254,104 @@ async def test_whois_says_a_domain_is_free(
     ctx = FakeContext(module, http_client)
     assert await run(module, ctx, target(EntityKind.DOMAIN, "libre-exemple.be")) == []
     assert ctx.notes == {"unregistered": 1}
+
+
+# DNS
+
+
+class FakeDns(Dns):
+    """The DNS module, asking a table instead of the resolver."""
+
+    def __init__(
+        self, records: dict[tuple[str, str], list[str]], missing: frozenset[str] = frozenset()
+    ) -> None:
+        self.records = records
+        self.missing = missing
+        self.asked: list[tuple[str, str]] = []
+
+    async def query(self, name: str, rdtype: str) -> list[str]:
+        self.asked.append((name, rdtype))
+        if name in self.missing:
+            raise DomainMissing(name)
+        return self.records.get((name, rdtype), [])
+
+
+async def test_dns_names_the_services_a_domain_relies_on(http_client: httpx.AsyncClient) -> None:
+    domain = "jeanne-exemple.fr"
+    module = FakeDns(
+        {
+            (domain, "MX"): ["aspmx.l.google.com.", "alt1.aspmx.l.google.com."],
+            (domain, "NS"): ["dns200.anycast.me.", "ns200.anycast.me."],
+            (domain, "TXT"): [
+                "v=spf1 include:_spf.google.com include:servers.mcsv.net ~all",
+                "google-site-verification=abc",
+                "apple-domain-verification=def",
+                "a record nobody knows",
+            ],
+            (f"_atproto.{domain}", "TXT"): ["did=did:plc:exemple"],
+            (domain, "A"): ["185.199.108.153", "192.0.2.10"],
+            ("10.2.0.192.in-addr.arpa.", "PTR"): ["ip-192-0-2-10.eu-west.compute.amazonaws.com."],
+            (f"_dmarc.{domain}", "TXT"): [
+                "v=DMARC1; p=none; rua=mailto:jeanne@example.org,mailto:report@dmarc.example.net; "
+                "ruf=mailto:dmarc@jeanne-exemple.fr"
+            ],
+            (domain, "SOA"): [r"jeanne\.exemple.gmail.com."],
+        }
+    )
+    ctx = FakeContext(module, http_client)
+    findings = await run(module, ctx, target(EntityKind.DOMAIN, domain))
+
+    assert found(findings) == [
+        (EntityKind.ORGANIZATION, "uses_service", "Google Workspace"),
+        (EntityKind.ORGANIZATION, "uses_service", "OVHcloud"),
+        (EntityKind.ORGANIZATION, "uses_service", "Mailchimp"),
+        (EntityKind.ORGANIZATION, "uses_service", "Google (Search Console)"),
+        (EntityKind.ORGANIZATION, "uses_service", "Apple"),
+        (EntityKind.ORGANIZATION, "uses_service", "Bluesky"),
+        (EntityKind.ORGANIZATION, "uses_service", "GitHub Pages"),
+        (EntityKind.ORGANIZATION, "uses_service", "Amazon Web Services"),
+        # Not the DMARC service's address: it isn't the user's.
+        (EntityKind.EMAIL, "dmarc_reports", "dmarc@jeanne-exemple.fr"),
+        (EntityKind.EMAIL, "dns_contact", "jeanne.exemple@gmail.com"),
+    ]
+    assert findings[0].excerpt == (
+        "Les emails de jeanne-exemple.fr sont reçus par Google Workspace (MX aspmx.l.google.com)."
+    )
+    assert findings[4].excerpt == (
+        "jeanne-exemple.fr a été vérifié auprès d’Apple (apple-domain-verification=def)."
+    )
+    assert findings[0].attributes == {"service": "mail"}
+    # Addresses of the user's domain and of webmails only.
+    assert "jeanne@example.org" not in [f.value for f in findings]
+    assert ctx.notes == {"records": 8, "services": 8}
+
+
+async def test_dns_of_a_domain_that_doesn_t_exist(http_client: httpx.AsyncClient) -> None:
+    module = FakeDns({}, missing=frozenset({"absent-exemple.fr"}))
+    with pytest.raises(InputRejected) as rejected:
+        await run(
+            module, FakeContext(module, http_client), target(EntityKind.DOMAIN, "absent-exemple.fr")
+        )
+    assert rejected.value.code == "domain_not_found"
+
+
+@pytest.mark.parametrize(
+    ("rname", "email"),
+    [
+        ("hostmaster.example.org.", "hostmaster@example.org"),
+        (r"jeanne\.exemple.example.org.", "jeanne.exemple@example.org"),
+        ("localhost", None),
+    ],
+)
+def test_the_address_in_an_soa_record(rname: str, email: str | None) -> None:
+    assert soa_email(rname) == email
+
+
+def test_services_match_on_suffixes_and_parts() -> None:
+    assert service_of("mx", "aspmx.l.google.com.") == "Google Workspace"
+    assert service_of("mx", "notgoogle.com") is None
+    assert service_of("ns", "ns-421.awsdns-52.com.") == "Amazon Route 53"
+    assert spf_includes("v=spf1 +include:a.example.net ~all redirect=b.example.net") == [
+        "a.example.net",
+        "b.example.net",
+    ]

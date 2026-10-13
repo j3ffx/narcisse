@@ -102,6 +102,11 @@ def html_text(html: str) -> str:
     return re.sub(r"\n\s*\n+", "\n", "".join(parser.text)).strip()
 
 
+def of(name: str) -> str:
+    """« de » before a name, elided before a vowel: « d’Adobe », « de Google »."""
+    return f"d’{name}" if name[:1].lower() in "aeiouyéè" else f"de {name}"
+
+
 def _clean(url: str) -> str:
     return url.rstrip(_TRAILING)
 
