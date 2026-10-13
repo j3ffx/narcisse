@@ -131,24 +131,27 @@ la barre oblique) la première fois ; ensuite, il la propose de lui-même.
 
 ## Les sources
 
-| Source                                  | À partir de                                           | Ce qu’elle trouve                                                                                                                                                       |
-| --------------------------------------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Comptes par pseudo (liste WhatsMyName)  | un pseudo                                             | les comptes à ce nom sur plus de 600 sites (réseaux sociaux, jeux, code, forums, sites adultes signalés comme tels)                                                     |
-| GitHub                                  | un pseudo, un email                                   | le profil public et les emails visibles dans les commits ; pour un email, les comptes qui l’utilisent                                                                   |
-| Gravatar                                | un email                                              | le profil public et les comptes qu’il liste (seule l’empreinte de l’email est envoyée)                                                                                  |
-| Clés PGP publiques (keys.openpgp.org)   | un email                                              | une clé publiée, et les noms et adresses qu’elle porte                                                                                                                  |
-| GitLab                                  | un pseudo, un compte                                  | le profil sur gitlab.com, framagit.org, salsa.debian.org, GNOME et freedesktop.org, et les emails des commits récents                                                   |
-| Bluesky                                 | un pseudo, un domaine, un compte                      | le profil, sa description et ses liens ; un domaine servant de pseudo est vérifié par Bluesky                                                                           |
-| Mastodon et Fediverse                   | un pseudo, un pseudo@instance, un compte              | le compte sur une quinzaine de grandes instances et celles que tu ajoutes ; les liens que Mastodon a vérifiés                                                           |
-| Hacker News                             | un pseudo, un compte                                  | le compte, son ancienneté, et les liens et adresses de sa présentation                                                                                                  |
-| Stack Exchange                          | un pseudo, un nom                                     | les utilisateurs de Stack Overflow qui portent exactement ce nom (des homonymes sont possibles) et leurs comptes sur le réseau                                          |
-| Keybase                                 | un pseudo, un domaine, un compte                      | le compte et ses preuves d’identité, qui relient sûrement d’autres comptes et des domaines                                                                              |
-| Enregistrement du domaine (RDAP, WHOIS) | un domaine                                            | le bureau d’enregistrement et les dates, et les nom, email, téléphone et adresse du titulaire quand le registre les publie (ou le fait qu’il les masque)                |
-| DNS du domaine                          | un domaine                                            | qui reçoit ses emails, qui l’héberge, les services auprès desquels il a été vérifié, les adresses citées par ses enregistrements (via le résolveur de ta machine)       |
-| Certificats (crt.sh, Cert Spotter)      | un domaine                                            | ses sous-domaines (`nas.`, `vpn.`, `cloud.`…) publiés dans les journaux de certificats                                                                                  |
-| Site du domaine                         | un domaine                                            | ce que disent ses mentions légales, ses pages contact et « à propos » : nom, adresse, téléphone, email, SIREN, liens vers des profils (dans le respect de `robots.txt`) |
-| Archives du web (Wayback Machine)       | un domaine, un compte                                 | les pages archivées du site (dont un CV, une page contact ou « à propos », des documents, même supprimés depuis) et depuis quand un profil est archivé                  |
-| Recherche web (ton instance SearXNG)    | un nom, un pseudo, un email, un téléphone, un domaine | les pages qui les citent exactement, trouvées par ton instance SearXNG (facultatif, voir plus bas)                                                                      |
+| Source                                  | À partir de                                           | Ce qu’elle trouve                                                                                                                                                                                                                           |
+| --------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Comptes par pseudo (liste WhatsMyName)  | un pseudo                                             | les comptes à ce nom sur plus de 600 sites (réseaux sociaux, jeux, code, forums, sites adultes signalés comme tels)                                                                                                                         |
+| GitHub                                  | un pseudo, un email                                   | le profil public et les emails visibles dans les commits ; pour un email, les comptes qui l’utilisent                                                                                                                                       |
+| Gravatar                                | un email                                              | le profil public et les comptes qu’il liste (seule l’empreinte de l’email est envoyée)                                                                                                                                                      |
+| Clés PGP publiques (keys.openpgp.org)   | un email                                              | une clé publiée, et les noms et adresses qu’elle porte                                                                                                                                                                                      |
+| GitLab                                  | un pseudo, un compte                                  | le profil sur gitlab.com, framagit.org, salsa.debian.org, GNOME et freedesktop.org, et les emails des commits récents                                                                                                                       |
+| Bluesky                                 | un pseudo, un domaine, un compte                      | le profil, sa description et ses liens ; un domaine servant de pseudo est vérifié par Bluesky                                                                                                                                               |
+| Mastodon et Fediverse                   | un pseudo, un pseudo@instance, un compte              | le compte sur une quinzaine de grandes instances et celles que tu ajoutes ; les liens que Mastodon a vérifiés                                                                                                                               |
+| Hacker News                             | un pseudo, un compte                                  | le compte, son ancienneté, et les liens et adresses de sa présentation                                                                                                                                                                      |
+| Stack Exchange                          | un pseudo, un nom                                     | les utilisateurs de Stack Overflow qui portent exactement ce nom (des homonymes sont possibles) et leurs comptes sur le réseau                                                                                                              |
+| Keybase                                 | un pseudo, un domaine, un compte                      | le compte et ses preuves d’identité, qui relient sûrement d’autres comptes et des domaines                                                                                                                                                  |
+| Enregistrement du domaine (RDAP, WHOIS) | un domaine                                            | le bureau d’enregistrement et les dates, et les nom, email, téléphone et adresse du titulaire quand le registre les publie (ou le fait qu’il les masque)                                                                                    |
+| DNS du domaine                          | un domaine                                            | qui reçoit ses emails, qui l’héberge, les services auprès desquels il a été vérifié, les adresses citées par ses enregistrements (via le résolveur de ta machine)                                                                           |
+| Certificats (crt.sh, Cert Spotter)      | un domaine                                            | ses sous-domaines (`nas.`, `vpn.`, `cloud.`…) publiés dans les journaux de certificats                                                                                                                                                      |
+| Site du domaine                         | un domaine                                            | ce que disent ses mentions légales, ses pages contact et « à propos » : nom, adresse, téléphone, email, SIREN, liens vers des profils (dans le respect de `robots.txt`)                                                                     |
+| Archives du web (Wayback Machine)       | un domaine, un compte                                 | les pages archivées du site (dont un CV, une page contact ou « à propos », des documents, même supprimés depuis) et depuis quand un profil est archivé                                                                                      |
+| Recherche web (ton instance SearXNG)    | un nom, un pseudo, un email, un téléphone, un domaine | les pages qui les citent exactement, trouvées par ton instance SearXNG (facultatif, voir plus bas)                                                                                                                                          |
+| Fuites de données (XposedOrNot)         | un email                                              | les fuites connues où il figure : quand, quelles données (mots de passe, adresses, dates de naissance…), si les mots de passe étaient lisibles ; l’adresse est envoyée à XposedOrNot                                                        |
+| Registres d’entreprises (France)        | un nom, une organisation, un SIREN                    | les entreprises que tu diriges ou as dirigées, ou à ton nom : le registre publie le mois et l’année de naissance des dirigeants et le siège, souvent le domicile ; pour une entreprise, ses dirigeants, son siège et ses annonces au BODACC |
+| Numéro de téléphone                     | un téléphone                                          | ce qu’il dit de lui-même, sans rien demander à personne : mobile ou fixe, pays, région, opérateur d’origine                                                                                                                                 |
 
 Chaque recherche dit ce qu’elle a pu vérifier : par exemple « 640 vérifiés · 12 trouvés · 109
 bloqués par un anti-robot ». Le détail de chaque source (sites contactés, rythme, licence) est dans
@@ -156,6 +159,12 @@ la page « Sources » de Narcisse. Dans les réglages, un token GitHub personnel
 limite de GitHub de 60 à 5 000 requêtes par heure, et un token GitLab gratuit ajoute la bio, le lieu
 et le site des profils de gitlab.com ; rien ne les exige. Tu peux aussi y ajouter tes instances
 Mastodon : seules les instances de la liste sont contactées.
+
+### Un mot de passe a-t-il fuité ?
+
+La page « Mot de passe » vérifie s’il apparaît dans les fuites que recense Pwned Passwords, sans
+qu’il quitte la page : elle en calcule l’empreinte, n’en envoie que les 5 premiers caractères, et
+compare elle-même la réponse. Rien n’est gardé.
 
 ### Les moteurs de recherche
 
@@ -203,6 +212,13 @@ Les règles du dépôt (commandes, commits, confidentialité, invariants) : [CLA
   contributeurs, licence [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Copie
   adaptée (sites interrogés avec la clé d’un tiers retirés), provenance dans
   `src/narcisse/modules/data/wmn-source.json`.
+- Fuites de données : [XposedOrNot](https://xposedornot.com/), pour un usage personnel.
+- Mots de passe : [Pwned Passwords](https://haveibeenpwned.com/Passwords), de Have I Been Pwned (Troy
+  Hunt), licence [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+- Entreprises : [API Recherche d’entreprises](https://recherche-entreprises.api.gouv.fr/) et
+  [BODACC](https://www.bodacc.fr/) (DILA), données publiques de l’État, Licence Ouverte.
+- Téléphones : [libphonenumber](https://github.com/google/libphonenumber) (Google), licence
+  Apache 2.0.
 - Serveurs RDAP et WHOIS, bureaux d’enregistrement : données publiques de
   l’[IANA](https://www.iana.org/domains/root/db), copie datée dans
   `src/narcisse/modules/data/registries-source.json`.

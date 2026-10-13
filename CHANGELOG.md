@@ -32,6 +32,15 @@ Pas encore de version : la 0.1.0 sortira quand Narcisse sera utilisable sur de v
     crt.sh ne répond pas) ;
   - leur site : mentions légales, pages contact et « à propos » (nom, adresse, téléphone, email,
     SIREN, liens vers des profils), dans le respect de `robots.txt`.
+- Les fuites de données où figure un email (XposedOrNot) : quand, quelles données, et si les mots
+  de passe étaient lisibles.
+- Un mot de passe a-t-il fuité ? Vérification par Pwned Passwords, sans qu’il quitte la page.
+- Les registres d’entreprises : les entreprises que tu diriges ou à ton nom (avec ce que le
+  registre publie : mois et année de naissance, siège), et pour une entreprise ses dirigeants, son
+  siège et ses annonces au BODACC.
+- Les numéros de téléphone : une seule trace quelle que soit leur écriture (« 01… » ou « +33 1… »),
+  et ce qu’un numéro dit de lui-même (mobile ou fixe, pays, opérateur d’origine), sans rien
+  demander à personne.
 - Ce que gardent les archives du web (Wayback Machine) : les pages archivées de ton site, dont un
   CV, une page contact ou des documents supprimés depuis, et depuis quand un profil est archivé.
 - La recherche assistée : pour chaque élément, les recherches qui valent la peine sur Google, Bing,

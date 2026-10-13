@@ -106,7 +106,11 @@ fixtures, docs, commit messages or commit metadata.
   (`NARCISSE_CONFIG_DIR` in tests). Tests never write the real registry.
 - **Licences are checked** before reusing a tool or dataset. The project is GPL-3.0-only, compatible
   with what it draws on so far: Maigret, Sherlock, JustDeleteMe (MIT), holehe, PhoneInfoga (GPL-3.0),
-  WhatsMyName's data (CC BY-SA 4.0, credited).
+  WhatsMyName's data (CC BY-SA 4.0, credited), libphonenumber (Apache-2.0), dnspython (ISC),
+  XposedOrNot (credited, personal use, never redistributed), Pwned Passwords (CC BY 4.0).
+- **A password never leaves the page.** Pwned Passwords is asked by k-anonymity: the browser hashes
+  it, only five characters of the hash go out, the comparison happens in the page; nothing keeps it
+  (no query cache, no storage, no log).
 - **Results stream.** A module yields findings one by one; each is stored and pushed to the UI as it
   arrives. No module returns its findings in one block.
 - **Every source says what it is.** A source that stops working says so, and a run reports what it
