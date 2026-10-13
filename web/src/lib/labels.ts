@@ -106,6 +106,14 @@ export const RELATION_LABELS: Record<string, string> = {
   archived_at: 'archivé',
   archived_page: 'page archivée',
   added_by_hand: 'ajouté par toi',
+  described_as: 'description',
+  exposed_in: 'exposé dans la fuite',
+  company_officer: 'dirigeant de',
+  sole_trader: 'entreprise individuelle',
+  registered_office: 'siège',
+  registered_as: 'au registre',
+  officer: 'dirigeant',
+  legal_notice: 'annonce légale',
 };
 
 /** What a search reports, in the order it reads best. */
@@ -132,6 +140,10 @@ export const NOTE_LABELS: [string, (n: number) => string][] = [
   ['archived', (n) => `${n} page${n > 1 ? 's' : ''} archivée${n > 1 ? 's' : ''}`],
   ['notable', (n) => `${n} qui parle${n > 1 ? 'nt' : ''} de toi`],
   ['archive_excluded', () => 'exclu des archives par son propriétaire'],
+  ['breaches', (n) => `${n} fuite${n > 1 ? 's' : ''}`],
+  ['companies', (n) => `${n} entreprise${n > 1 ? 's' : ''}`],
+  ['officers', (n) => `${n} dirigeant${n > 1 ? 's' : ''}`],
+  ['notices', (n) => `${n} annonce${n > 1 ? 's' : ''} au BODACC`],
   ['results', (n) => `${n} résultat${n > 1 ? 's' : ''}`],
   ['robots', (n) => `${n} page${n > 1 ? 's' : ''} exclue${n > 1 ? 's' : ''} par robots.txt`],
 ];
@@ -145,6 +157,9 @@ export const CATEGORY_LABELS: Record<string, string> = {
   domains: 'Domaines',
   archives: 'Archives',
   web: 'Web',
+  leaks: 'Fuites',
+  registries: 'Registres',
+  phone: 'Téléphone',
   demo: 'Démonstration',
 };
 
