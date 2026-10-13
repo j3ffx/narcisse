@@ -33,7 +33,7 @@ export function ActivityCenter() {
           Activité
           {active > 0 && (
             <span
-              className="ml-1 rounded-full bg-primary px-1.5 text-xs leading-5 text-primary-foreground"
+              className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs tabular-nums text-primary-foreground"
               aria-label={`${active} scan${active > 1 ? 's' : ''} en cours`}
             >
               {active}

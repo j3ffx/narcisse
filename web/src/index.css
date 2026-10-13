@@ -130,6 +130,8 @@
   }
   html {
     @apply font-sans;
+    /* The scrollbar's room is kept whether a page scrolls or not: no sideways jump between pages. */
+    scrollbar-gutter: stable;
   }
   @media (prefers-reduced-motion: reduce) {
     *,

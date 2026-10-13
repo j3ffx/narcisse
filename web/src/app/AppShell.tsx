@@ -24,8 +24,8 @@ export function AppShell({
 }) {
   const info = useInfo();
   const [location] = useLocation();
-  // The graph and the list of a profile take the whole width.
-  const wide = /^\/profils\/\d+(\/liste)?\/?$/.test(location);
+  // A profile's pages take the whole width (all its tabs alike: switching doesn't move them).
+  const wide = /^\/profils\/\d+(\/|$)/.test(location);
   return (
     <div className="min-h-dvh bg-background text-foreground">
       <a
