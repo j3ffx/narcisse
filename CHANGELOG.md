@@ -23,6 +23,17 @@ Pas encore de version : la 0.1.0 sortira quand Narcisse sera utilisable sur de v
   - Mastodon et le Fediverse : compte sur une quinzaine de grandes instances et celles ajoutées dans
     les réglages, ou un pseudo@instance sur la sienne ; les liens vérifiés par Mastodon ;
   - Hacker News, Stack Exchange (avec ses homonymes) et Keybase (preuves d’identité).
+- Ce que disent tes domaines :
+  - leur enregistrement (RDAP, ou WHOIS pour .eu, .de, .be, .io…) : chez qui, depuis quand, et les
+    coordonnées du titulaire quand le registre les publie, ou le fait qu’il les masque ;
+  - leur DNS : qui reçoit les emails, qui héberge le site, les services auprès desquels le domaine
+    a été vérifié (Google, Microsoft, Facebook, Apple…), les adresses que citent ses enregistrements ;
+  - leurs sous-domaines, publiés dans les journaux de certificats (crt.sh, ou Cert Spotter quand
+    crt.sh ne répond pas) ;
+  - leur site : mentions légales, pages contact et « à propos » (nom, adresse, téléphone, email,
+    SIREN, liens vers des profils), dans le respect de `robots.txt`.
+- « Ajouter comme élément » : une trace trouvée (un domaine cité dans une bio, un compte…) devient
+  un point de départ des scans suivants.
 - Les liens et adresses d’une bio deviennent des traces (sur GitHub aussi).
 - Chaque recherche fait son bilan : vérifiés, trouvés, indéterminés, bloqués par un anti-robot,
   injoignables.

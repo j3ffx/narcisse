@@ -85,7 +85,9 @@ fixtures, docs, commit messages or commit metadata.
   isn't loopback (DNS rebinding), and accepts state-changing requests only from its own origin with a
   JSON body (another website open in the browser can't drive it). Nothing leaves the machine except
   requests to the hosts a source module declares (or that the user added in the settings, such as
-  their Fediverse instances) and, if the user configured one, to their LLM.
+  their Fediverse instances, or the site of the domain a run searches, declared for that run),
+  DNS lookups through the machine's own resolver (never DNS over HTTPS to a third party) and, if
+  the user configured one, to their LLM. WHOIS (port 43) goes through the same gate as HTTP.
 - **User data lives outside the repository**, in the OS data directory (`platformdirs`), overridable
   with `NARCISSE_DATA_DIR`. Demo mode and `npm run dev` use their own directories (`narcisse-demo`,
   `narcisse-dev`), so fictitious profiles never mix with real ones.
@@ -129,7 +131,8 @@ fixtures, docs, commit messages or commit metadata.
   demand) and the list that mirrors it. `npm run build` writes the UI into
   `src/narcisse/web/static/` (ignored), which the Python package serves and ships. `web/e2e/`:
   Playwright against `narcisse serve --demo` on a temporary data dir.
-- `scripts/`: repository checks and git hook helpers.
+- `scripts/`: repository checks, git hook helpers, and the refresh of the data modules reuse
+  (`update-wmn.py`, `update-registries.py`: dated copies in `src/narcisse/modules/data/`).
 
 ## Performance
 
