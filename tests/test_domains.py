@@ -8,7 +8,8 @@ import pytest
 import respx
 
 from narcisse.domain import EntityKind
-from narcisse.engine.plugin import InputRejected
+from narcisse.engine.plugin import InputRejected, RateLimited
+from narcisse.modules.certificates import Certificates
 from narcisse.modules.dns_records import Dns, DomainMissing, service_of, soa_email, spf_includes
 from narcisse.modules.registration import HOSTS, RDAP, WHOIS, Registration
 from tests.fakes import FakeWhois
@@ -355,3 +356,94 @@ def test_services_match_on_suffixes_and_parts() -> None:
         "a.example.net",
         "b.example.net",
     ]
+
+
+# Certificates
+
+
+@respx.mock
+async def test_subdomains_and_addresses_from_certificate_logs(
+    http_client: httpx.AsyncClient,
+) -> None:
+    route = respx.get("https://crt.sh/").respond(
+        200,
+        json=[
+            {
+                "name_value": "nas.jeanne-exemple.fr\n*.jeanne-exemple.fr",
+                "not_before": "2021-01-02T00:00:00",
+                "not_after": "2021-04-02T00:00:00",
+            },
+            {
+                "name_value": "nas.jeanne-exemple.fr\ncloud.jeanne-exemple.fr",
+                "not_before": "2024-05-06T00:00:00",
+                "not_after": "2024-08-04T00:00:00",
+            },
+            {
+                "name_value": "jeanne@jeanne-exemple.fr\nautre-exemple.fr",
+                "not_before": "2023-01-01T00:00:00",
+                "not_after": "2024-01-01T00:00:00",
+            },
+        ],
+    )
+    module = Certificates()
+    ctx = FakeContext(module, http_client)
+    findings = await run(module, ctx, target(EntityKind.DOMAIN, "jeanne-exemple.fr"))
+
+    assert route.calls.last.request.url.params["q"] == "%.jeanne-exemple.fr"
+    assert found(findings) == [
+        (EntityKind.DOMAIN, "subdomain", "nas.jeanne-exemple.fr"),
+        (EntityKind.DOMAIN, "subdomain", "cloud.jeanne-exemple.fr"),
+        (EntityKind.EMAIL, "certificate_email", "jeanne@jeanne-exemple.fr"),
+    ]
+    assert findings[0].excerpt == (
+        "Nom vu dans 2 certificats, du 2021-01-02 au 2024-08-04 (crt.sh)."
+    )
+    assert findings[0].url == "https://crt.sh/?q=nas.jeanne-exemple.fr"
+    assert ctx.notes == {"certificates": 3, "subdomains": 2}
+
+
+@respx.mock
+async def test_cert_spotter_stands_in_when_crt_sh_is_down(http_client: httpx.AsyncClient) -> None:
+    respx.get("https://crt.sh/").respond(502)
+    spotter = respx.get("https://api.certspotter.com/v1/issuances").mock(
+        side_effect=[
+            httpx.Response(
+                200,
+                json=[
+                    {
+                        "id": "41",
+                        "dns_names": ["vpn.jeanne-exemple.fr"],
+                        "not_before": "2026-09-01T00:00:00Z",
+                        "not_after": "2026-11-30T00:00:00Z",
+                    }
+                ],
+            ),
+            httpx.Response(200, json=[]),
+        ]
+    )
+    module = Certificates()
+    findings = await run(
+        module, FakeContext(module, http_client), target(EntityKind.DOMAIN, "jeanne-exemple.fr")
+    )
+
+    assert found(findings) == [(EntityKind.DOMAIN, "subdomain", "vpn.jeanne-exemple.fr")]
+    assert findings[0].url is None
+    assert findings[0].excerpt == (
+        "Nom vu dans 1 certificat encore valide, du 2026-09-01 au 2026-11-30 (Cert Spotter)."
+    )
+    assert spotter.calls[0].request.url.params["include_subdomains"] == "true"
+    assert spotter.calls[1].request.url.params["after"] == "41"
+
+
+@respx.mock
+async def test_certificates_when_both_logs_are_down(http_client: httpx.AsyncClient) -> None:
+    respx.get("https://crt.sh/").respond(502)
+    respx.get("https://api.certspotter.com/v1/issuances").respond(
+        429, headers={"Retry-After": "600"}
+    )
+    module = Certificates()
+    with pytest.raises(RateLimited) as limited:
+        await run(
+            module, FakeContext(module, http_client), target(EntityKind.DOMAIN, "jeanne-exemple.fr")
+        )
+    assert limited.value.retry_after == 600
