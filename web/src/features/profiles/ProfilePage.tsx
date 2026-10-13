@@ -139,7 +139,8 @@ function StartScanDialog({ profile }: { profile: ProfileDetail }) {
           Lancer un scan
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      {/* The sources scroll; the title and the button to start stay in view. */}
+      <DialogContent className="grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Lancer un scan</DialogTitle>
           <DialogDescription>
@@ -147,55 +148,57 @@ function StartScanDialog({ profile }: { profile: ProfileDetail }) {
             {watched.length > 1 ? 's' : ''}. Choisis les sources à interroger.
           </DialogDescription>
         </DialogHeader>
-        {modules.isPending && <Pending label="Chargement des sources…" />}
-        {modules.data && usable.length === 0 && (
-          <p className="text-sm text-muted-foreground">
-            Aucune source disponible pour ces éléments pour l’instant.
-          </p>
-        )}
-        <ul className="grid gap-3">
-          {usable.map((module) => {
-            const id = `module-${module.name}`;
-            return (
-              <li key={module.name} className="flex gap-3">
-                <Checkbox
-                  id={id}
-                  checked={selected.includes(module.name)}
-                  onCheckedChange={(checked) =>
-                    setChosen(
-                      checked
-                        ? [...selected, module.name]
-                        : selected.filter((n) => n !== module.name),
-                    )
-                  }
-                />
-                <div className="grid gap-0.5">
-                  <Label htmlFor={id}>
-                    {module.title}
-                    {module.demo && (
-                      <span className="rounded bg-amber-100 px-1.5 text-xs text-amber-950 dark:bg-amber-950 dark:text-amber-50">
-                        fictif
-                      </span>
-                    )}
-                  </Label>
-                  <p className="text-sm text-muted-foreground">{module.description}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Accepte :{' '}
-                    {module.accepts
-                      .filter((k) => kinds.has(k as never))
-                      .map((k) => KIND_LABELS[k])
-                      .join(', ')}
-                  </p>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-        {start.isError && (
-          <p role="alert" className="text-sm text-red-700 dark:text-red-300">
-            {errorMessage(start.error)}
-          </p>
-        )}
+        <div className="-mx-4 grid content-start gap-3 overflow-y-auto px-4">
+          {modules.isPending && <Pending label="Chargement des sources…" />}
+          {modules.data && usable.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              Aucune source disponible pour ces éléments pour l’instant.
+            </p>
+          )}
+          <ul className="grid gap-3">
+            {usable.map((module) => {
+              const id = `module-${module.name}`;
+              return (
+                <li key={module.name} className="flex gap-3">
+                  <Checkbox
+                    id={id}
+                    checked={selected.includes(module.name)}
+                    onCheckedChange={(checked) =>
+                      setChosen(
+                        checked
+                          ? [...selected, module.name]
+                          : selected.filter((n) => n !== module.name),
+                      )
+                    }
+                  />
+                  <div className="grid gap-0.5">
+                    <Label htmlFor={id}>
+                      {module.title}
+                      {module.demo && (
+                        <span className="rounded bg-amber-100 px-1.5 text-xs text-amber-950 dark:bg-amber-950 dark:text-amber-50">
+                          fictif
+                        </span>
+                      )}
+                    </Label>
+                    <p className="text-sm text-muted-foreground">{module.description}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Accepte :{' '}
+                      {module.accepts
+                        .filter((k) => kinds.has(k as never))
+                        .map((k) => KIND_LABELS[k])
+                        .join(', ')}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+          {start.isError && (
+            <p role="alert" className="text-sm text-red-700 dark:text-red-300">
+              {errorMessage(start.error)}
+            </p>
+          )}
+        </div>
         <DialogFooter>
           <Button onClick={launch} disabled={start.isPending || selected.length === 0}>
             {start.isPending ? 'Lancement…' : 'Lancer'}
