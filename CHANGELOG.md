@@ -32,6 +32,13 @@ Pas encore de version : la 0.1.0 sortira quand Narcisse sera utilisable sur de v
     crt.sh ne répond pas) ;
   - leur site : mentions légales, pages contact et « à propos » (nom, adresse, téléphone, email,
     SIREN, liens vers des profils), dans le respect de `robots.txt`.
+- Ce que gardent les archives du web (Wayback Machine) : les pages archivées de ton site, dont un
+  CV, une page contact ou des documents supprimés depuis, et depuis quand un profil est archivé.
+- La recherche assistée : pour chaque élément, les recherches qui valent la peine sur Google, Bing,
+  DuckDuckGo et Qwant, ouvertes dans ton navigateur (Narcisse n’interroge jamais un moteur) ; une
+  page trouvée ainsi se colle en retour et rejoint tes traces.
+- La recherche web pendant les scans, par ta propre instance SearXNG : `narcisse searxng`
+  l’installe et la lance avec Docker, sur ta machine seulement.
 - « Ajouter comme élément » : une trace trouvée (un domaine cité dans une bio, un compte…) devient
   un point de départ des scans suivants.
 - Les liens et adresses d’une bio deviennent des traces (sur GitHub aussi).

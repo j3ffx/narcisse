@@ -15,6 +15,7 @@ npm run build                    # builds the UI into the Python package
 uv run narcisse serve            # built UI + API on 127.0.0.1, opens the browser (--demo for the fake module)
 uv run narcisse tray             # the same in the background, with a notification-area icon
 uv run narcisse shortcut --demo  # Start menu entry running `narcisse open` (Windows), on the demo side
+uv run narcisse searxng          # the user's own SearXNG with Docker, on 127.0.0.1:8888, then set
 npm run check                    # everything CI runs, but gitleaks on the history and the e2e tests
 npm run e2e                      # Playwright against `narcisse serve --demo`, on a temporary data dir
 npm run bench                    # the graph's benchmark (fictitious graphs of 500 to 20,000 traces)
@@ -78,7 +79,9 @@ fixtures, docs, commit messages or commit metadata.
 - **No circumvention, no borrowed credentials.** Sites behind a captcha or a proof-of-work challenge
   are not asked; an anti-bot page counts as "couldn't tell". No cookie that accepts a site's terms,
   no spoofed header, never a third party's API key (sites needing one are removed from the
-  WhatsMyName copy by `scripts/update-wmn.py`).
+  WhatsMyName copy by `scripts/update-wmn.py`). Search engines are never queried by Narcisse: the
+  assisted search hands the queries to the user's browser, and the web search source asks the
+  user's own SearXNG instance (optional; its secret lives in their configuration directory).
 - **Nothing is sent on the user's behalf.** Narcisse prepares removal requests (letters, links,
   pre-filled forms); the user always sends them.
 - **100 % local, no telemetry.** The server binds to `127.0.0.1` only, refuses requests whose `Host`
