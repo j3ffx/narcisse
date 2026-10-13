@@ -142,7 +142,10 @@ export function sync(
     while (queue.length) {
       const parent = queue.shift()!;
       const { x, y } = graph.getNodeAttributes(parent);
-      const fresh = (children.get(parent) ?? []).filter((k) => !graph.hasNode(k) && byId.has(k));
+      // Once each: two edges may join the same two traces (an account and a link to it).
+      const fresh = [...new Set(children.get(parent) ?? [])].filter(
+        (k) => !graph.hasNode(k) && byId.has(k),
+      );
       const around = angles.get(parent);
       fresh.forEach((key, i) => {
         // Around the root: the whole circle; further out: the half facing away from it.

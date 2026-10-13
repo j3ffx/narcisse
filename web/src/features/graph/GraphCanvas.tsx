@@ -292,7 +292,7 @@ export function GraphCanvas({
   /** What the canvas shows, for assistive technologies. */
   label: string;
 }) {
-  use(pictogramsReady); // the nodes' pictograms, drawn before the first node
+  use(pictogramsReady()); // the nodes' pictograms, drawn before the first node
   const container = useRef<HTMLDivElement>(null);
   const mini = useRef<HTMLCanvasElement>(null);
   const miniFitRef = useRef<MiniFit | null>(null);

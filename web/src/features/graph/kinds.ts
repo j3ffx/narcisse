@@ -98,30 +98,36 @@ let drawn: Partial<Record<EntityKind, string>> = {};
  * The pictograms as SVG data URLs, drawn once by React in a root of their own and read once
  * committed (flushSync would collide with a render in progress). The canvas waits for it.
  */
-export const pictogramsReady: Promise<void> = new Promise((resolve) => {
-  const host = document.createElement('div');
-  const root = createRoot(host);
-  function Pictograms() {
-    useLayoutEffect(() => {
-      drawn = Object.fromEntries(
-        [...host.children].map((el) => [
-          el.getAttribute('data-kind'),
-          `data:image/svg+xml;charset=utf-8,${encodeURIComponent(el.innerHTML)}`,
-        ]),
-      );
-      resolve();
-      window.setTimeout(() => root.unmount());
-    }, []);
-    return KINDS.map((kind) =>
-      createElement(
-        'span',
-        { key: kind, 'data-kind': kind },
-        createElement(KIND_ICONS[kind], { size: 64, strokeWidth: 2.25, color: '#000' }),
-      ),
-    );
-  }
-  root.render(createElement(Pictograms));
-});
+let drawing: Promise<void> | null = null;
 
-/** A kind's pictogram, for the canvas (once `pictogramsReady` has resolved). */
+/** Draws the pictograms once (on the first call: importing this module touches no DOM). */
+export const pictogramsReady = (): Promise<void> => (drawing ??= draw());
+
+const draw = (): Promise<void> =>
+  new Promise((resolve) => {
+    const host = document.createElement('div');
+    const root = createRoot(host);
+    function Pictograms() {
+      useLayoutEffect(() => {
+        drawn = Object.fromEntries(
+          [...host.children].map((el) => [
+            el.getAttribute('data-kind'),
+            `data:image/svg+xml;charset=utf-8,${encodeURIComponent(el.innerHTML)}`,
+          ]),
+        );
+        resolve();
+        window.setTimeout(() => root.unmount());
+      }, []);
+      return KINDS.map((kind) =>
+        createElement(
+          'span',
+          { key: kind, 'data-kind': kind },
+          createElement(KIND_ICONS[kind], { size: 64, strokeWidth: 2.25, color: '#000' }),
+        ),
+      );
+    }
+    root.render(createElement(Pictograms));
+  });
+
+/** A kind's pictogram, for the canvas (once `pictogramsReady()` has resolved; empty before). */
 export const pictogram = (kind: EntityKind): string => drawn[kind] ?? '';
