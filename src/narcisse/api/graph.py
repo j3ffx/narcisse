@@ -23,6 +23,7 @@ from narcisse.schemas import (
     GraphOut,
     SavedViewIn,
     SavedViewOut,
+    ScoreReasons,
 )
 from narcisse.storage.models import Edge, Entity, Evidence, Profile, SavedView
 
@@ -133,6 +134,7 @@ async def get_entity(entity_id: int, s: ServicesDep) -> EntityDetail:
         declared = any(e.module == "seed" and e.target_id == entity_id for e in edges)
         return EntityDetail(
             entity=_node(entity, sources[entity_id], declared),
+            reasons=ScoreReasons.model_validate(entity.score_reasons or {}),
             evidence=evidence,
             edges=[EdgeOut.model_validate(e) for e in edges],
             neighbours=[EntityOut.model_validate(n) for n in neighbours],

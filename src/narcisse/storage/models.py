@@ -100,6 +100,8 @@ class Scan(Base):
     status: Mapped[str] = mapped_column(String(20))
     modules: Mapped[list[Any]] = mapped_column(default=list)
     results_count: Mapped[int] = mapped_column(default=0)
+    # What the scan reports as a whole ("pivots": traces it followed, "pivots_capped": left).
+    notes: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     created_at: Mapped[datetime]
     finished_at: Mapped[datetime | None]
 
@@ -121,8 +123,10 @@ class ModuleRun(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     scan_id: Mapped[int] = mapped_column(ForeignKey("scan.id", ondelete="CASCADE"), index=True)
     module: Mapped[str] = mapped_column(String(100))
-    # The entity the module works on (a seed's entity, later any pivot).
+    # The entity the module works on: a seed's entity, or a trace the scan pivoted to.
     input_entity_id: Mapped[int] = mapped_column(ForeignKey("entity.id", ondelete="CASCADE"))
+    # How many hops from the profile's elements its input is (0: an element).
+    depth: Mapped[int] = mapped_column(default=0, server_default="0")
     status: Mapped[str] = mapped_column(String(20), index=True)
     progress_done: Mapped[int | None]
     progress_total: Mapped[int | None]
@@ -160,8 +164,14 @@ class Entity(Base):
     normalized: Mapped[str] = mapped_column(String(1000))
     display: Mapped[str] = mapped_column(String(1000))
     status: Mapped[str] = mapped_column(String(20))
+    # The highest confidence a source gave (0..1); `confidence` and `risk` are the scores
+    # computed from it and from the trace's links (engine/scoring.py), with their reasons.
+    module_confidence: Mapped[float | None] = mapped_column(Float)
     confidence: Mapped[float | None] = mapped_column(Float)
     risk: Mapped[float | None] = mapped_column(Float)
+    score_reasons: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    # The user doesn't want this trace suggested as a new element.
+    pivot_dismissed: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     attributes: Mapped[dict[str, Any]] = mapped_column(default=dict)
     first_seen: Mapped[datetime]
     last_seen: Mapped[datetime]

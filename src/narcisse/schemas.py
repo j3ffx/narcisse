@@ -23,8 +23,8 @@ class Schema(BaseModel):
 
 
 class ProfileSettings(Schema):
-    # How many hops a found trace may lead to a new search (0: never on its own).
-    pivot_depth: int = Field(default=0, ge=0, le=3)
+    # How many hops a scan may follow sure traces by itself (0: it only suggests them).
+    pivot_depth: int = Field(default=0, ge=0, le=2)
     # Modules ticked by default when starting a scan; empty means every applicable one.
     modules: list[str] = Field(default_factory=list)
 
@@ -81,6 +81,8 @@ class RunOut(Schema):
     module: str
     input_kind: EntityKind
     input_value: str
+    # 0: one of the profile's elements; more: a trace the scan followed, so many hops away.
+    depth: int
     status: RunStatus
     progress_done: int | None
     progress_total: int | None
@@ -113,6 +115,8 @@ class ScanOut(Schema):
     status: ScanStatus
     modules: list[str]
     results_count: int
+    # "pivots": traces the scan followed; "capped": traces it would have followed, past its cap.
+    notes: dict[str, Any] | None
     created_at: datetime
     finished_at: datetime | None
 
@@ -127,12 +131,38 @@ class EntityOut(Schema):
     display: str
     normalized: str
     status: EntityStatus
+    # Scores, 0..1 (engine/scoring.py); their reasons are in the trace's detail.
     confidence: float | None
+    risk: float | None
     attributes: dict[str, Any]
 
 
 class EntityPatch(Schema):
-    status: EntityStatus
+    status: EntityStatus | None = None
+    # True: stop suggesting this trace as a new element.
+    pivot_dismissed: bool | None = None
+
+
+class ScoreReason(Schema):
+    """One rule behind a score: a code the UI translates, and what it did to the score."""
+
+    code: str
+    points: int | None = None
+    factor: float | None = None
+    params: dict[str, Any] = Field(default_factory=dict)
+
+
+class ScoreReasons(Schema):
+    confidence: list[ScoreReason] = Field(default_factory=list)
+    risk: list[ScoreReason] = Field(default_factory=list)
+
+
+class LeadOut(Schema):
+    """A trace that could become one of the profile's elements, and how it was found."""
+
+    entity: EntityOut
+    via: EntityOut | None
+    relation: str | None
 
 
 class TraceIn(Schema):
@@ -203,6 +233,7 @@ class EntityDetail(Schema):
     """One trace, with every proof of it and every trace it relates to."""
 
     entity: GraphNode
+    reasons: ScoreReasons
     evidence: list[EvidenceOut]
     edges: list[EdgeOut]
     neighbours: list[EntityOut]

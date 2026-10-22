@@ -29,9 +29,13 @@ async def test_a_trace_marked_not_me_leaves_the_results_until_asked_for(api: Api
     everything = await api.json("GET", f"/scans/{scan_id}/results?false_positives=true")
     assert everything["total"] == remaining["total"] + 1
     events = await api.app.state.services.bus.read_after(0, limit=10_000)
-    [event] = [e for e in events if e.type == "entity.updated"]
+    updates = [e for e in events if e.type == "entity.updated"]
+    [event] = [e for e in updates if e.payload["id"] == entity["id"]]
     assert event.payload["status"] == "false_positive"
     assert event.payload["profile_id"] == profile
+    assert (event.payload["confidence"], event.payload["risk"]) == (0, 0)
+    # Its neighbours' scores may follow (one only reached through it is doubted): each is told.
+    assert all(e.payload["profile_id"] == profile for e in updates)
 
 
 async def test_a_review_holds_for_the_next_scans(api: Api) -> None:

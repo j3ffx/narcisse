@@ -64,3 +64,37 @@ def test_phone_numbers_already_stored_are_written_one_way(tmp_path: Path) -> Non
     engine.dispose()
     assert seeds == ["+33639980000", "+33199001234"]
     assert entities == ["0199001234", "+33199001234", "+33639980000"]
+
+
+def test_the_sources_confidence_is_kept_apart_from_the_scores(tmp_path: Path) -> None:
+    path = tmp_path / "narcisse.sqlite3"
+    at_revision(path, "0005")
+    engine = create_engine(f"sqlite:///{path}")
+    with engine.begin() as db:
+        db.execute(
+            text(
+                "INSERT INTO profile (id, name, kind, settings, created_at, updated_at) "
+                "VALUES (1, 'Jeanne Exemple', 'personal', '{}', :now, :now)"
+            ),
+            {"now": NOW},
+        )
+        db.execute(
+            text(
+                "INSERT INTO entity (id, profile_id, kind, normalized, display, status, "
+                "confidence, attributes, first_seen, last_seen) VALUES (1, 1, 'email', "
+                "'jeanne@example.org', 'jeanne@example.org', 'unreviewed', 0.7, '{}', :now, :now)"
+            ),
+            {"now": NOW},
+        )
+    engine.dispose()
+
+    migrate(path)
+
+    engine = create_engine(f"sqlite:///{path}")
+    with engine.connect() as db:
+        row = db.execute(
+            text("SELECT module_confidence, score_reasons, pivot_dismissed FROM entity")
+        ).one()
+    engine.dispose()
+    # The scores themselves are computed when the app starts (`score_reasons` still empty).
+    assert tuple(row) == (0.7, None, 0)

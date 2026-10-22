@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from narcisse.domain import EntityKind, EntityStatus, ProfileKind, RunStatus, ScanStatus, SeedStatus
 from narcisse.engine.engine import IDENTITY_KEY
+from narcisse.engine.rescore import rescore
 from narcisse.normalize import normalize
 from narcisse.storage.models import Edge, Entity, Evidence, ModuleRun, Profile, Scan, Seed
 
@@ -58,6 +59,7 @@ class _Builder:
         *,
         status: EntityStatus | None = None,
         normalized: str | None = None,
+        attributes: dict[str, object] | None = None,
     ) -> tuple[Entity, bool]:
         display, normal = normalize(kind, value)
         normalized = normalized or normal
@@ -75,8 +77,9 @@ class _Builder:
                 (EntityStatus.UNREVIEWED, EntityStatus.CONFIRMED, EntityStatus.FALSE_POSITIVE),
                 weights=(80, 15, 5),
             )[0],
-            confidence=round(rng.uniform(0.2, 0.95), 2),
-            attributes={},
+            module_confidence=round(rng.uniform(0.2, 0.95), 2),
+            pivot_dismissed=False,
+            attributes=dict(attributes or {}),
             first_seen=seen,
             last_seen=min(self.now, seen + timedelta(days=rng.randint(0, 200))),
         )
@@ -153,8 +156,15 @@ async def generate(session: AsyncSession, *, size: int, now: datetime) -> Profil
         last = last.rstrip("0123456789") or rng.choice(LAST)
         return f"{first.rstrip('0123456789').capitalize()} {last.capitalize()}"
 
-    def add(parent: Entity, kind: EntityKind, value: str, relation: str, handle: str) -> None:
-        child, new = build.entity(kind, value, rng)
+    def add(
+        parent: Entity,
+        kind: EntityKind,
+        value: str,
+        relation: str,
+        handle: str,
+        attributes: dict[str, object] | None = None,
+    ) -> None:
+        child, new = build.entity(kind, value, rng, attributes=attributes)
         if child is parent:
             return
         build.relate(parent, child, relation, rng.uniform(0.3, 0.9))
@@ -170,7 +180,31 @@ async def generate(session: AsyncSession, *, size: int, now: datetime) -> Profil
                 for _ in range(rng.randint(2, 7)):
                     handle = variant(own)
                     url = rng.choice(platforms).format(h=handle)
-                    add(parent, EntityKind.ACCOUNT, url, "has_account", handle)
+                    adult: dict[str, object] | None = (
+                        {"adult": True} if rng.random() < 0.04 else None
+                    )
+                    add(parent, EntityKind.ACCOUNT, url, "has_account", handle, adult)
+                if parent.kind == EntityKind.EMAIL and rng.random() < 0.3:
+                    readable = rng.random() < 0.5
+                    add(
+                        parent,
+                        EntityKind.LEAK,
+                        f"{rng.choice(WORDS).capitalize()}Exemple{rng.randint(2012, 2025)}",
+                        "exposed_in",
+                        own,
+                        {
+                            "data": ["adresses email", "mots de passe"],
+                            "password_risk": "plaintext" if readable else "hardtocrack",
+                        },
+                    )
+            case EntityKind.ACCOUNT if rng.random() < 0.08:
+                # Contact details an account shows: numbers and places reserved for fiction.
+                if rng.random() < 0.5:
+                    number = f"+33 6 39 98 {rng.randint(10, 99)} {rng.randint(10, 99)}"
+                    add(parent, EntityKind.PHONE, number, "shows_phone", own)
+                else:
+                    street = f"{rng.randint(1, 99)} rue de l’Exemple, 75000 Paris"
+                    add(parent, EntityKind.ADDRESS, street, "shows_address", own)
             case EntityKind.ACCOUNT:
                 handle = variant(own)
                 options = (
@@ -269,4 +303,5 @@ async def generate(session: AsyncSession, *, size: int, now: datetime) -> Profil
     session.add_all(proofs)
     scan.results_count = run.results_count = len(proofs)
     await session.flush()
+    await rescore(session, profile.id)
     return profile

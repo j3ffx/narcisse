@@ -16,7 +16,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import httpx
-from sqlalchemy import select, update
+from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from narcisse.clock import Clock
@@ -24,10 +24,12 @@ from narcisse.domain import (
     FINISHED_RUN_STATUSES,
     EntityKind,
     EntityStatus,
+    IntrusionLevel,
     RunStatus,
     ScanStatus,
     SeedStatus,
 )
+from narcisse.engine import pivot
 from narcisse.engine.events import EventBus, Transaction
 from narcisse.engine.http import DomainPacer, HttpClient
 from narcisse.engine.plugin import (
@@ -39,11 +41,12 @@ from narcisse.engine.plugin import (
     Target,
     TransientError,
 )
+from narcisse.engine.rescore import rescore
 from narcisse.errors import AppError, not_found
 from narcisse.normalize import normalize
 from narcisse.preferences import Preferences
 from narcisse.schemas import EdgeOut, EntityOut, ResultOut, RunOut, ScanDetail, ScanOut
-from narcisse.storage.models import Edge, Entity, Evidence, ModuleRun, Profile, Scan
+from narcisse.storage.models import Edge, Entity, Evidence, ModuleRun, Profile, Scan, Seed
 
 log = logging.getLogger(__name__)
 
@@ -86,9 +89,11 @@ async def upsert_entity(
     normalized: str,
     now: datetime,
     status: EntityStatus = EntityStatus.UNREVIEWED,
-    confidence: float | None = None,
+    module_confidence: float | None = None,
     attributes: dict[str, Any] | None = None,
 ) -> Entity:
+    """The profile's trace of that kind and value, created if new. `module_confidence` is a
+    source's; the trace keeps the highest. Its scores are `rescore`'s business."""
     entity = await session.scalar(
         select(Entity).where(
             Entity.profile_id == profile_id,
@@ -103,7 +108,8 @@ async def upsert_entity(
             normalized=normalized,
             display=display,
             status=status,
-            confidence=confidence,
+            module_confidence=module_confidence,
+            pivot_dismissed=False,
             attributes=dict(attributes or {}),
             first_seen=now,
             last_seen=now,
@@ -112,8 +118,8 @@ async def upsert_entity(
         await session.flush()
     else:
         entity.last_seen = now
-        if confidence is not None:
-            entity.confidence = max(entity.confidence or 0.0, confidence)
+        if module_confidence is not None:
+            entity.module_confidence = max(entity.module_confidence or 0.0, module_confidence)
         if attributes:
             # A new dict: SQLAlchemy only sees a JSON column change when it is reassigned.
             entity.attributes = {**entity.attributes, **attributes}
@@ -254,7 +260,16 @@ class Engine:
     # Life cycle
 
     async def start(self) -> None:
-        """Picks up where the last process stopped: interrupted runs go back to the queue."""
+        """Picks up where the last process stopped: interrupted runs go back to the queue, and
+        traces stored before scores existed (or by an older version) get theirs."""
+        async with self.db.write() as session:
+            unscored = await session.scalars(
+                select(Entity.profile_id)
+                .where(or_(Entity.confidence.is_(None), Entity.score_reasons.is_(None)))
+                .distinct()
+            )
+            for profile_id in list(unscored):
+                await rescore(session, profile_id)
         async with self.bus.transaction() as tx:
             runs = await tx.session.scalars(
                 select(ModuleRun).where(ModuleRun.status == RunStatus.RUNNING)
@@ -312,7 +327,6 @@ class Engine:
                 normalized=IDENTITY_KEY,
                 now=now,
                 status=EntityStatus.CONFIRMED,
-                confidence=1.0,
             )
             identity.display = profile.name
             scan = Scan(
@@ -320,11 +334,13 @@ class Engine:
                 status=ScanStatus.RUNNING,
                 modules=names,
                 results_count=0,
+                notes=None,
                 created_at=now,
                 finished_at=None,
             )
             tx.session.add(scan)
             await tx.session.flush()
+            declared = [identity.id]
             for seed in seeds:
                 entity = await upsert_entity(
                     tx.session,
@@ -334,8 +350,8 @@ class Engine:
                     normalized=seed.normalized,
                     now=now,
                     status=EntityStatus.CONFIRMED,
-                    confidence=1.0,
                 )
+                declared.append(entity.id)
                 await upsert_edge(
                     tx.session,
                     profile_id=profile.id,
@@ -362,6 +378,7 @@ class Engine:
                             )
                         )
             await tx.session.flush()
+            await rescore(tx.session, profile.id, declared)
             await tx.session.refresh(scan, ["runs"])
             if not scan.runs:
                 raise AppError("nothing_to_scan", status=409)
@@ -589,7 +606,7 @@ class Engine:
                 display=display,
                 normalized=normalized,
                 now=now,
-                confidence=finding.confidence,
+                module_confidence=finding.confidence,
                 attributes=finding.attributes,
             )
             if source_id == entity.id:
@@ -642,6 +659,19 @@ class Engine:
                 .values(results_count=Scan.results_count + 1)
             )
             await tx.session.flush()
+            profile_id = run.input_entity.profile_id
+            for other in await rescore(tx.session, profile_id, {entity.id, source_id}):
+                if other.id != entity.id:
+                    tx.emit(
+                        "entity.updated",
+                        {
+                            **EntityOut.model_validate(other).model_dump(mode="json"),
+                            "profile_id": profile_id,
+                        },
+                        None,
+                    )
+            if await self._follow(tx, current, entity):
+                self._wake.set()
             tx.emit(
                 "result.created",
                 ResultOut(
@@ -660,6 +690,80 @@ class Engine:
                 ),
                 run.scan_id,
             )
+
+    async def _follow(self, tx: Transaction, run: ModuleRun, entity: Entity) -> bool:
+        """Makes a trace this run found a new target of the scan, when the profile lets scans
+        follow leads (up to its depth) and the trace is sure enough. Returns whether runs were
+        added."""
+        session = tx.session
+        profile = await session.get(Profile, entity.profile_id)
+        if profile is None or run.depth + 1 > pivot.depth_allowed(profile.settings or {}):
+            return False
+        declared = (
+            await session.scalar(
+                select(Seed.id).where(
+                    Seed.profile_id == profile.id,
+                    Seed.kind == entity.kind,
+                    Seed.normalized == entity.normalized,
+                )
+            )
+            is not None
+        )
+        if not pivot.to_follow(entity, declared):
+            return False
+        scan = await self._scan(session, run.scan_id)
+        if any(r.input_entity_id == entity.id for r in scan.runs):
+            return False  # already a target of this scan
+        notes = dict(scan.notes or {})
+        followed = {r.input_entity_id for r in scan.runs if r.depth > 0}
+        if len(followed) >= pivot.MAX_PIVOTS:
+            capped = list(notes.get("capped") or [])
+            if entity.id not in capped:
+                notes["capped"] = [*capped, entity.id]
+                scan.notes = notes
+                tx.emit("scan.updated", scan_out(scan), scan.id)
+            return False
+
+        preferences = self.preferences()
+        kind = EntityKind(entity.kind)
+        names = []
+        for name in scan.modules:
+            module = self.modules.get(name)
+            if module is None or module.unavailable(preferences) is not None:
+                continue
+            if not module.accepts_target(kind, entity.display):
+                continue
+            if module.meta.intrusion == IntrusionLevel.LIGHT_ACTIVE and not pivot.active_allowed(
+                entity
+            ):
+                continue  # a lead may be someone else's address: not handed to a third party
+            names.append(name)
+        if not names:
+            return False
+        now = self.clock.now()
+        added = [
+            ModuleRun(
+                scan=scan,
+                module=name,
+                input_entity=entity,
+                depth=run.depth + 1,
+                status=RunStatus.QUEUED,
+                results_count=0,
+                attempts=0,
+                retryable=False,
+                created_at=now,
+                updated_at=now,
+            )
+            for name in names
+        ]
+        session.add_all(added)
+        await session.flush()
+        for new in added:
+            tx.emit("run.updated", RunOut.of(new), scan.id)
+        notes["pivots"] = len(followed) + 1
+        scan.notes = notes
+        tx.emit("scan.updated", scan_out(scan), scan.id)
+        return True
 
     async def _end(
         self,
