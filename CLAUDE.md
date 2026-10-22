@@ -113,6 +113,12 @@ fixtures, docs, commit messages or commit metadata.
   (no query cache, no storage, no log).
 - **Results stream.** A module yields findings one by one; each is stored and pushed to the UI as it
   arrives. No module returns its findings in one block.
+- **Scores explain themselves.** A trace's confidence and risk come from the rules in
+  `engine/scoring.py`, each leaving a reason the UI shows; the user's word (confirmed, rejected)
+  overrides them, and a rejected trace weighs on what was only found through it. Scans follow
+  leads only when the profile allows it (up to two hops, a cap per scan), never from a rejected
+  trace; light-active sources only get a lead the user confirmed or one that is nearly certain,
+  since it may be someone else's address.
 - **Every source says what it is.** A source that stops working says so, and a run reports what it
   could and couldn't check (`ModuleRun.notes`). Demo mode offers the demo module only, normal mode
   the real sources only: fictitious identities never reach real sites.
@@ -125,9 +131,10 @@ fixtures, docs, commit messages or commit metadata.
 
 ## Layout
 
-- `src/narcisse/`: Python package. `engine/` (scheduling, events, HTTP for modules), `modules/` (one
-  file per source; `_text.py` reads profiles' bios and relates findings to the profile they were
-  read on), `api/`, `storage/` (models, Alembic migrations: `scripts/new-migration.py`),
+- `src/narcisse/`: Python package. `engine/` (scheduling, events, HTTP for modules, the scores in
+  `scoring.py` kept up to date by `rescore.py`, the leads scans may follow in `pivot.py`),
+  `modules/` (one file per source; `_text.py` reads profiles' bios and relates findings to the
+  profile they were read on), `api/`, `storage/` (models, Alembic migrations: `scripts/new-migration.py`),
   `demo_graph.py` (fictitious graphs of thousands of traces, demo mode only),
   `desktop/` (tray, Windows integration, the icon drawn in `art.py` and exported by
   `scripts/make-icons.py`).
@@ -146,13 +153,17 @@ fixtures, docs, commit messages or commit metadata.
 The graph must stay fluid (about 60 frames a second up to 5,000 traces) and no task may block the
 page for 200 ms while a scan streams (`e2e/demo.spec.ts` checks it). `npm run bench` measures it;
 headless Chrome draws WebGL in software unless told to use the GPU, so the benchmark asks for it
-and names the renderer. Last run (2026-10-12, integrated Intel Iris Xe, Chrome headless):
+and names the renderer. Last run (2026-10-22, nodes sized by risk, integrated Intel Iris Xe,
+Chrome headless):
 
 | Traces | First drawing | Layout | Panning and zooming | Worst frame |
 | -----: | ------------: | -----: | ------------------: | ----------: |
-|    500 |         2.1 s |  3.0 s |              60 fps |       17 ms |
-|  5,000 |         1.3 s | 11.7 s |              57 fps |       67 ms |
-| 20,000 |         3.9 s | 15.1 s |              20 fps |      367 ms |
+|    500 |         1.5 s |  2.9 s |              60 fps |       17 ms |
+|  5,000 |         1.5 s | 11.7 s |              55 fps |      100 ms |
+| 20,000 |         3.9 s | 15.5 s |              17 fps |      600 ms |
+
+Runs vary by a few frames a second (50 to 57 fps at 5,000 traces the same day); sizing by degree
+instead measured 57 fps there in the same session.
 
 Re-run it after any change to the canvas, and update this table.
 

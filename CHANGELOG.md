@@ -67,6 +67,13 @@ Pas encore de version : la 0.1.0 sortira quand Narcisse sera utilisable sur de v
   et des vues enregistrées (filtres, groupes, cadrage) pour y revenir.
 - Trier chaque trace : « c’est moi » ou « pas moi ». Le choix tient d’un scan à l’autre et les « pas
   moi » sont masqués (une case les fait revenir).
+- Deux scores par trace, expliqués règle par règle : la confiance (« est-ce toi ? ») et le risque
+  (« à quel point ça t’expose ? », de faible à critique). Ton tri les met à jour, voisines
+  comprises : ce qu’on n’a trouvé qu’à travers un « pas moi » est mis en doute. Dans le graphe, les
+  traces les plus exposantes sont les plus grosses ; filtre et tri par risque.
+- Les pistes : les traces assez sûres pour devenir des éléments, à ajouter ou écarter. Un profil
+  peut laisser les scans suivre eux-mêmes les plus sûres (un ou deux sauts, 25 par scan au plus,
+  jamais un « pas moi » ; l’actif léger seulement sur une piste confirmée ou presque certaine).
 - Une page « Sources » qui dit ce que chaque source interroge, à quel rythme et sous quelle
   licence, et une page « Réglages » (tokens GitHub et GitLab facultatifs, instances Mastodon,
   instance SearXNG, sources « actif léger », sites adultes).

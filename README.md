@@ -12,8 +12,9 @@ déréférencement, envoyer une demande RGPD. Puis il suit tes progrès d’un s
 > ce que Gravatar et les serveurs de clés PGP publient sur toi, ce que disent tes domaines (registre,
 > DNS, certificats, mentions légales de ton site), ce qu’en gardent les archives du web, te prépare
 > les recherches à faire sur les moteurs, les relie dans un graphe qui se remplit pendant le
-> scan, et te laisse trier chaque trace (« c’est moi » / « pas moi »). La
-> remédiation, les scores et d’autres sources arrivent. Le
+> scan, te dit pour chaque trace à quel point c’est toi et à quel point elle t’expose (en
+> expliquant pourquoi), et te laisse la trier (« c’est moi » / « pas moi »). La remédiation et
+> d’autres sources arrivent. Le
 > [journal des changements](CHANGELOG.md) dira quand la première version sortira.
 
 ![Le graphe d’un profil fictif en mode démo : une trace sélectionnée et le chemin qui la relie à
@@ -79,8 +80,9 @@ erreur réseau rattrapée seule et une panne à relancer. Tu peux mettre en paus
 navigateur ou arrêter Narcisse : tout reprend où ça en était.
 
 Le profil s’ouvre sur son **graphe** : chaque trace y apparaît au fil du scan, reliée à celle qui y a
-mené (un pseudo → un compte → le site indiqué sur ce compte). Clique une trace pour voir ses preuves
-et ses voisines, cherche-en une (touche `/`), filtre par type, source, statut, confiance ou date,
+mené (un pseudo → un compte → le site indiqué sur ce compte), d’autant plus grosse qu’elle t’expose.
+Clique une trace pour voir ses scores et leurs raisons, ses preuves et ses voisines, cherche-en une
+(touche `/`), filtre par type, source, statut, confiance, risque ou date,
 demande comment deux traces sont reliées (le plus court chemin), replie les traces isolées,
 regroupe par type, par source ou par site, et enregistre la vue pour y revenir. La
 vue **Liste** montre les mêmes traces, avec les mêmes filtres et la même sélection, sous une forme
@@ -197,11 +199,26 @@ La commande écrit sa configuration dans ton dossier de configuration (avec une 
 est propre), la lance sur `127.0.0.1:8888` et règle son adresse dans Narcisse. C’est elle qui
 interroge les moteurs, comme le ferait ton navigateur.
 
-### Des traces aux éléments
+### Confiance, risque et pistes
 
-Un scan part des éléments de ton profil. Une trace trouvée (un domaine cité dans une bio, un compte,
-une adresse…) peut en devenir un : « Ajouter comme élément », dans son détail, et le scan suivant
-cherchera aussi à partir d’elle.
+Chaque trace a deux scores sur 100, avec leurs raisons dans son détail (« Pourquoi ces scores ? ») :
+
+- la **confiance** (« est-ce toi ? ») part de ce qu’en dit la source, monte quand plusieurs sources
+  indépendantes la trouvent ou qu’elle relie plusieurs de tes éléments, baisse beaucoup quand on ne
+  l’a trouvée qu’à travers des traces que tu as rejetées. « C’est moi » la met à 100, « pas moi » à
+  0, et les traces voisines suivent ;
+- le **risque** (« à quel point ça t’expose ? ») dépend du type de trace (une adresse postale
+  expose plus qu’un pseudo) et de ce qu’elle révèle : mots de passe lisibles dans une fuite, date
+  de naissance au registre, courtier en données, site adulte, Strava, sous-domaine comme `nas.` ou
+  `vpn.`, coordonnées publiées par le registre d’un domaine, copie dans une archive… Il est pondéré
+  par la confiance, et classé faible, moyen, élevé ou critique.
+
+Un scan part des éléments de ton profil. Les **pistes**, dans l’onglet Éléments, sont les traces
+assez sûres pour qu’un scan parte aussi d’elles (un email lu dans un profil, un domaine cité dans
+une bio…) : « Ajouter comme élément » ou « Écarter ». Si tu le choisis pour ce profil, les scans
+suivent eux-mêmes les plus sûres, à un ou deux sauts, 25 au plus par scan, jamais une trace que tu
+as rejetée ; les sources « actif léger » ne reçoivent qu’une piste que tu as confirmée ou presque
+certaine, puisqu’une piste peut être l’adresse de quelqu’un d’autre.
 
 En mode démo, seul le module de démonstration est proposé : des identités fictives n’interrogent
 jamais de vrais sites.
