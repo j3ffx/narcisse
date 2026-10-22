@@ -61,6 +61,11 @@ export function ScanPage({ id }: { id: number }) {
         <h2 id="runs-title" className="font-heading text-lg font-semibold">
           Recherches
         </h2>
+        {!!(data.notes?.pivots || data.notes?.capped?.length) && (
+          <p className="text-sm text-muted-foreground" data-testid="scan-pivots">
+            {pivotSummary(data.notes.pivots ?? 0, data.notes.capped?.length ?? 0)}
+          </p>
+        )}
         <ul className="divide-y rounded-lg border px-3">
           {data.runs.map((run) => (
             <RunRow key={run.id} run={run} now={now} />
@@ -70,6 +75,18 @@ export function ScanPage({ id }: { id: number }) {
       <Results scanId={id} live={data.status === 'running'} />
     </div>
   );
+}
+
+/** « 3 pistes suivies · 2 laissées (plafond de 25 par scan atteint) ». */
+function pivotSummary(followed: number, capped: number): string {
+  const parts = [`${followed} piste${followed > 1 ? 's' : ''} suivie${followed > 1 ? 's' : ''}`];
+  if (capped) {
+    parts.push(
+      `${capped} laissée${capped > 1 ? 's' : ''} (plafond de 25 par scan atteint : ajoute-les ` +
+        `comme éléments si tu veux qu’elles soient fouillées)`,
+    );
+  }
+  return parts.join(' · ');
 }
 
 function Results({ scanId, live }: { scanId: number; live: boolean }) {

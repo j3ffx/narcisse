@@ -54,6 +54,13 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await page.getByTestId('trace').first().getByRole('button').first().click();
       await expect(page.getByTestId('trace-panel').getByTestId('trace-value')).toBeVisible();
       await audit(page);
+      await page.getByTestId('trace-panel').getByText('Pourquoi ces scores ?').click();
+      await expect(page.getByTestId('score-reasons')).toHaveAttribute('open');
+      await audit(page);
+
+      await page.goto(`/profils/${id}/elements`);
+      await expect(page.getByTestId('lead').first()).toBeVisible();
+      await audit(page);
 
       await page.goto('/sources');
       await expect(page.getByTestId('source')).toHaveCount(1);

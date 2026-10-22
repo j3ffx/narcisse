@@ -222,6 +222,51 @@ test('a trace found becomes one of the profile’s elements', async ({ page, req
   await expect(page.getByTestId('seed').last()).toContainText('forum.example.org');
 });
 
+test('scores say why, and leads become elements or are dismissed', async ({ page, request }) => {
+  const id = await demoProfile(request, 'Jeanne Exemple (scores et pistes)');
+  const started = await request.post(`/api/profiles/${id}/scans`, { data: {} });
+  const { id: scanId } = (await started.json()) as { id: number };
+  await expect
+    .poll(
+      async () =>
+        ((await (await request.get(`/api/scans/${scanId}`)).json()) as { status: string }).status,
+      { timeout: 30_000 },
+    )
+    .toBe('done');
+
+  // The most exposing trace first; its scores, and the rules behind them.
+  await page.goto(`/profils/${id}/liste`);
+  await page.getByRole('combobox', { name: 'Afficher d’abord' }).selectOption('risk');
+  await page.getByTestId('trace').first().getByRole('button').first().click();
+  const panel = page.getByTestId('trace-panel');
+  await expect(panel.getByTestId('trace-risk')).toContainText('/ 100');
+  await expect(panel.getByTestId('trace-confidence')).toContainText('/ 100');
+  await panel.getByText('Pourquoi ces scores ?').click();
+  await expect(panel.getByTestId('score-reasons')).toContainText('exposition de base');
+
+  // Leads: one dismissed, one added as an element. (A lead's text may name another as the trace
+  // it was found through: they are told apart by their own link.)
+  await page.getByRole('link', { name: 'Éléments' }).click();
+  const leads = page.getByTestId('lead');
+  const lead = (value: string) =>
+    leads.filter({ has: page.getByRole('link', { name: value, exact: true }) });
+  await expect(leads.first()).toBeVisible();
+  const dismissed = (await leads.first().getByRole('link').textContent())!;
+  await lead(dismissed)
+    .getByRole('button', { name: /^Écarter/ })
+    .click();
+  await expect(lead(dismissed)).toHaveCount(0);
+
+  const added = (await leads.first().getByRole('link').textContent())!;
+  await lead(added).getByRole('button', { name: 'Ajouter comme élément' }).click();
+  await expect(page.getByTestId('seed')).toHaveCount(5);
+  await expect(page.getByTestId('seed').last()).toContainText(added);
+  await expect(lead(added)).toHaveCount(0);
+  await page.reload();
+  await expect(leads.first()).toBeVisible();
+  await expect(lead(dismissed)).toHaveCount(0); // the choice holds
+});
+
 test('the assisted search prepares the queries and takes back what the user found', async ({
   page,
   request,

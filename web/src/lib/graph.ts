@@ -46,7 +46,8 @@ export function withResult(
   return { ...data, nodes, edges };
 }
 
-/** A reviewed trace: its new status, or its leaving when "not me" traces are hidden. */
+/** A reviewed (or rescored) trace: its new status and scores, or its leaving when "not me"
+ * traces are hidden. */
 export function withEntity(data: GraphData, entity: Entity, falsePositives: boolean): GraphData {
   if (!data.nodes.some((n) => n.id === entity.id)) return data;
   if (!falsePositives && entity.status === 'false_positive') {
@@ -58,7 +59,11 @@ export function withEntity(data: GraphData, entity: Entity, falsePositives: bool
   }
   return {
     ...data,
-    nodes: data.nodes.map((n) => (n.id === entity.id ? { ...n, status: entity.status } : n)),
+    nodes: data.nodes.map((n) =>
+      n.id === entity.id
+        ? { ...n, status: entity.status, confidence: entity.confidence, risk: entity.risk }
+        : n,
+    ),
   };
 }
 
@@ -71,6 +76,8 @@ export interface TraceFilter {
   statuses: EntityStatus[];
   /** Only traces at least this sure (0: all). Declared ones always pass. */
   minConfidence: number;
+  /** Only traces at least this exposing (0: all), a level's floor (lib/scores.ts). */
+  minRisk: number;
   /** Only traces seen since this day (ISO date), or null. */
   since: string | null;
 }
@@ -80,6 +87,7 @@ export const NO_FILTER: TraceFilter = {
   modules: [],
   statuses: [],
   minConfidence: 0,
+  minRisk: 0,
   since: null,
 };
 
@@ -89,6 +97,7 @@ export function isFiltering(filter: TraceFilter): boolean {
     filter.modules.length > 0 ||
     filter.statuses.length > 0 ||
     filter.minConfidence > 0 ||
+    filter.minRisk > 0 ||
     filter.since !== null
   );
 }
@@ -103,6 +112,7 @@ export function passes(node: GraphNode, filter: TraceFilter): boolean {
   if (!declared && filter.minConfidence > 0 && (node.confidence ?? 0) < filter.minConfidence) {
     return false;
   }
+  if (filter.minRisk > 0 && (node.risk ?? 0) < filter.minRisk) return false;
   if (filter.since && node.last_seen.slice(0, 10) < filter.since) return false;
   return true;
 }
@@ -278,6 +288,8 @@ export function grouped(
       normalized: key,
       status: 'unreviewed',
       confidence: null,
+      // Drawn as big as its most exposing trace.
+      risk: Math.max(...list.map((m) => m.risk ?? 0)),
       attributes: { group: key, members: list.length },
       first_seen: list.map((m) => m.first_seen).sort()[0]!,
       last_seen: list
@@ -364,6 +376,7 @@ export function readViewState(raw: unknown): GraphViewState {
       modules: list(f.modules, isString),
       statuses: list(f.statuses, (v): v is EntityStatus => STATUSES.includes(v as EntityStatus)),
       minConfidence: isNumber(f.minConfidence) ? f.minConfidence : 0,
+      minRisk: isNumber(f.minRisk) ? f.minRisk : 0,
       since: isString(f.since) && /^\d{4}-\d{2}-\d{2}$/.test(f.since) ? f.since : null,
     },
     falsePositives: r.falsePositives === true,

@@ -27,6 +27,7 @@ export function RunRow({ run, now }: { run: Run; now: number }) {
           <span className="text-muted-foreground">
             {' · '}
             {KIND_LABELS[run.input_kind]} « {run.input_value} »
+            {run.depth > 0 && ` · piste suivie (${run.depth} saut${run.depth > 1 ? 's' : ''})`}
           </span>
         </div>
         <RunStatusBadge status={run.status} />

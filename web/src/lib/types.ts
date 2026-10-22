@@ -62,6 +62,8 @@ export interface Run {
   module: string;
   input_kind: EntityKind;
   input_value: string;
+  /** 0: one of the profile's elements; more: a trace the scan followed, so many hops away. */
+  depth: number;
   status: RunStatus;
   progress_done: number | null;
   progress_total: number | null;
@@ -85,6 +87,8 @@ export interface Scan {
   status: ScanStatus;
   modules: string[];
   results_count: number;
+  /** What the scan reports as a whole: traces it followed, and those left past its cap. */
+  notes: { pivots?: number; capped?: number[] } | null;
   created_at: string;
   finished_at: string | null;
 }
@@ -99,8 +103,30 @@ export interface Entity {
   display: string;
   normalized: string;
   status: EntityStatus;
+  /** Scores, 0..1: is it me, how much does it expose me (their reasons are in the detail). */
   confidence: number | null;
+  risk: number | null;
   attributes: Record<string, unknown>;
+}
+
+/** One rule behind a score: a code (lib/scores.ts says it), and what it did to the score. */
+export interface ScoreReason {
+  code: string;
+  points?: number | null;
+  factor?: number | null;
+  params?: Params;
+}
+
+export interface ScoreReasons {
+  confidence: ScoreReason[];
+  risk: ScoreReason[];
+}
+
+/** A trace that could become one of the profile's elements, and how it was found. */
+export interface Lead {
+  entity: Entity;
+  via: Entity | null;
+  relation: string | null;
 }
 
 /** How two traces relate: `source` led to `target`, according to `module`. */
@@ -144,6 +170,7 @@ export interface Evidence {
 
 export interface EntityDetail {
   entity: GraphNode;
+  reasons: ScoreReasons;
   evidence: Evidence[];
   edges: Edge[];
   neighbours: Entity[];

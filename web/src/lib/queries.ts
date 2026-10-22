@@ -17,6 +17,7 @@ import type {
   AppInfo,
   EntityDetail,
   GraphData,
+  Lead,
   SavedView,
   Module,
   Profile,
@@ -26,6 +27,7 @@ import type {
   Preferences,
   PreferencesChanges,
   ProfileKind,
+  ProfileSettings,
   ResultsPage,
   Scan,
   ScanDetail,
@@ -51,6 +53,7 @@ export const keys = {
   graphs: (profileId: number) => ['graph', profileId] as const,
   entity: (id: number) => ['entity', id] as const,
   views: (profileId: number) => ['views', profileId] as const,
+  leads: (profileId: number) => ['leads', profileId] as const,
   entities: ['entity'] as const,
 };
 
@@ -83,6 +86,35 @@ export const useEntityDetail = (id: number | null) =>
     queryFn: () => get<EntityDetail>(`/entities/${id}`),
     enabled: id !== null,
   });
+
+/** Traces sure enough to search from that aren't elements yet. */
+export const useLeads = (profileId: number) =>
+  useQuery({
+    queryKey: keys.leads(profileId),
+    queryFn: () => get<Lead[]>(`/profiles/${profileId}/leads`),
+  });
+
+/** Stops suggesting a trace as a new element. */
+export function useDismissLead(profileId: number) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (entityId: number) =>
+      patch<Entity>(`/entities/${entityId}`, { pivot_dismissed: true }),
+    onMutate: (entityId) => {
+      const previous = client.getQueryData<Lead[]>(keys.leads(profileId));
+      if (previous)
+        client.setQueryData(
+          keys.leads(profileId),
+          previous.filter((lead) => lead.entity.id !== entityId),
+        );
+      return previous;
+    },
+    onError: (error, _id, previous) => {
+      if (previous) client.setQueryData(keys.leads(profileId), previous);
+      failed(error);
+    },
+  });
+}
 
 export const useSavedViews = (profileId: number) =>
   useQuery({
@@ -171,7 +203,7 @@ export function useCreateProfile() {
 export function useUpdateProfile(id: number) {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (body: { name?: string; kind?: ProfileKind }) =>
+    mutationFn: (body: { name?: string; kind?: ProfileKind; settings?: ProfileSettings }) =>
       patch<ProfileDetail>(`/profiles/${id}`, body),
     onSuccess: (profile) => {
       client.setQueryData(keys.profile(id), profile);
@@ -198,7 +230,10 @@ export function useAddSeed(profileId: number) {
   return useMutation({
     mutationFn: (body: { kind: SeedKind; value: string }) =>
       post<Seed>(`/profiles/${profileId}/seeds`, body),
-    onSuccess: () => client.invalidateQueries({ queryKey: keys.profile(profileId) }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: keys.profile(profileId) });
+      void client.invalidateQueries({ queryKey: keys.leads(profileId) });
+    },
   });
 }
 
@@ -364,7 +399,7 @@ export function useUpdatePreferences() {
   });
 }
 
-/** A trace's new status, everywhere the cache shows it. */
+/** A trace's new status and scores, everywhere the cache shows it. */
 export function reviewed(client: QueryClient, entity: Entity) {
   client.setQueriesData<ResultsPage>({ queryKey: keys.allResults }, (page) =>
     page ? withEntity(page, entity) : page,
@@ -374,7 +409,15 @@ export function reviewed(client: QueryClient, entity: Entity) {
   }
   client.setQueriesData<EntityDetail>({ queryKey: keys.entities }, (detail) =>
     detail && detail.entity.id === entity.id
-      ? { ...detail, entity: { ...detail.entity, status: entity.status } }
+      ? {
+          ...detail,
+          entity: {
+            ...detail.entity,
+            status: entity.status,
+            confidence: entity.confidence,
+            risk: entity.risk,
+          },
+        }
       : detail,
   );
 }

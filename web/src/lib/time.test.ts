@@ -8,6 +8,7 @@ const run = (id: number, done: number, status: Run['status'] = 'running'): Run =
   module: 'demo.fake',
   input_kind: 'name',
   input_value: 'Jeanne Exemple',
+  depth: 0,
   status,
   progress_done: done,
   progress_total: 12,

@@ -110,6 +110,7 @@ function apply(client: QueryClient, event: LiveEvent) {
     case 'scan.updated':
       update(event.data.id, (s) => withScan(s, event.data));
       void client.invalidateQueries({ queryKey: keys.scans(event.data.profile_id) });
+      void client.invalidateQueries({ queryKey: keys.leads(event.data.profile_id) });
       break;
     case 'run.updated':
       update(event.data.scan_id, (s) => withRun(s, event.data));
@@ -150,6 +151,9 @@ function apply(client: QueryClient, event: LiveEvent) {
     }
     case 'entity.updated':
       reviewed(client, event.data);
+      // Its scores' reasons, if its detail is open; the leads, which follow its scores.
+      void client.invalidateQueries({ queryKey: keys.entity(event.data.id) });
+      void client.invalidateQueries({ queryKey: keys.leads(event.data.profile_id) });
       break;
   }
 }

@@ -5,11 +5,13 @@ import { Button } from '@/components/ui/button';
 import { errorMessage } from '@/lib/errors';
 import { ENTITY_STATUS_LABELS, KIND_LABELS, RELATION_LABELS } from '@/lib/labels';
 import { useEntityDetail } from '@/lib/queries';
+import { points } from '@/lib/scores';
 import { formatDate } from '@/lib/time';
 import type { Edge, Entity, EntityDetail } from '@/lib/types';
 import { ArrowLeftIcon, ArrowRightIcon, ExternalLinkIcon, XIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { KIND_ICONS } from './kinds';
+import { RiskValue, ScoreReasonsDetails } from './Scores';
 
 const isLink = (text: string) => /^https?:\/\//.test(text);
 
@@ -111,7 +113,15 @@ function Detail({
         {entity.confidence !== null && entity.kind !== 'identity' && (
           <>
             <dt className="text-muted-foreground">Confiance</dt>
-            <dd>{Math.round(entity.confidence * 100)} %</dd>
+            <dd data-testid="trace-confidence">{points(entity.confidence)} / 100</dd>
+          </>
+        )}
+        {entity.risk !== null && entity.kind !== 'identity' && (
+          <>
+            <dt className="text-muted-foreground">Risque</dt>
+            <dd data-testid="trace-risk">
+              <RiskValue risk={entity.risk} />
+            </dd>
           </>
         )}
         <dt className="text-muted-foreground">Sources</dt>
@@ -125,6 +135,7 @@ function Detail({
         <dt className="text-muted-foreground">Vue en dernier</dt>
         <dd>{formatDate(entity.last_seen)}</dd>
       </dl>
+      <ScoreReasonsDetails reasons={data.reasons} />
       {extra}
       <Section title={`Relations (${data.edges.length})`}>
         <ul className="grid gap-1 text-sm">

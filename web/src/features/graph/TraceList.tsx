@@ -4,11 +4,13 @@ import { Button } from '@/components/ui/button';
 import { errorMessage } from '@/lib/errors';
 import { ENTITY_STATUS_LABELS, KIND_LABELS } from '@/lib/labels';
 import { useGraph } from '@/lib/queries';
+import { RISK_LEVEL_LABELS, points, riskLevel } from '@/lib/scores';
 import { formatDate } from '@/lib/time';
+import type { GraphNode } from '@/lib/types';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { cn } from 'cn';
 import { WaypointsIcon } from 'lucide-react';
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Link } from 'wouter';
 import { TraceToolbar } from './GraphView';
 import { KIND_ICONS } from './kinds';
@@ -16,6 +18,18 @@ import { TracePanel } from './TracePanel';
 import { useHidden, useSelectedTrace, useSourceTitle, type TraceView } from './useTraceView';
 
 const ROW_HEIGHT = 68;
+
+type Order = 'recent' | 'risk' | 'confidence';
+const ORDERS: [Order, string][] = [
+  ['recent', 'les plus récentes'],
+  ['risk', 'les plus exposantes'],
+  ['confidence', 'les plus sûres'],
+];
+const byOrder: Record<Order, (a: GraphNode, b: GraphNode) => number> = {
+  recent: (a, b) => b.last_seen.localeCompare(a.last_seen),
+  risk: (a, b) => (b.risk ?? 0) - (a.risk ?? 0),
+  confidence: (a, b) => (b.confidence ?? 0) - (a.confidence ?? 0),
+};
 
 /**
  * The graph's traces as a list: the same filters and the same selection as the graph, and
@@ -27,13 +41,14 @@ export function TraceList({ profileId, view }: { profileId: number; view: TraceV
   const hidden = useHidden(graph.data, view.filter);
   const sourceTitle = useSourceTitle();
   const parent = useRef<HTMLDivElement>(null);
+  const [order, setOrder] = useState<Order>('recent');
 
   const rows = useMemo(
     () =>
       (graph.data?.nodes ?? [])
         .filter((n) => !hidden.has(n.id))
-        .sort((a, b) => b.last_seen.localeCompare(a.last_seen) || a.id - b.id),
-    [graph.data, hidden],
+        .sort((a, b) => byOrder[order](a, b) || a.id - b.id),
+    [graph.data, hidden, order],
   );
   // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual is fine here
   const virtualizer = useVirtualizer({
@@ -54,6 +69,21 @@ export function TraceList({ profileId, view }: { profileId: number; view: TraceV
   return (
     <div className="grid gap-3">
       <TraceToolbar data={graph.data} view={view} hidden={hidden} onPick={pick} />
+      <label className="flex w-fit items-center gap-2 text-sm">
+        Afficher d’abord
+        <select
+          className="h-8 rounded-lg border bg-background px-2 text-sm"
+          value={order}
+          onChange={(e) => setOrder(e.target.value as Order)}
+          data-testid="trace-order"
+        >
+          {ORDERS.map(([value, title]) => (
+            <option key={value} value={value}>
+              {title}
+            </option>
+          ))}
+        </select>
+      </label>
       <div
         className={cn(
           'grid h-[calc(100dvh-14rem)] min-h-[28rem] gap-3',
@@ -99,7 +129,11 @@ export function TraceList({ profileId, view }: { profileId: number; view: TraceV
                       {node.modules
                         .map((m) => (m === 'seed' ? 'déclaré par toi' : sourceTitle(m)))
                         .join(', ')}{' '}
-                      · {ENTITY_STATUS_LABELS[node.status]} · vue le {formatDate(node.last_seen)}
+                      · {ENTITY_STATUS_LABELS[node.status]}
+                      {node.risk !== null && node.kind !== 'identity'
+                        ? ` · risque ${RISK_LEVEL_LABELS[riskLevel(node.risk)]} (${points(node.risk)})`
+                        : ''}{' '}
+                      · vue le {formatDate(node.last_seen)}
                     </span>
                   </button>
                   {node.kind !== 'identity' && <ReviewButtons entity={node} />}

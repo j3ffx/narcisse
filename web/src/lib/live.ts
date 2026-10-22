@@ -116,13 +116,23 @@ export function matches(result: Result, { kind, q, falsePositives }: ResultFilte
   return [result.entity.display, result.url ?? ''].some((v) => v.toLowerCase().includes(text));
 }
 
-/** A reviewed entity, in a page of results: every result about it follows. */
+/** A reviewed (or rescored) entity, in a page of results: every result about it follows. */
 export function withEntity(page: ResultsPage, entity: Entity): ResultsPage {
   if (!page.items.some((r) => r.entity.id === entity.id)) return page;
   return {
     ...page,
     items: page.items.map((r) =>
-      r.entity.id === entity.id ? { ...r, entity: { ...r.entity, status: entity.status } } : r,
+      r.entity.id === entity.id
+        ? {
+            ...r,
+            entity: {
+              ...r.entity,
+              status: entity.status,
+              confidence: entity.confidence,
+              risk: entity.risk,
+            },
+          }
+        : r,
     ),
   };
 }

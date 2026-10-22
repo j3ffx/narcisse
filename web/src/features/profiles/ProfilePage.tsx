@@ -35,6 +35,7 @@ import { Link, useLocation } from 'wouter';
 import { useTraceViewState } from '@/features/graph/useTraceView';
 import { cn } from 'cn';
 import { AssistedSearch } from '@/features/search/AssistedSearch';
+import { Leads, PivotDepth } from './Leads';
 import { SeedsEditor } from './SeedsEditor';
 import { TABS, type ProfileTab } from './tabs';
 
@@ -93,7 +94,13 @@ export function ProfilePage({ id, tab }: { id: number; tab: ProfileTab }) {
           {tab === 'liste' && <TraceList profileId={id} view={view} />}
         </Suspense>
       </ErrorBoundary>
-      {tab === 'elements' && <SeedsEditor profileId={id} seeds={data.seeds} />}
+      {tab === 'elements' && (
+        <div className="grid gap-8">
+          <SeedsEditor profileId={id} seeds={data.seeds} />
+          <Leads profileId={id} />
+          <PivotDepth profile={data} />
+        </div>
+      )}
       {tab === 'recherche' && <AssistedSearch profileId={id} seeds={data.seeds} />}
       {tab === 'scans' && <ScanHistory profileId={id} />}
     </div>

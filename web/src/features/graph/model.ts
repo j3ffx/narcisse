@@ -20,6 +20,8 @@ export interface NodeAttributes {
   declared: boolean;
   /** For a group of traces drawn as one node: how many it holds. */
   members: number;
+  /** How much the trace exposes, 0..1: it sets the node's size. */
+  risk: number;
   /** Held in place while the layout settles new traces. */
   fixed?: boolean;
 }
@@ -52,12 +54,17 @@ function noise(key: number, salt: number): number {
   return x - Math.floor(x);
 }
 
-/** Size by how connected a trace is (its risk will set it once scores exist). */
-export function sizeFor(degree: number, kind: GraphNode['kind'], order: number): number {
+/** Size by how much a trace exposes: the riskiest stand out. Declared traces stay visible. */
+export function sizeFor(
+  risk: number,
+  kind: GraphNode['kind'],
+  declared: boolean,
+  order: number,
+): number {
   // Smaller on large graphs, where nodes would otherwise cover each other.
   const scale = order > 1000 ? Math.max(0.5, Math.sqrt(1000 / order)) : 1;
   if (kind === 'identity') return 14;
-  return Math.min(14, (3 + 1.6 * Math.sqrt(degree)) * scale);
+  return Math.max(declared ? 7 : 3, 3 + 11 * Math.min(1, Math.max(0, risk))) * scale;
 }
 
 function nodeLook(node: GraphNode, theme: Theme) {
@@ -74,6 +81,7 @@ function nodeLook(node: GraphNode, theme: Theme) {
     opacity: node.status === 'false_positive' ? 0.35 : 1,
     declared,
     members: typeof node.attributes.members === 'number' ? node.attributes.members : 0,
+    risk: node.risk ?? 0,
   };
 }
 
@@ -187,7 +195,7 @@ export function sync(
   graph.forEachNode((key, attributes) => {
     const size = attributes.members
       ? Math.min(28, 6 + 2 * Math.sqrt(attributes.members))
-      : sizeFor(graph.degree(key), attributes.kind, graph.order);
+      : sizeFor(attributes.risk, attributes.kind, attributes.declared, graph.order);
     if (size !== attributes.size) graph.setNodeAttribute(key, 'size', size);
   });
   return added;

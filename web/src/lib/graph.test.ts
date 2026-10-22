@@ -20,6 +20,7 @@ const node = (id: number, display: string, extra: Partial<GraphNode> = {}): Grap
   normalized: display.toLowerCase(),
   status: 'unreviewed',
   confidence: 0.5,
+  risk: 0.2,
   attributes: {},
   first_seen: '2026-01-01T00:00:00Z',
   last_seen: '2026-01-01T00:00:00Z',
@@ -101,6 +102,12 @@ describe('a loaded graph, live', () => {
     const confirmed = withEntity(withTrace, { ...node(3, 'x'), status: 'confirmed' }, false);
     expect(confirmed.nodes[2]!.status).toBe('confirmed');
   });
+
+  it('follows a trace whose scores changed (a neighbour was reviewed)', () => {
+    const withTrace = withResult(graph, result(node(3, 'x'), 2, 2), false)!;
+    const doubted = withEntity(withTrace, { ...node(3, 'x'), confidence: 0.15, risk: 0.1 }, false);
+    expect(doubted.nodes[2]).toMatchObject({ confidence: 0.15, risk: 0.1 });
+  });
 });
 
 describe('filters', () => {
@@ -116,6 +123,8 @@ describe('filters', () => {
     expect(passes(account, { ...NO_FILTER, modules: ['github'] })).toBe(true);
     expect(passes(account, { ...NO_FILTER, statuses: ['confirmed'] })).toBe(false);
     expect(passes(account, { ...NO_FILTER, minConfidence: 0.5 })).toBe(false);
+    expect(passes(account, { ...NO_FILTER, minRisk: 0.25 })).toBe(false); // its risk is 0.2
+    expect(passes({ ...account, risk: 0.6 }, { ...NO_FILTER, minRisk: 0.5 })).toBe(true);
     expect(passes(account, { ...NO_FILTER, since: '2026-02-15' })).toBe(true);
     expect(passes(account, { ...NO_FILTER, since: '2026-03-02' })).toBe(false);
   });
@@ -234,6 +243,13 @@ describe('groups', () => {
     expect(view.edges).toHaveLength(3);
   });
 
+  it('gives a group the risk of its most exposing trace', () => {
+    const risky = { ...data, nodes: data.nodes.map((n) => (n.id === 4 ? { ...n, risk: 0.8 } : n)) };
+    const { data: view, groups } = grouped(risky, 'source', new Set(), () => true, name);
+    const github = [...groups.values()].find((g) => g.key === 'github')!;
+    expect(view.nodes.find((n) => n.id === github.id)!.risk).toBe(0.8);
+  });
+
   it('opens a group, groups by site, and leaves out what the filters reject', () => {
     const open = grouped(data, 'source', new Set(['github']), () => true, name);
     expect(open.groups.size).toBe(0);
@@ -251,7 +267,13 @@ describe('groups', () => {
 describe('saved view state', () => {
   it('keeps what fits and defaults the rest', () => {
     const state = readViewState({
-      filter: { kinds: ['email', 'robot'], minConfidence: 0.5, since: '2026-01-01', statuses: 3 },
+      filter: {
+        kinds: ['email', 'robot'],
+        minConfidence: 0.5,
+        minRisk: 'high',
+        since: '2026-01-01',
+        statuses: 3,
+      },
       grouping: 'site',
       opened: ['github.com', 4],
       folded: [12, 'x'],

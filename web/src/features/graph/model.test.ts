@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Edge, GraphData, GraphNode } from '@/lib/types';
-import { newGraph, sync } from './model';
+import { newGraph, sizeFor, sync } from './model';
 
 const node = (id: number, kind: GraphNode['kind'] = 'account'): GraphNode => ({
   id,
@@ -9,6 +9,7 @@ const node = (id: number, kind: GraphNode['kind'] = 'account'): GraphNode => ({
   normalized: `trace ${id}`,
   status: 'unreviewed',
   confidence: 0.5,
+  risk: 0.2,
   attributes: {},
   first_seen: '2026-01-01T00:00:00Z',
   last_seen: '2026-01-01T00:00:00Z',
@@ -65,5 +66,19 @@ describe('the graph drawn from the data', () => {
 
     sync(graph, first, 'light');
     expect(graph.hasNode('3')).toBe(false);
+  });
+});
+
+describe('node sizes', () => {
+  it('grow with the risk, the identity biggest, declared traces never tiny', () => {
+    expect(sizeFor(0, 'account', false, 100)).toBe(3);
+    expect(sizeFor(1, 'address', false, 100)).toBe(14);
+    expect(sizeFor(0.5, 'email', false, 100)).toBeGreaterThan(sizeFor(0.2, 'email', false, 100));
+    expect(sizeFor(0, 'email', true, 100)).toBe(7);
+    expect(sizeFor(0, 'identity', true, 100)).toBe(14);
+  });
+
+  it('shrink on large graphs', () => {
+    expect(sizeFor(1, 'address', false, 4000)).toBe(7);
   });
 });

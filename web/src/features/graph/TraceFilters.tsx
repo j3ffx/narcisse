@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { NO_FILTER, isFiltering, type TraceFilter } from '@/lib/graph';
 import { ENTITY_STATUS_LABELS, KIND_LABELS } from '@/lib/labels';
+import { RISK_FLOORS, RISK_LEVEL_LABELS } from '@/lib/scores';
 import type { EntityKind, EntityStatus, GraphNode } from '@/lib/types';
 import { FilterIcon } from 'lucide-react';
 import { useMemo, type ReactNode } from 'react';
@@ -16,7 +17,8 @@ function toggle<T>(list: T[], value: T, on: boolean): T[] {
   return on ? [...list, value] : list.filter((v) => v !== value);
 }
 
-/** Filters by kind, source, status, confidence and date; shared by the graph and the list. */
+/** Filters by kind, source, status, confidence, risk and date; shared by the graph and the
+ * list. */
 export function TraceFilters({
   nodes,
   filter,
@@ -88,6 +90,21 @@ export function TraceFilters({
             {CONFIDENCES.map((c) => (
               <option key={c} value={c}>
                 {c === 0 ? 'Toutes' : `${Math.round(c * 100)} % et plus`}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="filter-risk">Risque minimal</Label>
+          <select
+            id="filter-risk"
+            className="h-8 rounded-lg border bg-background px-2 text-sm"
+            value={filter.minRisk}
+            onChange={(e) => onChange({ ...filter, minRisk: Number(e.target.value) })}
+          >
+            {[...RISK_FLOORS].reverse().map(([floor, level]) => (
+              <option key={level} value={floor}>
+                {floor === 0 ? 'Tous' : `${RISK_LEVEL_LABELS[level]} et plus`}
               </option>
             ))}
           </select>
