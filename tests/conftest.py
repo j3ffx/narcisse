@@ -88,7 +88,8 @@ class Api:
                 scan = await self.scan(scan_id)
                 if until(scan):
                     return scan
-                await asyncio.sleep(0.01)
+                # Not tighter: each poll reads the whole scan on the loop the scan runs on.
+                await asyncio.sleep(0.05)
 
 
 ApiFactory = Callable[..., Awaitable[Api]]
