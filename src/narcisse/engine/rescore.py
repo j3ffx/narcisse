@@ -12,9 +12,9 @@ from typing import Any
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from narcisse.domain import EntityKind, EntityStatus
+from narcisse.domain import EntityKind, EntityStatus, ProfileKind
 from narcisse.engine.scoring import Link, Neighbour, Trace, score
-from narcisse.storage.models import Edge, Entity, Evidence
+from narcisse.storage.models import Edge, Entity, Evidence, Profile
 
 # SQLite caps the number of bound parameters: ask in slices.
 SLICE = 900
@@ -100,6 +100,8 @@ async def rescore(
                 )
             )
 
+    profile = await session.get(Profile, profile_id)
+    profile_kind = ProfileKind(profile.kind) if profile is not None else ProfileKind.PERSONAL
     changed: list[Entity] = []
     for entity in entities:
         scores = score(
@@ -112,6 +114,7 @@ async def rescore(
                 modules=frozenset(modules[entity.id]),
                 attributes=entity.attributes or {},
                 links=tuple(links[entity.id]),
+                profile_kind=profile_kind,
             )
         )
         reasons: dict[str, Any] = scores.reasons_json()

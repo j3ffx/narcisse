@@ -1,0 +1,7 @@
+Request to delist search results
+
+I ask for the following pages to be delisted from search results for my name ({name}):
+
+{pages}
+
+These pages publish personal data about me ({target}). They serve no public interest related to a role in public life, and their presence in the results harms my privacy. I base this request on Articles 17 and 21 of the General Data Protection Regulation (GDPR).

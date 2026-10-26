@@ -1,0 +1,13 @@
+Delete my account and my data
+
+Hello,
+
+Please delete my account on {service} and the personal data associated with it, under Article 17 of the General Data Protection Regulation (GDPR):
+
+{concerned}
+
+Please confirm the deletion within one month (Article 12(3) GDPR).
+
+Kind regards,
+
+{signature}

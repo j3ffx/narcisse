@@ -7,3 +7,4 @@ package-lock.json
 uv.lock
 .claude
 src/narcisse/modules/data
+src/narcisse/remediation/data/jdm-*.json

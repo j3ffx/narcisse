@@ -1,0 +1,13 @@
+Request to remove archived pages
+
+Hello,
+
+Please remove from the Wayback Machine the captures of the following pages, which publish personal data about me:
+
+{pages}
+
+I am the person these pages are about. I can prove that I wrote them, or that I own the site, by whichever method you tell me.
+
+Thank you,
+
+{signature}

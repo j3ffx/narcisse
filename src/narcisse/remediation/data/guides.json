@@ -1,0 +1,169 @@
+{
+  "checked": "2026-10-26",
+  "links": {
+    "google_removal": {
+      "title": "Google : demande de suppression au titre du RGPD",
+      "url": "https://support.google.com/legal/troubleshooter/1114905"
+    },
+    "google_personal_info": {
+      "title": "Google : retirer ses informations personnelles des résultats",
+      "url": "https://support.google.com/websearch/answer/12719076"
+    },
+    "bing_removal": {
+      "title": "Bing : demande de blocage de résultats en Europe",
+      "url": "https://www.bing.com/webmaster/tools/eu-privacy-request"
+    },
+    "qwant_removal": {
+      "title": "Qwant : demande de déréférencement",
+      "url": "https://report.qwant.com/removal/fr"
+    },
+    "cnil_letter": {
+      "title": "CNIL : modèle de courrier pour faire supprimer des données",
+      "url": "https://www.cnil.fr/modele/courrier/supprimer-des-donnees-personnelles"
+    },
+    "cnil_complaint": {
+      "title": "CNIL : adresser une plainte",
+      "url": "https://www.cnil.fr/fr/adresser-une-plainte"
+    },
+    "cnil_find_contact": {
+      "title": "CNIL : retrouver les coordonnées du responsable d’un site",
+      "url": "https://www.cnil.fr/fr/retrouver-les-coordonnees-dun-responsable-de-site"
+    },
+    "cnil_dereferencing": {
+      "title": "CNIL : le déréférencement d’un contenu dans un moteur de recherche",
+      "url": "https://www.cnil.fr/fr/le-dereferencement-dun-contenu-dans-un-moteur-de-recherche"
+    },
+    "insee_diffusion": {
+      "title": "INSEE : modifier le statut de diffusion d’une entreprise individuelle",
+      "url": "https://statut-diffusion-sirene.insee.fr/"
+    },
+    "bloctel": {
+      "title": "Bloctel : liste d’opposition au démarchage téléphonique",
+      "url": "https://www.bloctel.gouv.fr/"
+    },
+    "openpgp_manage": {
+      "title": "keys.openpgp.org : gérer les adresses de ta clé",
+      "url": "https://keys.openpgp.org/manage"
+    },
+    "github_commit_email": {
+      "title": "GitHub : choisir l’adresse de tes commits",
+      "url": "https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-email-preferences/setting-your-commit-email-address"
+    }
+  },
+  "services": [
+    {
+      "name": "Internet Archive (Wayback Machine)",
+      "category": "archive",
+      "domains": ["archive.org", "web.archive.org"],
+      "url": "https://archive.org/",
+      "email": "info@archive.org",
+      "notes": "Écris à l’Internet Archive avec l’adresse exacte des pages archivées. Ils demandent de prouver que tu en es l’auteur ou le propriétaire du site, et ne promettent rien."
+    },
+    {
+      "name": "keys.openpgp.org",
+      "category": "keyserver",
+      "domains": ["keys.openpgp.org"],
+      "url": "https://keys.openpgp.org/manage",
+      "difficulty": "easy",
+      "notes": "Le serveur t’envoie un lien par email pour retirer ton adresse de la recherche. La clé reste, mais on ne la trouve plus par ton adresse."
+    },
+    {
+      "name": "Pappers",
+      "category": "business_directory",
+      "domains": ["pappers.fr"],
+      "url": "https://www.pappers.fr/",
+      "notes": "Republie les données du registre (INSEE, RNE). Demande l’opposition (art. 21) depuis sa page « données personnelles ». S’ils refusent, la CNIL."
+    },
+    {
+      "name": "Societe.com",
+      "category": "business_directory",
+      "domains": ["societe.com"],
+      "url": "https://www.societe.com/",
+      "notes": "Republie les données du registre. Demande l’opposition (art. 21) depuis sa page « données personnelles »."
+    },
+    {
+      "name": "Verif.com",
+      "category": "business_directory",
+      "domains": ["verif.com"],
+      "url": "https://www.verif.com/",
+      "notes": "Republie les données du registre. Demande l’opposition (art. 21) depuis sa page « données personnelles »."
+    },
+    {
+      "name": "Manageo",
+      "category": "business_directory",
+      "domains": ["manageo.fr"],
+      "url": "https://www.manageo.fr/",
+      "notes": "Republie les données du registre. Demande l’opposition (art. 21) depuis sa page « données personnelles »."
+    },
+    {
+      "name": "Le Figaro Entreprises",
+      "category": "business_directory",
+      "domains": ["entreprises.lefigaro.fr"],
+      "url": "https://entreprises.lefigaro.fr/",
+      "notes": "Republie les données du registre. Demande l’opposition (art. 21) depuis sa page « données personnelles »."
+    },
+    {
+      "name": "RocketReach",
+      "category": "broker",
+      "domains": ["rocketreach.co"],
+      "url": "https://rocketreach.co/",
+      "notes": "Courtier de coordonnées professionnelles. Le retrait passe par le lien « Do Not Sell My Info » en bas de page, avec une vérification par email ; un profil retiré peut revenir."
+    },
+    {
+      "name": "ZoomInfo",
+      "category": "broker",
+      "domains": ["zoominfo.com"],
+      "url": "https://www.zoominfo.com/",
+      "notes": "Courtier de coordonnées professionnelles. Le retrait passe par son « Privacy Center », avec une vérification par email."
+    },
+    {
+      "name": "Apollo.io",
+      "category": "broker",
+      "domains": ["apollo.io"],
+      "url": "https://www.apollo.io/",
+      "notes": "Courtier de coordonnées professionnelles. Le retrait passe par sa page de confidentialité, avec une vérification par email."
+    },
+    {
+      "name": "Lusha",
+      "category": "broker",
+      "domains": ["lusha.com"],
+      "url": "https://www.lusha.com/",
+      "notes": "Courtier de coordonnées professionnelles. Le retrait passe par son « Trust Center »."
+    },
+    {
+      "name": "Kaspr",
+      "category": "broker",
+      "domains": ["kaspr.io"],
+      "url": "https://www.kaspr.io/",
+      "notes": "Courtier de coordonnées professionnelles, sanctionné par la CNIL en 2024. Demande l’effacement et l’opposition (art. 17 et 21)."
+    },
+    {
+      "name": "ContactOut",
+      "category": "broker",
+      "domains": ["contactout.com"],
+      "url": "https://contactout.com/",
+      "notes": "Courtier de coordonnées professionnelles. Demande l’effacement et l’opposition (art. 17 et 21)."
+    },
+    {
+      "name": "SignalHire",
+      "category": "broker",
+      "domains": ["signalhire.com"],
+      "url": "https://www.signalhire.com/",
+      "notes": "Courtier de coordonnées professionnelles. Demande l’effacement et l’opposition (art. 17 et 21)."
+    },
+    {
+      "name": "Spokeo",
+      "category": "broker",
+      "domains": ["spokeo.com"],
+      "url": "https://www.spokeo.com/",
+      "notes": "Annuaire de personnes (États-Unis). Demande le retrait depuis son lien « opt out » en bas de page."
+    },
+    {
+      "name": "Radaris",
+      "category": "broker",
+      "domains": ["radaris.com"],
+      "url": "https://radaris.com/",
+      "notes": "Annuaire de personnes. Demande le retrait depuis son lien de confidentialité en bas de page."
+    }
+  ]
+}

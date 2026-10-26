@@ -11,15 +11,18 @@ reached through traces the user rejected. The user's word ends the question: 100
 
 Risk ("how much does it expose me?"): a base per kind of trace (a postal address exposes more
 than a username), points for what it reveals (passwords in a leak, a birth date in a register, an
-adult site, a data broker…), weighted by confidence: a trace that may not be the user's counts
-less. Nothing found in public is no exposure, and neither is a trace the user rejected.
+adult site, a data broker…), half the base for what a professional profile expects in public (its
+company, its domain, the register's entries), weighted by confidence: a trace that may not be the
+user's counts less. Nothing found in public is no exposure, and neither is a trace the user
+rejected.
 """
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
-from narcisse.domain import EntityKind, EntityStatus
+from narcisse.domain import EntityKind, EntityStatus, ProfileKind
+from narcisse.remediation.knowledge import is_broker
 
 
 @dataclass(frozen=True)
@@ -50,6 +53,7 @@ class Trace:
     modules: frozenset[str]  # the sources with a proof of it ("manual": the user added it)
     attributes: Mapping[str, Any] = field(default_factory=dict)
     links: tuple[Link, ...] = ()
+    profile_kind: ProfileKind = ProfileKind.PERSONAL
 
 
 @dataclass(frozen=True)
@@ -133,7 +137,6 @@ IDENTITY_DATA = frozenset(
         "numéros de compte bancaire",
     }
 )
-DATA_BROKERS = frozenset({"rocketreach"})
 # Sources whose accounts show where someone goes.
 MOVEMENT_SITES = ("strava.com",)
 # Subdomains that name a door into someone's machines or files.
@@ -164,6 +167,9 @@ SENSITIVE_LABELS = frozenset(
     }
 )
 REGISTRY_ROLES = frozenset({"registrant", "administrative_contact", "technical_contact"})
+# Relations that say the register of companies published a trace.
+REGISTRY_RELATIONS = frozenset({"officer", "registered_as", "registered_office"})
+PROFESSIONAL_PROFILES = frozenset({ProfileKind.PROFESSIONAL, ProfileKind.MIXED})
 ARCHIVE_RELATIONS = frozenset({"archived_at", "archived_page"})
 
 # Risk levels, on the 0..1 scale.
@@ -244,6 +250,16 @@ def confidence(trace: Trace) -> tuple[int, tuple[Reason, ...]]:
     return _clamp(points), tuple(reasons)
 
 
+def is_professional(kind: EntityKind, modules: frozenset[str], relations: frozenset[str]) -> bool:
+    """A trace a professional profile expects in public: its company, its domain, the
+    register's entries."""
+    return (
+        kind in (EntityKind.ORGANIZATION, EntityKind.DOMAIN)
+        or "companies" in modules
+        or bool(relations & REGISTRY_RELATIONS)
+    )
+
+
 def _first_label(normalized: str) -> str | None:
     labels = normalized.split(".")
     return labels[0] if len(labels) >= 3 else None
@@ -268,6 +284,12 @@ def risk(trace: Trace, confidence_points: int) -> tuple[int, tuple[Reason, ...]]
         points += value
         reasons.append(Reason(code, points=value, params=params))
 
+    incoming = frozenset(link.relation for link in trace.links if link.incoming)
+    if trace.profile_kind in PROFESSIONAL_PROFILES and is_professional(
+        trace.kind, trace.modules, incoming
+    ):
+        add("expected_professional", -(base // 2))
+
     attributes = trace.attributes
     if trace.kind == EntityKind.LEAK:
         data = {str(item) for item in attributes.get("data") or []}
@@ -279,16 +301,18 @@ def risk(trace: Trace, confidence_points: int) -> tuple[int, tuple[Reason, ...]]
         add("birth_published", BIRTH_PUBLISHED)
     if attributes.get("adult") is True:
         add("adult_site", ADULT_SITE)
-    if broker := sorted(trace.modules & DATA_BROKERS):
-        add("data_broker", DATA_BROKER, source=broker[0])
+    if trace.kind in (EntityKind.ACCOUNT, EntityKind.URL) and (
+        broker := is_broker(trace.normalized)
+    ):
+        add("data_broker", DATA_BROKER, source=broker.name)
     if trace.kind == EntityKind.ACCOUNT and any(s in trace.normalized for s in MOVEMENT_SITES):
         add("movements", MOVEMENTS)
     label = _first_label(trace.normalized) if trace.kind == EntityKind.DOMAIN else None
     if label in SENSITIVE_LABELS:
         add("sensitive_subdomain", SENSITIVE_SUBDOMAIN, label=label)
-    if any(link.incoming and link.relation in REGISTRY_ROLES for link in trace.links):
+    if incoming & REGISTRY_ROLES:
         add("registry_contact", REGISTRY_CONTACT)
-    if any(link.incoming and link.relation in ARCHIVE_RELATIONS for link in trace.links):
+    if incoming & ARCHIVE_RELATIONS:
         add("archived", ARCHIVED)
 
     exposure = min(100.0, points)

@@ -1,0 +1,13 @@
+Suppression de mon compte et de mes données
+
+Bonjour,
+
+Je vous demande de supprimer mon compte sur {service} et les données personnelles qui y sont associées, en application de l’article 17 du règlement général sur la protection des données (RGPD) :
+
+{concerned}
+
+Merci de me confirmer la suppression dans un délai d’un mois (article 12.3 du RGPD).
+
+Cordialement,
+
+{signature}

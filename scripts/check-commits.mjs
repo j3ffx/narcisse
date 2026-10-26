@@ -35,6 +35,7 @@ export const SCOPES = [
   'scans',
   'activity',
   'graph',
+  'remediation',
   'demo',
   'i18n',
   'security',

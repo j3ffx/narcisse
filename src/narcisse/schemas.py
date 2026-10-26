@@ -355,6 +355,47 @@ class SearxngOut(Schema):
     error: str | None  # when failed: a code the UI explains
 
 
+class GuideOut(Schema):
+    title: str
+    url: str
+
+
+class ServiceOut(Schema):
+    """A site the knowledge base knows how to leave (JustDeleteMe, or Narcisse's own sheets)."""
+
+    name: str
+    category: str  # "account", "broker", "business_directory", "archive", "keyserver"
+    url: str | None
+    difficulty: str | None  # "easy", "medium", "hard", "limited", "impossible"
+    notes: str | None
+    notes_lang: str
+    source: str  # "jdm", "narcisse"
+
+
+class LetterOut(Schema):
+    subject: str
+    body: str
+
+
+class ActionOut(Schema):
+    """One thing the user can do about a trace; Narcisse prepares it, the user does it."""
+
+    code: str  # what to do (the UI explains it)
+    service: ServiceOut | None
+    url: str | None
+    email: str | None  # whom to write to, when known
+    links: list[GuideOut]
+    # The letter it prepares, in French and in English, and which one suits the recipient.
+    letter: str | None
+    letters: dict[str, LetterOut]
+    lang: str
+
+
+class RemediationOut(Schema):
+    actions: list[ActionOut]
+    complaint: GuideOut  # where to turn when a request goes unanswered
+
+
 class ErrorOut(Schema):
     code: str
     params: dict[str, Any] = Field(default_factory=dict)

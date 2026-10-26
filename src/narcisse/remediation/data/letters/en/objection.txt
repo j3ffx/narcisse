@@ -1,0 +1,15 @@
+Objection to the processing of my personal data (Article 21 GDPR)
+
+Dear Sir or Madam,
+
+Under Article 21 of the General Data Protection Regulation (GDPR), I object to the processing by {service} of personal data about me, and in particular to its publication:
+
+{concerned}
+
+I therefore ask you to erase it (Article 17(1)(c) GDPR), to inform any recipients to whom it has been disclosed (Article 19), and to reply within one month of receiving this request (Article 12(3)).
+
+If I receive no reply within that time, or an incomplete one, I may lodge a complaint with a data protection authority.
+
+Yours faithfully,
+
+{signature}

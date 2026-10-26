@@ -1,0 +1,15 @@
+Opposition au traitement de mes données personnelles (article 21 du RGPD)
+
+Madame, Monsieur,
+
+En application de l’article 21 du règlement général sur la protection des données (RGPD), je m’oppose au traitement par {service} des données personnelles me concernant, et notamment à leur publication :
+
+{concerned}
+
+En conséquence, je vous demande de les effacer (article 17.1.c du RGPD), d’en informer les destinataires à qui elles auraient été communiquées (article 19), et de me répondre dans un délai d’un mois à compter de la réception de cette demande (article 12.3).
+
+Sans réponse dans ce délai, ou en cas de réponse incomplète, je pourrai saisir la Commission nationale de l’informatique et des libertés (CNIL).
+
+Je vous prie d’agréer, Madame, Monsieur, mes salutations distinguées.
+
+{signature}

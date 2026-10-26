@@ -1,0 +1,7 @@
+Demande de déréférencement
+
+Je demande le déréférencement des pages suivantes des résultats de recherche portant sur mon nom ({name}) :
+
+{pages}
+
+Ces pages publient des données personnelles me concernant ({target}). Elles ne présentent pas d’intérêt public lié à mon rôle dans la vie publique, et leur présence dans les résultats porte atteinte à ma vie privée. Je fonde cette demande sur les articles 17 et 21 du règlement général sur la protection des données (RGPD).

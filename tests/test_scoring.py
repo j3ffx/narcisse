@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from narcisse.domain import EntityKind, EntityStatus
+from narcisse.domain import EntityKind, EntityStatus, ProfileKind
 from narcisse.engine.scoring import (
     Link,
     Neighbour,
@@ -29,6 +29,7 @@ def trace(
     modules: tuple[str, ...] = ("whatsmyname",),
     attributes: dict[str, Any] | None = None,
     links: tuple[Link, ...] = (),
+    profile_kind: ProfileKind = ProfileKind.PERSONAL,
 ) -> Trace:
     return Trace(
         kind=kind,
@@ -39,6 +40,7 @@ def trace(
         modules=frozenset(modules),
         attributes=attributes or {},
         links=links,
+        profile_kind=profile_kind,
     )
 
 
@@ -231,7 +233,7 @@ def test_hashed_passwords_are_not_counted_as_readable() -> None:
     [
         (K.ORGANIZATION, "123456789", ("companies",), {"birth": "1980-05"}, "birth_published", 45),
         (K.ACCOUNT, "https://adult.example/j", ("whatsmyname",), {"adult": True}, "adult_site", 60),
-        (K.ACCOUNT, "https://rocketreach.co/", ("rocketreach",), {}, "data_broker", 50),
+        (K.URL, "https://rocketreach.co/p/jeanne", ("searxng",), {}, "data_broker", 50),
         (K.ACCOUNT, "https://www.strava.com/", ("strava",), {}, "movements", 40),
         (K.DOMAIN, "nas.jeanne-exemple.fr", ("certificates",), {}, "sensitive_subdomain", 40),
     ],
@@ -310,3 +312,41 @@ def test_score_gives_both_on_a_zero_to_one_scale_with_their_reasons() -> None:
 )
 def test_risk_levels(value: float, level: str) -> None:
     assert risk_level(value) == level
+
+
+def test_a_broker_is_known_by_its_host_not_by_the_source() -> None:
+    _, reasons = risk(trace(K.URL, normalized="https://www.zoominfo.com/p/x"), 100)
+    assert [r.params for r in reasons if r.code == "data_broker"] == [{"source": "ZoomInfo"}]
+    _, reasons = risk(trace(K.URL, normalized="https://zoominfo.example.org/p/x"), 100)
+    assert "data_broker" not in codes(reasons)
+
+
+@pytest.mark.parametrize("profile_kind", [ProfileKind.PROFESSIONAL, ProfileKind.MIXED])
+def test_a_professional_profile_expects_its_company_and_domain_in_public(
+    profile_kind: ProfileKind,
+) -> None:
+    for kind, modules, base in ((K.ORGANIZATION, ("companies",), 15), (K.DOMAIN, ("dns",), 15)):
+        points, reasons = risk(trace(kind, modules=modules, profile_kind=profile_kind), 100)
+        assert points == base - base // 2
+        assert [r.points for r in reasons if r.code == "expected_professional"] == [-(base // 2)]
+
+
+def test_what_the_register_publishes_still_counts_for_a_professional_profile() -> None:
+    company = neighbour(K.ORGANIZATION, display="Exemple SARL")
+    officer = trace(
+        K.NAME,
+        modules=("companies",),
+        attributes={"birth": "1980-05"},
+        links=(link(company, relation="officer"),),
+        profile_kind=ProfileKind.PROFESSIONAL,
+    )
+    points, reasons = risk(officer, 100)
+    assert points == 10 - 5 + 30
+    assert {"expected_professional", "birth_published"} <= set(codes(reasons))
+
+
+def test_a_personal_profile_expects_nothing_in_public() -> None:
+    _, reasons = risk(trace(K.ORGANIZATION, modules=("companies",)), 100)
+    assert "expected_professional" not in codes(reasons)
+    _, reasons = risk(trace(K.ACCOUNT, profile_kind=ProfileKind.PROFESSIONAL), 100)
+    assert "expected_professional" not in codes(reasons)

@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 
 from narcisse.api.deps import ServicesDep
 from narcisse.domain import SEED_KINDS, EntityKind, ScanStatus
+from narcisse.engine.rescore import rescore
 from narcisse.errors import AppError, not_found
 from narcisse.normalize import normalize
 from narcisse.schemas import (
@@ -63,11 +64,17 @@ async def update_profile(profile_id: int, body: ProfilePatch, s: ServicesDep) ->
             raise not_found("profile")
         if body.name is not None:
             profile.name = body.name.strip()
+        rescored = body.kind is not None and body.kind != profile.kind
         if body.kind is not None:
             profile.kind = body.kind
         if body.settings is not None:
             profile.settings = body.settings.model_dump()
         profile.updated_at = s.bus.clock.now()
+        if rescored:
+            # What a professional profile expects in public weighs less: every trace's risk may
+            # change (the UI reloads the profile's traces after this answer).
+            await session.flush()
+            await rescore(session, profile_id)
         return ProfileDetail.model_validate(profile)
 
 

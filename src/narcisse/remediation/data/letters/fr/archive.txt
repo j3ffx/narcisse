@@ -1,0 +1,13 @@
+Demande de retrait de pages archivées
+
+Bonjour,
+
+Je vous demande de retirer de la Wayback Machine les captures des pages suivantes, qui publient des données personnelles me concernant :
+
+{pages}
+
+Je suis la personne concernée par ces pages. Je peux vous fournir la preuve que j’en suis l’auteur, ou le propriétaire du site, selon la méthode que vous m’indiquerez.
+
+Merci d’avance,
+
+{signature}

@@ -1,0 +1,15 @@
+Demande d’effacement de mes données personnelles (article 17 du RGPD)
+
+Madame, Monsieur,
+
+En application de l’article 17 du règlement général sur la protection des données (RGPD), je vous demande d’effacer les données personnelles me concernant que {service} publie ou traite :
+
+{concerned}
+
+Je vous remercie d’informer de cet effacement les destinataires à qui ces données auraient été communiquées (article 19 du RGPD), et de me répondre dans un délai d’un mois à compter de la réception de cette demande (article 12.3 du RGPD).
+
+Sans réponse dans ce délai, ou en cas de réponse incomplète, je pourrai saisir la Commission nationale de l’informatique et des libertés (CNIL).
+
+Je vous prie d’agréer, Madame, Monsieur, mes salutations distinguées.
+
+{signature}
