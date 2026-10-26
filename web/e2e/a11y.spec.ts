@@ -57,6 +57,19 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await page.getByTestId('trace-panel').getByText('Pourquoi ces scores ?').click();
       await expect(page.getByTestId('score-reasons')).toHaveAttribute('open');
       await audit(page);
+      await page
+        .getByTestId('trace')
+        .filter({ hasText: 'journal.example.net' })
+        .first()
+        .getByRole('button')
+        .first()
+        .click();
+      await expect(page.getByTestId('remediation')).toBeVisible();
+      await audit(page);
+      await page.getByRole('button', { name: 'Préparer la demande' }).first().click();
+      await expect(page.getByRole('dialog').getByLabel('Texte')).toBeVisible();
+      await audit(page);
+      await page.keyboard.press('Escape');
 
       await page.goto(`/profils/${id}/elements`);
       await expect(page.getByTestId('lead').first()).toBeVisible();

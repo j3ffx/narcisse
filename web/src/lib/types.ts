@@ -176,6 +176,53 @@ export interface EntityDetail {
   neighbours: Entity[];
 }
 
+/** An official page an action points to. */
+export interface Guide {
+  title: string;
+  url: string;
+}
+
+export type Difficulty = 'easy' | 'medium' | 'hard' | 'limited' | 'impossible';
+
+/** A site the knowledge base knows how to leave (JustDeleteMe, or Narcisse's own sheets). */
+export interface Service {
+  name: string;
+  category: 'account' | 'broker' | 'business_directory' | 'archive' | 'keyserver';
+  url: string | null;
+  difficulty: Difficulty | null;
+  notes: string | null;
+  notes_lang: Lang;
+  source: 'jdm' | 'narcisse';
+}
+
+export type Lang = 'fr' | 'en';
+
+export interface Letter {
+  subject: string;
+  body: string;
+}
+
+/** One thing the user can do about a trace (lib/remediation.ts says what): Narcisse prepares
+ * it, the user does it. */
+export interface Action {
+  code: string;
+  service: Service | null;
+  url: string | null;
+  /** Whom to write to, when known. */
+  email: string | null;
+  links: Guide[];
+  letter: string | null;
+  letters: Partial<Record<Lang, Letter>>;
+  /** The language the recipient most likely reads. */
+  lang: Lang;
+}
+
+export interface Remediation {
+  actions: Action[];
+  /** Where to turn when a request goes unanswered. */
+  complaint: Guide;
+}
+
 /** A view of a profile's graph the user saved. Its state is the UI's (see SavedViews). */
 export interface SavedView {
   id: number;

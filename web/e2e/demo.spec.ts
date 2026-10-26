@@ -222,7 +222,10 @@ test('a trace found becomes one of the profile’s elements', async ({ page, req
   await expect(page.getByTestId('seed').last()).toContainText('forum.example.org');
 });
 
-test('scores say why, and leads become elements or are dismissed', async ({ page, request }) => {
+test('scores say why, actions say what to do, and leads become elements', async ({
+  page,
+  request,
+}) => {
   const id = await demoProfile(request, 'Jeanne Exemple (scores et pistes)');
   const started = await request.post(`/api/profiles/${id}/scans`, { data: {} });
   const { id: scanId } = (await started.json()) as { id: number };
@@ -243,6 +246,33 @@ test('scores say why, and leads become elements or are dismissed', async ({ page
   await expect(panel.getByTestId('trace-confidence')).toContainText('/ 100');
   await panel.getByText('Pourquoi ces scores ?').click();
   await expect(panel.getByTestId('score-reasons')).toContainText('exposition de base');
+
+  // What to do about a page: the request Narcisse prepares, signed with the profile's name.
+  await page
+    .getByTestId('trace')
+    .filter({ hasText: 'journal.example.net' })
+    .first()
+    .getByRole('button')
+    .first()
+    .click();
+  const sheet = panel.getByTestId('remediation');
+  await expect(sheet.getByTestId('action').first()).toContainText('Demander au site');
+  await expect(sheet.getByTestId('action').nth(1)).toContainText('Faire déréférencer');
+  await sheet.getByRole('button', { name: 'Préparer la demande' }).first().click();
+  const letter = page.getByRole('dialog');
+  const text = letter.getByLabel('Texte');
+  await expect(text).toHaveValue(/article 17/);
+  await expect(text).toHaveValue(/https:\/\/journal\.example\.net\//);
+  await expect(text).toHaveValue(
+    /Jeanne Exemple \(scores et pistes\)\njeanne\.exemple@example\.org/,
+  );
+  await expect(letter.getByRole('link', { name: 'Ouvrir dans ma messagerie' })).toHaveAttribute(
+    'href',
+    /^mailto:\?subject=/,
+  );
+  await letter.getByRole('button', { name: 'English' }).click();
+  await expect(text).toHaveValue(/Article 17/);
+  await page.keyboard.press('Escape');
 
   // Leads: one dismissed, one added as an element. (A lead's text may name another as the trace
   // it was found through: they are told apart by their own link.)

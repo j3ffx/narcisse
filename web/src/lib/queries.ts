@@ -29,6 +29,7 @@ import type {
   PreferencesChanges,
   ProfileKind,
   ProfileSettings,
+  Remediation,
   ResultsPage,
   Scan,
   ScanDetail,
@@ -57,6 +58,7 @@ export const keys = {
   views: (profileId: number) => ['views', profileId] as const,
   leads: (profileId: number) => ['leads', profileId] as const,
   entities: ['entity'] as const,
+  remediation: (id: number) => ['remediation', id] as const,
 };
 
 // Reads
@@ -87,6 +89,13 @@ export const useEntityDetail = (id: number | null) =>
     queryKey: keys.entity(id ?? 0),
     queryFn: () => get<EntityDetail>(`/entities/${id}`),
     enabled: id !== null,
+  });
+
+/** What the user can do about a trace, and the requests Narcisse prepares for it. */
+export const useRemediation = (id: number) =>
+  useQuery({
+    queryKey: keys.remediation(id),
+    queryFn: () => get<Remediation>(`/entities/${id}/remediation`),
   });
 
 /** Traces sure enough to search from that aren't elements yet. */
@@ -207,9 +216,17 @@ export function useUpdateProfile(id: number) {
   return useMutation({
     mutationFn: (body: { name?: string; kind?: ProfileKind; settings?: ProfileSettings }) =>
       patch<ProfileDetail>(`/profiles/${id}`, body),
-    onSuccess: (profile) => {
+    onSuccess: (profile, body) => {
       client.setQueryData(keys.profile(id), profile);
       void client.invalidateQueries({ queryKey: keys.profiles });
+      if (body.kind) {
+        // A professional profile weighs what it expects in public less: every score may change.
+        void client.invalidateQueries({ queryKey: keys.graphs(id) });
+        void client.invalidateQueries({ queryKey: keys.entities });
+        void client.invalidateQueries({ queryKey: ['remediation'] });
+        void client.invalidateQueries({ queryKey: keys.allResults });
+        void client.invalidateQueries({ queryKey: keys.leads(id) });
+      }
     },
     onError: failed,
   });
@@ -441,4 +458,6 @@ export function reviewed(client: QueryClient, entity: Entity) {
         }
       : detail,
   );
+  // What to do about it follows its status (nothing, once it isn't the user's).
+  void client.invalidateQueries({ queryKey: keys.remediation(entity.id) });
 }

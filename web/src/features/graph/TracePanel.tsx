@@ -11,6 +11,7 @@ import type { Edge, Entity, EntityDetail } from '@/lib/types';
 import { ArrowLeftIcon, ArrowRightIcon, ExternalLinkIcon, XIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { KIND_ICONS } from './kinds';
+import { Remediation } from './Remediation';
 import { RiskValue, ScoreReasonsDetails } from './Scores';
 
 const isLink = (text: string) => /^https?:\/\//.test(text);
@@ -136,6 +137,7 @@ function Detail({
         <dd>{formatDate(entity.last_seen)}</dd>
       </dl>
       <ScoreReasonsDetails reasons={data.reasons} />
+      {entity.kind !== 'identity' && <Remediation entityId={entity.id} />}
       {extra}
       <Section title={`Relations (${data.edges.length})`}>
         <ul className="grid gap-1 text-sm">

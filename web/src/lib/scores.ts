@@ -54,7 +54,10 @@ const TEXTS: Record<string, Text> = {
   leaked_identity: () => 'Cette fuite contient des pièces d’identité ou des données bancaires.',
   birth_published: () => 'Le registre publie un mois et une année de naissance.',
   adult_site: () => 'Un compte sur un site adulte.',
-  data_broker: () => 'Une fiche chez un courtier en données, qui revend des contacts.',
+  data_broker: (p) =>
+    `Une fiche chez ${str(p.source) || 'un courtier en données'}, qui revend des contacts.`,
+  expected_professional: () =>
+    'Attendu en public pour un profil pro (ton entreprise, ton domaine, le registre) : compte moitié moins.',
   movements: () => 'Ce site peut montrer tes déplacements.',
   sensitive_subdomain: (p) =>
     `Le sous-domaine « ${str(p.label)} » désigne un accès à tes machines ou à tes fichiers.`,
