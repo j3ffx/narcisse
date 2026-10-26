@@ -69,8 +69,3 @@ class RunStatus(StrEnum):
 
 
 FINISHED_RUN_STATUSES = frozenset({RunStatus.FAILED, RunStatus.DONE, RunStatus.CANCELLED})
-
-
-class IntrusionLevel(StrEnum):
-    PASSIVE = "passive"
-    LIGHT_ACTIVE = "light_active"

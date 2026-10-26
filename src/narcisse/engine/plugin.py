@@ -10,7 +10,7 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, ClassVar, Protocol
 
-from narcisse.domain import EntityKind, IntrusionLevel
+from narcisse.domain import EntityKind
 
 if TYPE_CHECKING:
     from narcisse.engine.http import HttpClient
@@ -37,7 +37,6 @@ class ModuleMeta:
     category: str
     accepts: frozenset[EntityKind]
     produces: frozenset[EntityKind]
-    intrusion: IntrusionLevel = IntrusionLevel.PASSIVE
     # Every host the module may contact; `*.example.org` allows one subdomain level.
     hosts: tuple[str, ...] = ()
     # What else it contacts, known only when it runs (in French, for the Sources page): e.g. "le

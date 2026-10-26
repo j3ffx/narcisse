@@ -213,7 +213,6 @@ export interface Module {
   category: string;
   accepts: EntityKind[];
   produces: EntityKind[];
-  intrusion: 'passive' | 'light_active';
   hosts: string[];
   /** What it contacts besides `hosts`, known only when it runs. */
   other_hosts: string;
@@ -250,7 +249,16 @@ export interface Preferences {
   exclude_adult: boolean;
   fediverse_instances: string[];
   searxng_url: string | null;
-  enabled_light_active: string[];
+}
+
+/** The user's SearXNG: Docker present, an instance answering, and how a launch is going. */
+export interface SearxngStatus {
+  docker: boolean;
+  address: string | null;
+  running: boolean;
+  state: 'idle' | 'starting' | 'ready' | 'failed';
+  step: 'desktop' | 'compose' | 'waiting' | null;
+  error: string | null;
 }
 
 export interface PreferencesChanges {
@@ -259,7 +267,6 @@ export interface PreferencesChanges {
   exclude_adult?: boolean;
   fediverse_instances?: string[];
   searxng_url?: string | null;
-  enabled_light_active?: string[];
 }
 
 export interface EntityUpdate extends Entity {

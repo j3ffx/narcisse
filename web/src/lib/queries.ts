@@ -15,6 +15,7 @@ import {
 import type {
   Activity,
   AppInfo,
+  SearxngStatus,
   EntityDetail,
   GraphData,
   Lead,
@@ -48,6 +49,7 @@ export const keys = {
   filteredResults: (scanId: number, filter: ResultFilter) => ['results', scanId, filter] as const,
   allResults: ['results'] as const,
   preferences: ['preferences'] as const,
+  searxng: ['searxng'] as const,
   graph: (profileId: number, falsePositives: boolean) =>
     ['graph', profileId, falsePositives] as const,
   graphs: (profileId: number) => ['graph', profileId] as const,
@@ -389,6 +391,25 @@ export function useReviewEntity() {
 
 export const usePreferences = () =>
   useQuery({ queryKey: keys.preferences, queryFn: () => get<Preferences>('/preferences') });
+
+/** The SearXNG status; polled while a launch asked from the app is under way. */
+export function useSearxng() {
+  return useQuery({
+    queryKey: keys.searxng,
+    queryFn: () => get<SearxngStatus>('/searxng'),
+    refetchInterval: (query) => (query.state.data?.state === 'starting' ? 2000 : false),
+  });
+}
+
+/** Installs (if needed) and starts the user's SearXNG, opening Docker Desktop when it isn't up. */
+export function useStartSearxng() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => post<SearxngStatus>('/searxng/start'),
+    onSuccess: (status) => client.setQueryData(keys.searxng, status),
+    onError: failed,
+  });
+}
 
 export function useUpdatePreferences() {
   const client = useQueryClient();

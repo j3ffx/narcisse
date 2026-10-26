@@ -39,9 +39,6 @@ function SourceCard({ module }: { module: Module }) {
       <div className="flex flex-wrap items-center gap-2">
         <h2 className="font-heading text-lg font-semibold">{module.title}</h2>
         <Badge variant="secondary">{CATEGORY_LABELS[module.category] ?? module.category}</Badge>
-        <Badge variant="outline">
-          {module.intrusion === 'passive' ? 'Passif' : 'Actif léger (à activer)'}
-        </Badge>
         {module.demo && <Badge variant="outline">fictif</Badge>}
       </div>
       <p className="text-sm">{module.description}</p>

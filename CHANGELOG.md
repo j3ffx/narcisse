@@ -34,11 +34,6 @@ Pas encore de version : la 0.1.0 sortira quand Narcisse sera utilisable sur de v
     SIREN, liens vers des profils), dans le respect de `robots.txt`.
 - Les fuites de données où figure un email (XposedOrNot) : quand, quelles données, et si les mots
   de passe étaient lisibles.
-- Les sources « actif léger » (désactivées par défaut, à activer site par site dans les réglages) :
-  savoir si une adresse a un compte sur Docker Hub, Mozilla (Firefox), Last.fm, Pinterest, CodePen,
-  Strava, RocketReach, Quora, SoundCloud ou GitHub, en interrogeant leur formulaire d’inscription,
-  sans s’y connecter ni rien envoyer au titulaire. Un service qui ne répond pas clairement vaut
-  « je ne sais pas », jamais un faux « inscrit ».
 - Un mot de passe a-t-il fuité ? Vérification par Pwned Passwords, sans qu’il quitte la page.
 - Les registres d’entreprises : les entreprises que tu diriges ou à ton nom (avec ce que le
   registre publie : mois et année de naissance, siège), et pour une entreprise ses dirigeants, son
@@ -73,10 +68,10 @@ Pas encore de version : la 0.1.0 sortira quand Narcisse sera utilisable sur de v
   traces les plus exposantes sont les plus grosses ; filtre et tri par risque.
 - Les pistes : les traces assez sûres pour devenir des éléments, à ajouter ou écarter. Un profil
   peut laisser les scans suivre eux-mêmes les plus sûres (un ou deux sauts, 25 par scan au plus,
-  jamais un « pas moi » ; l’actif léger seulement sur une piste confirmée ou presque certaine).
+  jamais un « pas moi »).
 - Une page « Sources » qui dit ce que chaque source interroge, à quel rythme et sous quelle
   licence, et une page « Réglages » (tokens GitHub et GitLab facultatifs, instances Mastodon,
-  instance SearXNG, sources « actif léger », sites adultes).
+  instance SearXNG, sites adultes).
 
 - Profils (perso, pro ou les deux) et ce qui t’identifie : noms, pseudos, emails, téléphones,
   adresses, domaines, organisations, comptes. Chaque élément peut être surveillé ou ignoré.

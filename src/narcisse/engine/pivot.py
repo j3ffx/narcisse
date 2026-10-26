@@ -3,8 +3,7 @@
 A trace becomes a lead when it is of a kind sources can search from, isn't already one of the
 profile's elements, and is sure enough. The user adds a suggested one as an element, or dismisses
 it. A profile may also let scans follow the surest ones by themselves, up to a depth, within a
-cap per scan; light-active sources (which hand the address to a third party) only run on a
-followed trace that is confirmed or nearly certain, since a lead may be someone else's address.
+cap per scan, never from a rejected trace.
 """
 
 from narcisse.domain import EntityKind, EntityStatus
@@ -23,7 +22,6 @@ PIVOT_KINDS = frozenset(
 )
 SUGGEST_FROM = 0.6  # confidence from which a trace is suggested
 FOLLOW_FROM = 0.7  # … and from which a scan follows it by itself, when the profile allows
-ACTIVE_FROM = 0.85  # … and from which light-active sources may run on it
 MAX_DEPTH = 2  # hops a scan may follow
 MAX_PIVOTS = 25  # traces one scan may follow
 
@@ -39,11 +37,6 @@ def is_lead(entity: Entity, declared: bool, threshold: float = SUGGEST_FROM) -> 
 
 def to_follow(entity: Entity, declared: bool) -> bool:
     return is_lead(entity, declared, FOLLOW_FROM)
-
-
-def active_allowed(entity: Entity) -> bool:
-    """Whether light-active sources may hand this trace to a third party."""
-    return entity.status == EntityStatus.CONFIRMED or (entity.confidence or 0.0) >= ACTIVE_FROM
 
 
 def depth_allowed(settings: dict[str, object]) -> int:

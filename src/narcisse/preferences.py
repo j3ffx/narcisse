@@ -21,9 +21,6 @@ class Preferences:
     fediverse_instances: tuple[str, ...] = ()
     # The user's own SearXNG instance (its address), for the web search source. Optional.
     searxng_url: str | None = None
-    # Light-active modules the user has turned on, by name. Each such module stays out of scans
-    # until it is listed here; off for all of them by default.
-    enabled_light_active: tuple[str, ...] = ()
 
     @classmethod
     def load(cls, path: Path) -> "Preferences":
@@ -38,9 +35,6 @@ class Preferences:
         values = {k: v for k, v in data.items() if k in known}
         values["fediverse_instances"] = tuple(
             host for host in values.get("fediverse_instances") or () if isinstance(host, str)
-        )
-        values["enabled_light_active"] = tuple(
-            name for name in values.get("enabled_light_active") or () if isinstance(name, str)
         )
         return cls(**values)
 

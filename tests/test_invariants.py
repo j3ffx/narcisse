@@ -16,7 +16,7 @@ from typer.testing import CliRunner
 from narcisse import cli
 from narcisse.app import NO_TELEMETRY, create_app
 from narcisse.config import HOST, Settings
-from narcisse.domain import EntityKind, IntrusionLevel
+from narcisse.domain import EntityKind
 from narcisse.engine.plugin import Target
 from narcisse.modules import discover
 from narcisse.modules.demo import DemoModule, findings_for
@@ -67,7 +67,6 @@ def test_every_module_describes_itself(module: Any) -> None:
     assert meta.category
     assert meta.accepts
     assert meta.produces
-    assert meta.intrusion in IntrusionLevel
     for host in meta.hosts:
         assert urlsplit(f"https://{host}").hostname == host
 

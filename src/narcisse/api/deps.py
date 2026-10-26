@@ -8,6 +8,7 @@ from fastapi import Depends, Request
 from narcisse.config import Settings
 from narcisse.engine.engine import Engine
 from narcisse.engine.events import EventBus
+from narcisse.searxng import Launcher
 from narcisse.storage.database import Database
 
 
@@ -17,6 +18,7 @@ class Services:
     db: Database
     bus: EventBus
     engine: Engine
+    searxng: Launcher
 
 
 def _services(request: Request) -> Services:

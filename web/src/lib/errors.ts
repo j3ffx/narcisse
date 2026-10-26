@@ -48,10 +48,16 @@ const MESSAGES: Record<string, (p: Params) => string> = {
   searxng_json_off: (p) =>
     `${host(p)} refuse les résultats en JSON : active « json » dans « search: formats » de son settings.yml.`,
   invalid_searxng_url: () => 'Cette adresse n’a pas l’air valide (http://… ou https://…).',
+  searxng_demo: () => 'Indisponible en mode démo : rien n’est lancé sur ta machine.',
+  docker_missing: () => 'Docker est introuvable. Installe Docker Desktop, puis réessaie.',
+  docker_not_running: () =>
+    'Docker ne démarre pas. Ouvre Docker Desktop toi-même, attends qu’il soit prêt, puis réessaie.',
+  searxng_start_failed: () => 'Docker n’a pas pu lancer SearXNG. Le détail est dans le journal.',
+  searxng_not_ready: () =>
+    'SearXNG ne répond pas encore. Laisse-lui une minute, puis vérifie l’adresse.',
   site_unreachable: (p) => `Le site de ${host(p)} ne répond pas (ni en https, ni en http).`,
   module_crashed: () => 'Le module a rencontré un bug. Le détail est dans le journal.',
   module_unavailable: () => 'Ce module n’est plus disponible (mode démo désactivé ?).',
-  light_active_off: () => 'À activer d’abord dans les réglages (source « actif léger »).',
 };
 
 export function messageFor(code: string, params: Params = {}): string {

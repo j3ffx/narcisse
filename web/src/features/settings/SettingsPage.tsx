@@ -3,10 +3,15 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { errorMessage } from '@/lib/errors';
-import { useInfo, useModules, usePreferences, useUpdatePreferences } from '@/lib/queries';
-import type { Module } from '@/lib/types';
-import { XIcon } from 'lucide-react';
+import { errorMessage, messageFor } from '@/lib/errors';
+import {
+  useInfo,
+  usePreferences,
+  useSearxng,
+  useStartSearxng,
+  useUpdatePreferences,
+} from '@/lib/queries';
+import { Loader2Icon, PlayIcon, XIcon } from 'lucide-react';
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { toast } from 'sonner';
 
@@ -48,7 +53,6 @@ export function SettingsPage() {
           </Token>
           <FediverseInstances instances={preferences.data.fediverse_instances} />
           <SearxngInstance address={preferences.data.searxng_url} />
-          <LightActive enabled={preferences.data.enabled_light_active} />
           <AdultSites excluded={preferences.data.exclude_adult} />
         </>
       )}
@@ -200,9 +204,18 @@ function FediverseInstances({ instances }: { instances: string[] }) {
   );
 }
 
+const LAUNCH_STEPS: Record<string, string> = {
+  desktop: 'Démarrage de Docker Desktop (ça peut prendre une minute)…',
+  compose: 'Lancement de SearXNG avec Docker…',
+  waiting: 'Attente de la première réponse de SearXNG…',
+};
+
 function SearxngInstance({ address }: { address: string | null }) {
   const [value, setValue] = useState(address ?? '');
   const update = useUpdatePreferences();
+  const status = useSearxng();
+  const launch = useStartSearxng();
+  const starting = status.data?.state === 'starting';
   const save = (event: FormEvent) => {
     event.preventDefault();
     update.mutate(
@@ -218,83 +231,69 @@ function SearxngInstance({ address }: { address: string | null }) {
         </h2>
         <p className="text-sm text-muted-foreground">
           Narcisse n’interroge jamais un moteur de recherche lui-même. SearXNG, un métamoteur qui
-          tourne chez toi, peut le faire pendant les scans. Pour en installer une avec Docker :{' '}
-          <code className="text-foreground">uv run narcisse searxng</code>, qui la lance et règle
-          son adresse ici. Sans elle, l’onglet « Recherche » d’un profil te prépare les recherches à
+          tourne chez toi, peut le faire pendant les scans. Le bouton ci-dessous l’installe et la
+          lance avec Docker, puis règle son adresse pour toi (il ouvre Docker Desktop s’il n’est pas
+          déjà démarré). Sans elle, l’onglet « Recherche » d’un profil te prépare les recherches à
           faire toi-même.
         </p>
       </div>
-      <form onSubmit={save} className="flex flex-wrap items-end gap-2">
-        <div className="grid min-w-64 flex-1 gap-1.5">
-          <Label htmlFor="searxng-url">Adresse de l’instance</Label>
-          <Input
-            id="searxng-url"
-            type="url"
-            spellCheck={false}
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            placeholder="http://127.0.0.1:8888"
-          />
-        </div>
-        <Button type="submit" disabled={update.isPending || value.trim() === (address ?? '')}>
-          {value.trim() || !address ? 'Enregistrer' : 'Retirer'}
+      {status.data?.running && status.data.address && (
+        <p className="text-sm" data-testid="searxng-state">
+          SearXNG tourne sur <code className="text-foreground">{status.data.address}</code>, et
+          Narcisse s’en sert pour la recherche web.
+        </p>
+      )}
+      <div className="flex flex-wrap items-center gap-3">
+        <Button
+          type="button"
+          onClick={() => launch.mutate()}
+          disabled={starting || launch.isPending}
+          aria-describedby="searxng-launch-state"
+        >
+          {starting ? (
+            <Loader2Icon aria-hidden className="animate-spin" />
+          ) : (
+            <PlayIcon aria-hidden />
+          )}
+          {status.data?.running ? 'Relancer SearXNG' : 'Installer et lancer avec Docker'}
         </Button>
-      </form>
-    </section>
-  );
-}
-
-function LightActive({ enabled }: { enabled: string[] }) {
-  const modules = useModules();
-  const update = useUpdatePreferences();
-  const lightActive = (modules.data ?? []).filter((m) => m.intrusion === 'light_active');
-  if (lightActive.length === 0) return null;
-  const toggle = (module: Module, on: boolean) => {
-    const next = on ? [...enabled, module.name] : enabled.filter((name) => name !== module.name);
-    update.mutate(
-      { enabled_light_active: next },
-      {
-        onSuccess: () =>
-          toast.success(on ? `${module.title} activé.` : `${module.title} désactivé.`),
-      },
-    );
-  };
-  return (
-    <section aria-labelledby="light-active-title" className="grid gap-3">
-      <div>
-        <h2 id="light-active-title" className="font-heading text-lg font-semibold">
-          Sources « actif léger »
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          Ces sources ne lisent pas une page publique : elles{' '}
-          <strong>sollicitent un service</strong> pour savoir si une adresse email y est inscrite,
-          en interrogeant son formulaire d’inscription, sans jamais s’y connecter, créer de compte
-          ni envoyer d’email au titulaire. Narcisse se limite aux services qui répondent
-          discrètement. Chacune est <strong>désactivée</strong> tant que tu ne l’actives pas ici, et
-          n’est alors utilisée que si tu la coches au moment du scan.
+        <p id="searxng-launch-state" className="text-sm text-muted-foreground" role="status">
+          {starting
+            ? (LAUNCH_STEPS[status.data?.step ?? ''] ?? 'Lancement…')
+            : status.data?.state === 'ready'
+              ? 'C’est prêt.'
+              : status.data?.state === 'failed' && status.data.error
+                ? messageFor(status.data.error)
+                : status.data && !status.data.docker
+                  ? 'Docker n’est pas installé : installe Docker Desktop, puis réessaie.'
+                  : ''}
         </p>
       </div>
-      <ul className="grid gap-3">
-        {lightActive.map((module) => {
-          const on = enabled.includes(module.name);
-          return (
-            <li key={module.name} className="rounded-md border p-3">
-              <Label className="flex items-start gap-2 font-normal">
-                <Checkbox
-                  className="mt-0.5"
-                  checked={on}
-                  disabled={update.isPending}
-                  onCheckedChange={(checked) => toggle(module, checked === true)}
-                />
-                <span className="grid gap-0.5">
-                  <span className="font-medium text-foreground">{module.title}</span>
-                  <span className="text-sm text-muted-foreground">{module.description}</span>
-                </span>
-              </Label>
-            </li>
-          );
-        })}
-      </ul>
+      <details className="text-sm">
+        <summary className="w-fit cursor-pointer text-muted-foreground underline-offset-2 hover:underline">
+          Régler l’adresse à la main
+        </summary>
+        <form onSubmit={save} className="mt-2 flex flex-wrap items-end gap-2">
+          <div className="grid min-w-64 flex-1 gap-1.5">
+            <Label htmlFor="searxng-url">Adresse de l’instance</Label>
+            <Input
+              id="searxng-url"
+              type="url"
+              spellCheck={false}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              placeholder="http://127.0.0.1:8888"
+            />
+          </div>
+          <Button
+            type="submit"
+            variant="outline"
+            disabled={update.isPending || value.trim() === (address ?? '')}
+          >
+            {value.trim() || !address ? 'Enregistrer' : 'Retirer'}
+          </Button>
+        </form>
+      </details>
     </section>
   );
 }

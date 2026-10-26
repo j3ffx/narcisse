@@ -5,10 +5,9 @@ from typing import Any, ClassVar
 
 from sqlalchemy import update
 
-from narcisse.domain import EntityKind, IntrusionLevel
+from narcisse.domain import EntityKind
 from narcisse.engine import pivot
 from narcisse.engine.plugin import Finding, ModuleContext, ModuleMeta, SourceModule, Target
-from narcisse.preferences import Preferences
 from narcisse.storage.models import Entity
 from tests.conftest import Api, ApiFactory
 
@@ -41,31 +40,6 @@ class Finds(SourceModule):
                 confidence=confidence,
                 url=f"https://source.example.org/{value}",
             )
-
-
-class Asks(SourceModule):
-    """A light-active source, turned on: it only notes what it was given."""
-
-    meta: ClassVar[ModuleMeta] = ModuleMeta(
-        name="test.asks",
-        title="Asks",
-        description="Test module.",
-        category="test",
-        accepts=frozenset({EntityKind.EMAIL}),
-        produces=frozenset({EntityKind.ACCOUNT}),
-        intrusion=IntrusionLevel.LIGHT_ACTIVE,
-    )
-
-    def __init__(self) -> None:
-        self.seen: list[str] = []
-
-    def unavailable(self, preferences: Preferences) -> str | None:
-        return None
-
-    async def run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
-        self.seen.append(target.normalized)
-        return
-        yield  # pragma: no cover
 
 
 async def scan(api: Api, profile: int, modules: list[str]) -> Any:
@@ -195,19 +169,6 @@ async def test_a_scan_follows_sure_leads_up_to_its_depth(make_api: ApiFactory) -
     assert finds.seen == [SEED, "sure@example.org", "further@example.org"]
     assert sorted(run["depth"] for run in done["runs"]) == [0, 1, 2]
     assert done["notes"] == {"pivots": 2}
-
-
-async def test_light_active_sources_only_get_near_certain_leads(make_api: ApiFactory) -> None:
-    finds = Finds({SEED: [("likely@example.org", 0.75), ("near@example.org", 0.9)]})
-    asks = Asks()
-    api = await make_api({"test.finds": finds, "test.asks": asks})
-    profile = await profile_with(api, 1)
-    await scan(api, profile, ["test.finds", "test.asks"])
-
-    # Both leads are searched from by the passive source…
-    assert sorted(finds.seen) == sorted([SEED, "likely@example.org", "near@example.org"])
-    # … but only the near-certain one is handed to a third party.
-    assert sorted(asks.seen) == sorted([SEED, "near@example.org"])
 
 
 async def test_a_rejected_trace_is_never_followed(make_api: ApiFactory) -> None:

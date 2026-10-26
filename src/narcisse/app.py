@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.telemetry import TelemetryConfig
 
 from narcisse import __version__
-from narcisse.api import entities, graph, passwords, preferences, profiles, scans
+from narcisse.api import entities, graph, passwords, preferences, profiles, scans, searxng
 from narcisse.api.deps import Services, ServicesDep
 from narcisse.clock import Clock
 from narcisse.config import Settings
@@ -26,6 +26,7 @@ from narcisse.errors import AppError
 from narcisse.modules import discover
 from narcisse.preferences import Preferences
 from narcisse.schemas import AppInfo, ClientError
+from narcisse.searxng import Launcher
 from narcisse.security import LocalOnlyMiddleware
 from narcisse.storage.database import Database, migrate
 
@@ -85,11 +86,13 @@ def create_app(
                 preferences=lambda: Preferences.load(settings.preferences_path),
             )
             await engine.start()
-            app.state.services = Services(settings, db, bus, engine)
+            launcher = Launcher(client, settings.preferences_path)
+            app.state.services = Services(settings, db, bus, engine, launcher)
             log.info("Narcisse %s ready, data in %s", __version__, settings.data_dir)
             try:
                 yield
             finally:
+                launcher.cancel()
                 bus.close()
                 await engine.stop()
                 await db.close()
@@ -137,6 +140,7 @@ def create_app(
     api.include_router(graph.router)
     api.include_router(preferences.router)
     api.include_router(passwords.router)
+    api.include_router(searxng.router)
 
     @api.post("/client-errors", status_code=204, tags=["meta"])
     async def client_error(body: ClientError) -> Response:

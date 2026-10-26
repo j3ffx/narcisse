@@ -9,7 +9,6 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from narcisse.domain import (
     EntityKind,
     EntityStatus,
-    IntrusionLevel,
     ProfileKind,
     RunStatus,
     ScanStatus,
@@ -302,7 +301,6 @@ class ModuleOut(Schema):
     category: str
     accepts: list[EntityKind]
     produces: list[EntityKind]
-    intrusion: IntrusionLevel
     hosts: list[str]
     other_hosts: str
     # Why it can't run with the current settings (an error code), or null.
@@ -332,7 +330,6 @@ class PreferencesOut(Schema):
     exclude_adult: bool
     fediverse_instances: list[str]
     searxng_url: str | None
-    enabled_light_active: list[str]
 
 
 class PreferencesPatch(Schema):
@@ -344,8 +341,18 @@ class PreferencesPatch(Schema):
     fediverse_instances: list[str] | None = Field(default=None, max_length=50)
     # The address of the user's SearXNG instance; an empty string (or null) removes it.
     searxng_url: str | None = Field(default=None, max_length=200)
-    # The light-active modules to turn on, by name (the whole set each time, as the UI sends it).
-    enabled_light_active: list[str] | None = Field(default=None, max_length=50)
+
+
+class SearxngOut(Schema):
+    """The user's SearXNG: whether Docker is there, whether the instance answers, and how a
+    launch asked from the app is going."""
+
+    docker: bool  # Docker is installed
+    address: str | None  # the instance the settings name
+    running: bool  # an instance answers there (or at the usual address, when none is set)
+    state: str  # "idle", "starting", "ready", "failed"
+    step: str | None  # while starting: "desktop", "compose", "waiting"
+    error: str | None  # when failed: a code the UI explains
 
 
 class ErrorOut(Schema):

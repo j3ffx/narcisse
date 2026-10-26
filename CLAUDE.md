@@ -71,11 +71,13 @@ fixtures, docs, commit messages or commit metadata.
   token…) may lift limits, as an option; everything works without it.
 - **Public sources only.** No bypassing authentication, paywalls or captchas, no exploiting flaws, no
   fake accounts.
-- **Passive by default.** _Passive_: public APIs and pages, DNS/RDAP, archives, open registries.
-  _Light active_ (e.g. "is this e-mail registered on X?" through a password-reset form): opt-in,
-  module by module, **off by default**, explained in the UI before it is turned on. Crawling
-  (following links) honours `robots.txt`; checking whether one profile page exists is not crawling.
-  Every request is rate-limited per domain and sends Narcisse's honest User-Agent, never a browser's.
+- **Passive.** Public APIs and pages, DNS/RDAP, archives, open registries. No source solicits a
+  service to guess whether the user has an account there, logs in anywhere, or fills a form; a
+  light-active layer (holehe-style "is this e-mail registered on X?") was tried and dropped
+  (2026-10-26): few sites answered an honest User-Agent, and it cluttered the UI for little. If it
+  comes back, it is opt-in and off by default. Crawling (following links) honours `robots.txt`;
+  checking whether one profile page exists is not crawling. Every request is rate-limited per domain
+  and sends Narcisse's honest User-Agent, never a browser's.
 - **No circumvention, no borrowed credentials.** Sites behind a captcha or a proof-of-work challenge
   are not asked; an anti-bot page counts as "couldn't tell". No cookie that accepts a site's terms,
   no spoofed header, never a third party's API key (sites needing one are removed from the
@@ -105,7 +107,7 @@ fixtures, docs, commit messages or commit metadata.
   (demo or the user's data) chosen last in the tray menu, kept in the user's config directory
   (`NARCISSE_CONFIG_DIR` in tests). Tests never write the real registry.
 - **Licences are checked** before reusing a tool or dataset. The project is GPL-3.0-only, compatible
-  with what it draws on so far: Maigret, Sherlock, JustDeleteMe (MIT), holehe, PhoneInfoga (GPL-3.0),
+  with what it draws on so far: Maigret, Sherlock, JustDeleteMe (MIT), PhoneInfoga (GPL-3.0),
   WhatsMyName's data (CC BY-SA 4.0, credited), libphonenumber (Apache-2.0), dnspython (ISC),
   XposedOrNot (credited, personal use, never redistributed), Pwned Passwords (CC BY 4.0).
 - **A password never leaves the page.** Pwned Passwords is asked by k-anonymity: the browser hashes
@@ -117,8 +119,7 @@ fixtures, docs, commit messages or commit metadata.
   `engine/scoring.py`, each leaving a reason the UI shows; the user's word (confirmed, rejected)
   overrides them, and a rejected trace weighs on what was only found through it. Scans follow
   leads only when the profile allows it (up to two hops, a cap per scan), never from a rejected
-  trace; light-active sources only get a lead the user confirmed or one that is nearly certain,
-  since it may be someone else's address.
+  trace.
 - **Every source says what it is.** A source that stops working says so, and a run reports what it
   could and couldn't check (`ModuleRun.notes`). Demo mode offers the demo module only, normal mode
   the real sources only: fictitious identities never reach real sites.

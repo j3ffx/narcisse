@@ -24,7 +24,6 @@ from narcisse.domain import (
     FINISHED_RUN_STATUSES,
     EntityKind,
     EntityStatus,
-    IntrusionLevel,
     RunStatus,
     ScanStatus,
     SeedStatus,
@@ -733,10 +732,6 @@ class Engine:
                 continue
             if not module.accepts_target(kind, entity.display):
                 continue
-            if module.meta.intrusion == IntrusionLevel.LIGHT_ACTIVE and not pivot.active_allowed(
-                entity
-            ):
-                continue  # a lead may be someone else's address: not handed to a third party
             names.append(name)
         if not names:
             return False

@@ -108,7 +108,6 @@ export const RELATION_LABELS: Record<string, string> = {
   added_by_hand: 'ajouté par toi',
   described_as: 'description',
   exposed_in: 'exposé dans la fuite',
-  registered_on: 'inscrit sur',
   company_officer: 'dirigeant de',
   sole_trader: 'entreprise individuelle',
   registered_office: 'siège',
