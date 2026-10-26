@@ -197,8 +197,10 @@ Chaque trace a deux scores sur 100, avec leurs raisons dans son détail (« Pour
 - le **risque** (« à quel point ça t’expose ? ») dépend du type de trace (une adresse postale
   expose plus qu’un pseudo) et de ce qu’elle révèle : mots de passe lisibles dans une fuite, date
   de naissance au registre, courtier en données, site adulte, Strava, sous-domaine comme `nas.` ou
-  `vpn.`, coordonnées publiées par le registre d’un domaine, copie dans une archive… Il est pondéré
-  par la confiance, et classé faible, moyen, élevé ou critique.
+  `vpn.`, coordonnées publiées par le registre d’un domaine, copie dans une archive… Pour un
+  profil pro (ou perso et pro), ce qu’il est normal de montrer (ton entreprise, ton domaine, le
+  registre) compte moitié moins. Il est pondéré par la confiance, et classé faible, moyen, élevé
+  ou critique.
 
 Un scan part des éléments de ton profil. Les **pistes**, dans l’onglet Éléments, sont les traces
 assez sûres pour qu’un scan parte aussi d’elles (un email lu dans un profil, un domaine cité dans
@@ -208,6 +210,21 @@ as rejetée.
 
 En mode démo, seul le module de démonstration est proposé : des identités fictives n’interrogent
 jamais de vrais sites.
+
+### Que faire de chaque trace
+
+Le détail d’une trace dit ce que tu peux faire, le plus utile d’abord : supprimer un compte (la
+page de suppression du site et sa difficulté, d’après JustDeleteMe), demander à un site d’effacer
+une page, la faire déréférencer des moteurs de recherche (formulaires de Google, Bing et Qwant),
+te faire retirer d’un courtier en données ou d’un annuaire d’entreprises, retirer des copies de la
+Wayback Machine, masquer tes coordonnées dans l’annuaire des domaines, passer ta fiche INSEE en
+diffusion partielle, rendre une fuite inoffensive…
+
+Pour écrire, Narcisse prépare la demande (effacement ou opposition au titre du RGPD, suppression de
+compte, déréférencement), en français ou en anglais, signée avec les éléments de ton profil (nom,
+email, adresse) et des « [à compléter] » pour le reste. Tu la relis, tu la modifies, puis tu la
+copies ou tu l’ouvres dans ta messagerie : **Narcisse n’envoie jamais rien**. Sans réponse sous un
+mois, la page renvoie vers la plainte à la CNIL.
 
 ## Ajouter une source
 
@@ -227,6 +244,9 @@ Les règles du dépôt (commandes, commits, confidentialité, invariants) : [CLA
   contributeurs, licence [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). Copie
   adaptée (sites interrogés avec la clé d’un tiers retirés), provenance dans
   `src/narcisse/modules/data/wmn-source.json`.
+- Pages de suppression des comptes : [JustDeleteMe](https://github.com/jdm-contrib/jdm), Robb
+  Lewis, la JDM Contrib Team et contributeurs, licence MIT. Copie allégée (anglais et français),
+  provenance et notice dans `src/narcisse/remediation/data/jdm-source.json`.
 - Fuites de données : [XposedOrNot](https://xposedornot.com/), pour un usage personnel.
 - Mots de passe : [Pwned Passwords](https://haveibeenpwned.com/Passwords), de Have I Been Pwned (Troy
   Hunt), licence [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).

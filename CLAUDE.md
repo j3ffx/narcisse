@@ -136,7 +136,9 @@ fixtures, docs, commit messages or commit metadata.
   `scoring.py` kept up to date by `rescore.py`, the leads scans may follow in `pivot.py`),
   `modules/` (one file per source; `_text.py` reads profiles' bios and relates findings to the
   profile they were read on), `api/`, `storage/` (models, Alembic migrations: `scripts/new-migration.py`),
-  `demo_graph.py` (fictitious graphs of thousands of traces, demo mode only),
+  `remediation/` (what to do about each trace: the knowledge base in `data/`, with a copy of
+  JustDeleteMe and Narcisse's own sheets, the rules in `actions.py`, the GDPR letters in
+  `data/letters/`), `demo_graph.py` (fictitious graphs of thousands of traces, demo mode only),
   `desktop/` (tray, Windows integration, the icon drawn in `art.py` and exported by
   `scripts/make-icons.py`).
   `tests/`: pytest (`tests/fakes.py` holds modules whose timing tests control).
@@ -147,7 +149,8 @@ fixtures, docs, commit messages or commit metadata.
   `src/narcisse/web/static/` (ignored), which the Python package serves and ships. `web/e2e/`:
   Playwright against `narcisse serve --demo` on a temporary data dir.
 - `scripts/`: repository checks, git hook helpers, and the refresh of the data modules reuse
-  (`update-wmn.py`, `update-registries.py`: dated copies in `src/narcisse/modules/data/`).
+  (`update-wmn.py`, `update-registries.py`: dated copies in `src/narcisse/modules/data/`;
+  `update-jdm.py`: in `src/narcisse/remediation/data/`).
 
 ## Performance
 

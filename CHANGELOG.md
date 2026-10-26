@@ -69,6 +69,15 @@ Pas encore de version : la 0.1.0 sortira quand Narcisse sera utilisable sur de v
 - Les pistes : les traces assez sûres pour devenir des éléments, à ajouter ou écarter. Un profil
   peut laisser les scans suivre eux-mêmes les plus sûres (un ou deux sauts, 25 par scan au plus,
   jamais un « pas moi »).
+- Que faire de chaque trace : supprimer le compte (page et difficulté, d’après JustDeleteMe),
+  demander à un site d’effacer une page, la faire déréférencer (Google, Bing, Qwant), te retirer
+  d’un courtier ou d’un annuaire d’entreprises, de la Wayback Machine, du serveur de clés,
+  masquer tes coordonnées de domaine, limiter ce que publie le registre, rendre une fuite
+  inoffensive. Les demandes RGPD (effacement, opposition), de suppression de compte et de
+  déréférencement sont prêtes, en français ou en anglais, signées avec ton profil : tu les relis,
+  les copies ou les ouvres dans ta messagerie. Narcisse n’envoie rien.
+- Le type de profil compte : pour un profil pro, ton entreprise, ton domaine et le registre pèsent
+  moitié moins dans le risque, et la première action proposée est de les garder.
 - Une page « Sources » qui dit ce que chaque source interroge, à quel rythme et sous quelle
   licence, et une page « Réglages » (tokens GitHub et GitLab facultatifs, instances Mastodon,
   instance SearXNG, sites adultes).
