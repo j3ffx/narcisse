@@ -109,11 +109,12 @@ function History({ exposure }: { exposure: Exposure }) {
   const width = 220;
   const height = 48;
   const values = points.map((p) => p.exposure);
-  const max = Math.max(...values, 1);
+  const min = Math.min(...values);
+  const range = Math.max(...values) - min;
   const step = width / (points.length - 1);
-  const line = values
-    .map((v, i) => `${(i * step).toFixed(1)},${(height - (v / max) * (height - 4) - 2).toFixed(1)}`)
-    .join(' ');
+  // A flat exposure draws a level line in the middle.
+  const y = (v: number) => (range ? height - 2 - ((v - min) / range) * (height - 4) : height / 2);
+  const line = values.map((v, i) => `${(i * step).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
   const first = points[0]!;
   const last = points[points.length - 1]!;
   const summary = `Exposition : ${first.exposure.toLocaleString('fr-FR')} au scan du ${formatDay(first.taken_at)}, ${last.exposure.toLocaleString('fr-FR')} au scan du ${formatDay(last.taken_at)}.`;
@@ -130,7 +131,8 @@ function History({ exposure }: { exposure: Exposure }) {
         <polyline fill="none" stroke="currentColor" strokeWidth="2" points={line} />
       </svg>
       <figcaption className="text-xs text-muted-foreground">
-        Au fil de tes {points.length} derniers scans
+        Exposition {first.exposure.toLocaleString('fr-FR')} →{' '}
+        {last.exposure.toLocaleString('fr-FR')}, sur tes {points.length} derniers scans
       </figcaption>
     </figure>
   );

@@ -135,7 +135,7 @@ function ActionItem({ action, entityId }: { action: Action; entityId: number }) 
       {request && (
         <p className="text-xs" data-testid="followed">
           <span className="font-medium">Suivie</span> : {requestSummary(request)}
-          {checkText(request) ? ` · ${checkText(request)}` : ''}.{' '}
+          {checkText(request) ? ` · ${checkText(request)}` : '.'}{' '}
           <Link
             href={`/profils/${request.profile_id}/a-faire`}
             className="underline underline-offset-2"
