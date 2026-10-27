@@ -136,6 +136,8 @@ class EntityOut(Schema):
     confidence: float | None
     risk: float | None
     attributes: dict[str, Any]
+    # Since when no scan finds it (every search that found it ran again and saw nothing).
+    gone_at: datetime | None = None
 
 
 class EntityPatch(Schema):
@@ -474,6 +476,34 @@ class ExternalLinkIn(Schema):
     """A page to open in the user's own browser (a link clicked in Narcisse's window)."""
 
     url: str = Field(max_length=4000)
+
+
+class DiffOut(Schema):
+    """What changed from one scan to a later one."""
+
+    before: ScanOut
+    after: ScanOut
+    new: list[EntityOut]  # seen for the first time
+    gone: list[EntityOut]  # every search that found them ran again and saw nothing
+    unchecked: list[EntityOut]  # not seen again, but their searches didn't all run again
+    modified: list[EntityOut]  # their page changed
+
+
+class BackupIn(Schema):
+    # Seals the backup (and then keeps the tokens in it); empty: a plain backup, without tokens.
+    passphrase: str | None = Field(default=None, max_length=500)
+
+
+class RestoreIn(Schema):
+    data: str  # the backup file, in base64 (state-changing requests carry JSON only)
+    passphrase: str | None = Field(default=None, max_length=500)
+
+
+class RestoreOut(Schema):
+    profiles: int
+    created_at: str
+    narcisse: str  # the version that made the backup
+    safety: str  # where the data before the restore was kept
 
 
 class ErrorOut(Schema):

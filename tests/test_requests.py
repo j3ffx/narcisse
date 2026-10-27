@@ -196,3 +196,50 @@ async def test_a_trace_found_by_no_search_cannot_be_checked(api: Api) -> None:
     )
     error = await api.json("POST", f"/requests/{request['id']}/check", {}, status=409)
     assert error["code"] == "nothing_to_check"
+
+
+async def test_any_trace_no_scan_finds_any_more_is_gone_until_found_again(
+    make_api: ApiFactory,
+) -> None:
+    api, directory, profile, page = await setup(make_api)
+
+    directory.listed = False
+    await scanned(api, profile)
+    graph = await api.json("GET", f"/profiles/{profile}/graph")
+    [node] = [n for n in graph["nodes"] if n["id"] == page]
+    assert node["gone_at"] is not None
+    assert (await api.json("GET", f"/profiles/{profile}/exposure"))["gone"] == 1
+
+    directory.listed = True
+    await scanned(api, profile)
+    detail = await api.json("GET", f"/entities/{page}")
+    assert detail["entity"]["gone_at"] is None
+
+
+async def test_a_trace_whose_searches_did_not_all_run_again_is_not_gone(
+    make_api: ApiFactory,
+) -> None:
+    directory = Directory()
+    api = await make_api({"test.directory": directory, "test.other": Other()})
+    profile = await api.profile(("name", "Jeanne Exemple"))
+    await scanned(api, profile)
+    page = await page_trace(api, profile)
+
+    # Only the other source runs: the directory's search didn't run again, nothing is said.
+    directory.listed = False
+    scan = await api.json(
+        "POST", f"/profiles/{profile}/scans", {"modules": ["test.other"]}, status=201
+    )
+    await api.wait_scan(scan["id"], lambda s: s["status"] == "done")
+    assert (await api.json("GET", f"/entities/{page}"))["entity"]["gone_at"] is None
+
+
+class Other(SourceModule):
+    """A source that finds nothing."""
+
+    meta: ClassVar[ModuleMeta] = meta("test.other")
+
+    async def run(self, ctx: ModuleContext, target: Target) -> AsyncIterator[Finding]:
+        await ctx.progress(1, 1)
+        return
+        yield  # pragma: no cover

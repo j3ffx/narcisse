@@ -1,5 +1,6 @@
 """What every route needs, taken from the running application."""
 
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Annotated
 
@@ -19,6 +20,8 @@ class Services:
     bus: EventBus
     engine: Engine
     searxng: Launcher
+    # Closes the database, runs a function (that replaces its files), opens it again: a restore.
+    reopen: Callable[[Callable[[], None]], Awaitable[None]]
 
 
 def _services(request: Request) -> Services:

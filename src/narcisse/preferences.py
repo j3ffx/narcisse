@@ -34,6 +34,11 @@ class Preferences:
         except (OSError, ValueError):
             log.warning("unreadable preferences in %s; using the defaults", path)
             return cls()
+        return cls.load_dict(data)
+
+    @classmethod
+    def load_dict(cls, data: dict[str, Any]) -> "Preferences":
+        """The settings a dict holds (a file's, a backup's), unknown keys ignored."""
         known = {f.name for f in fields(cls)}
         values = {k: v for k, v in data.items() if k in known}
         values["fediverse_instances"] = tuple(

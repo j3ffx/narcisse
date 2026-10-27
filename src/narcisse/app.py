@@ -3,7 +3,7 @@
 import asyncio
 import logging
 import mimetypes
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -15,9 +15,11 @@ from fastapi.telemetry import TelemetryConfig
 
 from narcisse import __version__
 from narcisse.api import (
+    backups,
     browser,
     entities,
     graph,
+    history,
     passwords,
     preferences,
     profiles,
@@ -82,23 +84,42 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        await asyncio.to_thread(migrate, settings.database_path)
-        db = Database(settings.database_path)
-        bus = EventBus(db, Clock(settings.speed))
-        await bus.start()
         available = discover() if modules is None else modules
         # Demo mode offers the demo module only: fictitious identities never reach real sites.
         offered = {n: m for n, m in available.items() if m.meta.demo == settings.demo}
         async with new_transport_client(transport=http_transport) as client:
-            engine = Engine(
-                bus,
-                offered,
-                client,
-                preferences=lambda: Preferences.load(settings.preferences_path),
-            )
-            await engine.start()
             launcher = Launcher(client, settings.preferences_path)
-            app.state.services = Services(settings, db, bus, engine, launcher)
+
+            async def open_runtime() -> Services:
+                """The database (migrated), its events and the engine, started."""
+                await asyncio.to_thread(migrate, settings.database_path)
+                db = Database(settings.database_path)
+                bus = EventBus(db, Clock(settings.speed))
+                await bus.start()
+                engine = Engine(
+                    bus,
+                    offered,
+                    client,
+                    preferences=lambda: Preferences.load(settings.preferences_path),
+                )
+                await engine.start()
+                return Services(settings, db, bus, engine, launcher, reopen)
+
+            async def close_runtime(services: Services) -> None:
+                services.bus.close()
+                await services.engine.stop()
+                await services.db.close()
+
+            async def reopen(swap: Callable[[], None]) -> None:
+                """Stops the engine and closes the database, lets `swap` replace its files (a
+                restore), then opens everything again, whatever `swap` did."""
+                await close_runtime(app.state.services)
+                try:
+                    await asyncio.to_thread(swap)
+                finally:
+                    app.state.services = await open_runtime()
+
+            app.state.services = await open_runtime()
             if not settings.demo:
                 launcher.autostart()
             log.info("Narcisse %s ready, data in %s", __version__, settings.data_dir)
@@ -106,9 +127,7 @@ def create_app(
                 yield
             finally:
                 launcher.cancel()
-                bus.close()
-                await engine.stop()
-                await db.close()
+                await close_runtime(app.state.services)
 
     app = FastAPI(
         title="Narcisse",
@@ -157,6 +176,8 @@ def create_app(
     api.include_router(remediation.router)
     api.include_router(browser.router)
     api.include_router(requests.router)
+    api.include_router(history.router)
+    api.include_router(backups.router)
 
     @api.post("/client-errors", status_code=204, tags=["meta"])
     async def client_error(body: ClientError) -> Response:

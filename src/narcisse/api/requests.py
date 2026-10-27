@@ -5,12 +5,12 @@ exposure over time."""
 from datetime import datetime
 
 from fastapi import APIRouter, Response
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
 from narcisse.api.deps import ServicesDep
 from narcisse.api.remediation import request_out, trace_context
-from narcisse.domain import OPEN_REQUEST_STATUSES, CheckOutcome, RequestStatus
+from narcisse.domain import OPEN_REQUEST_STATUSES, EntityStatus, RequestStatus
 from narcisse.engine.events import Transaction
 from narcisse.errors import AppError, not_found
 from narcisse.remediation import follow, letters
@@ -24,7 +24,7 @@ from narcisse.schemas import (
     RequestPatch,
     ScanDetail,
 )
-from narcisse.storage.models import ExposureSnapshot, Profile, RemovalRequest
+from narcisse.storage.models import Entity, ExposureSnapshot, Profile, RemovalRequest
 
 router = APIRouter(tags=["requests"])
 
@@ -194,7 +194,14 @@ async def get_exposure(profile_id: int, s: ServicesDep) -> ExposureOut:
             ],
             requests=by_status,
             due=sum(follow.is_due(r, now) for r in requests),
-            gone=sum(r.check == CheckOutcome.GONE for r in requests),
+            gone=await session.scalar(
+                select(func.count(Entity.id)).where(
+                    Entity.profile_id == profile_id,
+                    Entity.gone_at.is_not(None),
+                    Entity.status != EntityStatus.FALSE_POSITIVE,
+                )
+            )
+            or 0,
         )
 
 

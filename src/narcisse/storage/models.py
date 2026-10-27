@@ -175,6 +175,9 @@ class Entity(Base):
     attributes: Mapped[dict[str, Any]] = mapped_column(default=dict)
     first_seen: Mapped[datetime]
     last_seen: Mapped[datetime]
+    # Since when no scan finds it: every search that found it ran again, without error, and saw
+    # nothing. Cleared when a scan finds it again.
+    gone_at: Mapped[datetime | None]
 
 
 class Edge(Base):

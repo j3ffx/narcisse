@@ -62,33 +62,65 @@ async def finders(session: AsyncSession, entity_id: int) -> set[tuple[str, int]]
     return {(module, input_id) for module, input_id in rows}
 
 
-async def check_requests(session: AsyncSession, scan: Scan, now: datetime) -> list[RemovalRequest]:
-    """What this finished scan says about the traces the user acts on; returns the requests it
+async def rechecked(session: AsyncSession, scan: Scan) -> tuple[set[int], set[int]]:
+    """What a finished scan says of the profile's traces: those it found, and those it no longer
+    finds although every search that once found them ran again without error."""
+    done_here = {
+        (run.module, run.input_entity_id) for run in scan.runs if run.status == RunStatus.DONE
+    }
+    found = set(
+        await session.scalars(select(Evidence.entity_id).where(Evidence.scan_id == scan.id))
+    )
+    rows = await session.execute(
+        select(Evidence.entity_id, ModuleRun.module, ModuleRun.input_entity_id)
+        .join(ModuleRun, Evidence.run_id == ModuleRun.id)
+        .join(Entity, Evidence.entity_id == Entity.id)
+        .where(Entity.profile_id == scan.profile_id)
+        .distinct()
+    )
+    searches: dict[int, set[tuple[str, int]]] = {}
+    for entity_id, module, input_id in rows:
+        searches.setdefault(entity_id, set()).add((module, input_id))
+    gone = {
+        entity_id
+        for entity_id, found_by in searches.items()
+        if entity_id not in found and found_by <= done_here
+    }
+    return found, gone
+
+
+async def mark_gone(
+    session: AsyncSession, found: set[int], gone: set[int], now: datetime
+) -> list[Entity]:
+    """Dates the traces a scan no longer finds, and clears the date of those it finds again;
+    returns the traces that changed."""
+    changed = []
+    for ids, when in ((gone, now), (found, None)):
+        for part in _slices(sorted(ids)):
+            for entity in await session.scalars(select(Entity).where(Entity.id.in_(part))):
+                if (entity.gone_at is None) != (when is None):
+                    entity.gone_at = when
+                    changed.append(entity)
+    return changed
+
+
+async def check_requests(
+    session: AsyncSession, scan: Scan, found: set[int], gone: set[int], now: datetime
+) -> list[RemovalRequest]:
+    """What a finished scan says about the traces the user acts on; returns the requests it
     changed."""
     requests = list(
         await session.scalars(
             select(RemovalRequest).where(
                 RemovalRequest.profile_id == scan.profile_id,
                 RemovalRequest.status != RequestStatus.REFUSED,
+                RemovalRequest.entity_id.in_(found | gone),
             )
         )
     )
-    if not requests:
-        return []
-    done_here = {
-        (run.module, run.input_entity_id) for run in scan.runs if run.status == RunStatus.DONE
-    }
     changed = []
     for request in requests:
-        looked = await finders(session, request.entity_id) & done_here
-        if not looked:
-            continue  # this scan didn't run any search that found it
-        found_again = await session.scalar(
-            select(Evidence.id)
-            .where(Evidence.entity_id == request.entity_id, Evidence.scan_id == scan.id)
-            .limit(1)
-        )
-        outcome = CheckOutcome.STILL_THERE if found_again else CheckOutcome.GONE
+        outcome = CheckOutcome.GONE if request.entity_id in gone else CheckOutcome.STILL_THERE
         request.check = outcome
         request.checked_at = now
         request.check_scan_id = scan.id
@@ -103,34 +135,29 @@ async def check_requests(session: AsyncSession, scan: Scan, now: datetime) -> li
     return changed
 
 
-async def gone_entities(session: AsyncSession, profile_id: int) -> set[int]:
-    """Traces a scan no longer found after the user acted on them."""
-    return set(
-        await session.scalars(
-            select(RemovalRequest.entity_id).where(
-                RemovalRequest.profile_id == profile_id,
-                RemovalRequest.check == CheckOutcome.GONE,
-            )
-        )
-    )
+SLICE = 900  # SQLite caps the number of bound parameters
+
+
+def _slices(items: list[int]) -> list[list[int]]:
+    return [items[i : i + SLICE] for i in range(0, len(items), SLICE)]
 
 
 async def exposure(session: AsyncSession, profile_id: int) -> tuple[dict[str, int], float]:
     """How many of the profile's traces stand at each risk level, and the sum of their risks:
-    the user's own (or not rejected), still public, not the identity."""
-    gone = await gone_entities(session, profile_id)
+    the user's own (or not rejected), still found in public, not the identity."""
     rows = await session.execute(
-        select(Entity.id, Entity.risk).where(
+        select(Entity.risk).where(
             Entity.profile_id == profile_id,
             Entity.kind != EntityKind.IDENTITY,
             Entity.status != EntityStatus.FALSE_POSITIVE,
+            Entity.gone_at.is_(None),
             Entity.risk > 0,
         )
     )
     counts: Counter[str] = Counter()
     total = 0.0
-    for entity_id, risk in rows:
-        if entity_id in gone or risk is None:
+    for (risk,) in rows:
+        if risk is None:
             continue
         counts[risk_level(risk)] += 1
         total += risk

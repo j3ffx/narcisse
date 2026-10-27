@@ -12,6 +12,8 @@ import socket
 import threading
 import time
 from dataclasses import replace
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import Annotated
 
 import httpx
@@ -224,6 +226,78 @@ def paths() -> None:
     typer.echo(f"Données : {settings.data_dir}")
     typer.echo(f"Base    : {settings.database_path}")
     typer.echo(f"Journal : {settings.log_dir / 'narcisse.log'}")
+
+
+@app.command()
+def backup(
+    out: Annotated[
+        Path | None, typer.Option("--out", help="Fichier ou dossier où l’écrire.")
+    ] = None,
+    encrypt: Annotated[
+        bool,
+        typer.Option(
+            "--chiffrer", help="La chiffrer avec une phrase de passe (et garder les tokens)."
+        ),
+    ] = False,
+    demo: Demo = False,
+) -> None:
+    """Sauvegarde toutes les données de Narcisse dans un fichier .narcisse."""
+    from narcisse.storage import backup as backups
+
+    settings = Settings.from_env(demo=demo or None)
+    if not settings.database_path.exists():
+        typer.echo("Rien à sauvegarder : Narcisse n’a encore aucune donnée ici.")
+        raise typer.Exit(1)
+    passphrase = None
+    if encrypt:
+        passphrase = typer.prompt("Phrase de passe", hide_input=True, confirmation_prompt=True)
+    now = datetime.now(UTC)
+    target = out or Path.cwd()
+    if target.is_dir():
+        target = target / backups.file_name(now, encrypted=bool(passphrase))
+    target.write_bytes(backups.create(settings, now, passphrase))
+    typer.echo(f"Sauvegarde écrite : {target}")
+    if passphrase:
+        typer.echo("Sans la phrase de passe, personne ne pourra la relire, pas même Narcisse.")
+
+
+@app.command()
+def restore(
+    file: Annotated[Path, typer.Argument(help="La sauvegarde .narcisse à restaurer.")],
+    demo: Demo = False,
+) -> None:
+    """Remplace toutes les données de Narcisse par celles d’une sauvegarde (Narcisse arrêté)."""
+    from narcisse.errors import AppError
+    from narcisse.storage import backup as backups
+    from narcisse.storage.database import migrate
+
+    settings, running = _locate(None, demo)
+    if running:
+        typer.echo(
+            "Narcisse tourne : quitte-le d’abord (menu de l’icône), ou restaure depuis ses "
+            "Réglages."
+        )
+        raise typer.Exit(1)
+    data = file.read_bytes()
+    passphrase = None
+    if backups.is_sealed(data):
+        passphrase = typer.prompt("Phrase de passe", hide_input=True)
+    try:
+        restored = backups.read(data, passphrase)
+    except AppError as exc:
+        typer.echo(f"Impossible de restaurer cette sauvegarde ({exc.code}).")
+        raise typer.Exit(1) from exc
+    now = datetime.now(UTC)
+    if settings.database_path.exists():
+        safety = backups.safety_path(settings, now)
+        safety.write_bytes(backups.create(settings, now))
+        typer.echo(f"Tes données d’avant sont gardées dans : {safety}")
+    backups.replace_data(settings, restored)
+    migrate(settings.database_path)
+    typer.echo(
+        f"Restauré : {restored.manifest.profiles} profil(s), sauvegarde du "
+        f"{restored.manifest.created_at[:10]}."
+    )
 
 
 def main() -> None:

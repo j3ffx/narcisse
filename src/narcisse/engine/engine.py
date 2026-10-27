@@ -891,8 +891,14 @@ class Engine:
         if all(run.status in FINISHED_RUN_STATUSES for run in scan.runs):
             scan.status = ScanStatus.DONE
             scan.finished_at = self.clock.now()
-            # What it says of the traces the user acts on, and the profile's exposure now.
-            checked = await follow.check_requests(tx.session, scan, scan.finished_at)
+            # What it says of the traces (gone, found again), of those the user acts on, and
+            # the profile's exposure now.
+            found, gone = await follow.rechecked(tx.session, scan)
+            for entity in await follow.mark_gone(tx.session, found, gone, scan.finished_at):
+                out = EntityOut.model_validate(entity).model_dump(mode="json")
+                tx.emit("entity.updated", {**out, "profile_id": entity.profile_id}, None)
+            checked = await follow.check_requests(tx.session, scan, found, gone, scan.finished_at)
+            await tx.session.flush()
             await follow.snapshot(tx.session, scan, scan.finished_at)
             tx.emit("scan.updated", scan_out(scan), scan.id)
             if checked:
