@@ -15,6 +15,7 @@ from fastapi.telemetry import TelemetryConfig
 
 from narcisse import __version__
 from narcisse.api import (
+    browser,
     entities,
     graph,
     passwords,
@@ -153,6 +154,7 @@ def create_app(
     api.include_router(passwords.router)
     api.include_router(searxng.router)
     api.include_router(remediation.router)
+    api.include_router(browser.router)
 
     @api.post("/client-errors", status_code=204, tags=["meta"])
     async def client_error(body: ClientError) -> Response:

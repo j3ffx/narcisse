@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { App } from './app/App';
 import { ThemeProvider } from './app/theme';
 import './index.css';
+import { sendExternalLinksToTheBrowser } from './lib/external';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -11,6 +12,8 @@ const queryClient = new QueryClient({
     queries: { staleTime: 30_000, refetchOnWindowFocus: false, retry: 1 },
   },
 });
+
+sendExternalLinksToTheBrowser();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

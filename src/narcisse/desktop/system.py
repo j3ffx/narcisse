@@ -75,7 +75,9 @@ def open_window(app_url: str, tab_url: str) -> threading.Thread | None:
     short-lived process waits for."""
     browser = _app_mode_browser()
     if browser:
-        subprocess.Popen([browser, f"--app={app_url}"], close_fds=True)
+        # `fenetre`: the page knows it is Narcisse's window (no tabs, no back button), and
+        # sends the links leaving Narcisse to the user's browser.
+        subprocess.Popen([browser, f"--app={app_url}/?fenetre=1"], close_fds=True)
         return taskbar.brand_new_windows(_quote(command("open")), str(ICON))
     webbrowser.open(tab_url)
     return None

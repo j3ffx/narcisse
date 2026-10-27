@@ -398,6 +398,12 @@ class RemediationOut(Schema):
     complaint: GuideOut  # where to turn when a request goes unanswered
 
 
+class ExternalLinkIn(Schema):
+    """A page to open in the user's own browser (a link clicked in Narcisse's window)."""
+
+    url: str = Field(max_length=4000)
+
+
 class ErrorOut(Schema):
     code: str
     params: dict[str, Any] = Field(default_factory=dict)

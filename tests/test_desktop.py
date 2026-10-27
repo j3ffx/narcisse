@@ -151,7 +151,10 @@ def test_narcisse_opens_in_an_app_window_when_the_browser_can(
     monkeypatch.setattr(system, "_app_mode_browser", lambda: None)
     system.open_window("http://narcisse.localhost", "http://narcisse")
 
-    assert launched == [["chrome.exe", "--app=http://narcisse.localhost"], "http://narcisse"]
+    assert launched == [
+        ["chrome.exe", "--app=http://narcisse.localhost/?fenetre=1"],
+        "http://narcisse",
+    ]
     # Only the app window gets Narcisse's place on the taskbar: pinned, it runs `narcisse open`.
     [command] = branded
     assert command.endswith("-m narcisse open")

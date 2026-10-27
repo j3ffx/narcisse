@@ -109,3 +109,18 @@ async def test_a_crash_in_the_ui_goes_to_the_log(
     assert "the UI failed at /profils/1: boom" in caplog.text
     assert "graph.js:1" in caplog.text
     await api.json("POST", "/client-errors", {"message": "x" * 3000}, status=422)
+
+
+async def test_narcisse_window_hands_external_links_to_the_browser(
+    api: Api, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    opened: list[tuple[str, int]] = []
+    monkeypatch.setattr("webbrowser.open", lambda url, new=0: opened.append((url, new)))
+
+    await api.json("POST", "/open-external", {"url": "https://video.example.com/watch?v=1"}, 204)
+    assert opened == [("https://video.example.com/watch?v=1", 2)]
+
+    own = api.app.state.services.settings.app_url + "/profils/1"
+    for url in ("javascript:alert(1)", "file:///C:/", own):
+        await api.json("POST", "/open-external", {"url": url}, 422)
+    assert len(opened) == 1
