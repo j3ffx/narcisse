@@ -44,8 +44,18 @@ from narcisse.engine.rescore import rescore
 from narcisse.errors import AppError, not_found
 from narcisse.normalize import normalize
 from narcisse.preferences import Preferences
+from narcisse.remediation import follow
 from narcisse.schemas import EdgeOut, EntityOut, ResultOut, RunOut, ScanDetail, ScanOut
-from narcisse.storage.models import Edge, Entity, Evidence, ModuleRun, Profile, Scan, Seed
+from narcisse.storage.models import (
+    Edge,
+    Entity,
+    Evidence,
+    ModuleRun,
+    Profile,
+    RemovalRequest,
+    Scan,
+    Seed,
+)
 
 log = logging.getLogger(__name__)
 
@@ -386,6 +396,54 @@ class Engine:
         self._wake.set()
         return detail
 
+    async def start_check(self, request_id: int) -> ScanDetail:
+        """Runs again the searches that found a request's trace: the scan's end says whether
+        the trace is still there (`remediation/follow.py`)."""
+        now = self.clock.now()
+        async with self.bus.transaction() as tx:
+            request = await tx.session.get(RemovalRequest, request_id)
+            if request is None:
+                raise not_found("request")
+            preferences = self.preferences()
+            searches = sorted(
+                (module, input_id)
+                for module, input_id in await follow.finders(tx.session, request.entity_id)
+                if module in self.modules and self.modules[module].unavailable(preferences) is None
+            )
+            if not searches:
+                raise AppError("nothing_to_check", status=409)
+            scan = Scan(
+                profile_id=request.profile_id,
+                status=ScanStatus.RUNNING,
+                modules=sorted({module for module, _ in searches}),
+                results_count=0,
+                notes={"check": request.id, "trace": request.entity.display},
+                created_at=now,
+                finished_at=None,
+            )
+            tx.session.add(scan)
+            await tx.session.flush()
+            for module, input_id in searches:
+                tx.session.add(
+                    ModuleRun(
+                        scan_id=scan.id,
+                        module=module,
+                        input_entity_id=input_id,
+                        status=RunStatus.QUEUED,
+                        results_count=0,
+                        attempts=0,
+                        retryable=False,
+                        created_at=now,
+                        updated_at=now,
+                    )
+                )
+            await tx.session.flush()
+            await tx.session.refresh(scan, ["runs", "profile"])
+            detail = scan_detail(scan)
+            tx.emit("scan.created", detail, scan.id)
+        self._wake.set()
+        return detail
+
     async def pause(self, scan_id: int) -> None:
         async with self.bus.transaction() as tx:
             scan = await self._scan(tx.session, scan_id)
@@ -698,6 +756,9 @@ class Engine:
         profile = await session.get(Profile, entity.profile_id)
         if profile is None or run.depth + 1 > pivot.depth_allowed(profile.settings or {}):
             return False
+        scan = await session.get(Scan, run.scan_id)
+        if scan is not None and (scan.notes or {}).get("check"):
+            return False  # a check looks for one trace again, nothing more
         declared = (
             await session.scalar(
                 select(Seed.id).where(
@@ -830,7 +891,12 @@ class Engine:
         if all(run.status in FINISHED_RUN_STATUSES for run in scan.runs):
             scan.status = ScanStatus.DONE
             scan.finished_at = self.clock.now()
+            # What it says of the traces the user acts on, and the profile's exposure now.
+            checked = await follow.check_requests(tx.session, scan, scan.finished_at)
+            await follow.snapshot(tx.session, scan, scan.finished_at)
             tx.emit("scan.updated", scan_out(scan), scan.id)
+            if checked:
+                tx.emit("requests.updated", {"profile_id": scan.profile_id}, None)
 
     async def _scan(self, session: AsyncSession, scan_id: int) -> Scan:
         scan = await session.get(Scan, scan_id)

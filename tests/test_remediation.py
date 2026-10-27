@@ -236,7 +236,7 @@ def context(**overrides: object) -> letters.LetterContext:
     return letters.LetterContext(**values)  # type: ignore[arg-type]
 
 
-@pytest.mark.parametrize("template", letters.TEMPLATES)
+@pytest.mark.parametrize("template", [t for t in letters.TEMPLATES if t != "reminder"])
 @pytest.mark.parametrize("lang", ["fr", "en"])
 def test_every_letter_renders_in_both_languages(template: str, lang: letters.Lang) -> None:
     letter = letters.render(template, lang, context())

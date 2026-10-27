@@ -22,6 +22,7 @@ from narcisse.api import (
     preferences,
     profiles,
     remediation,
+    requests,
     scans,
     searxng,
 )
@@ -155,6 +156,7 @@ def create_app(
     api.include_router(searxng.router)
     api.include_router(remediation.router)
     api.include_router(browser.router)
+    api.include_router(requests.router)
 
     @api.post("/client-errors", status_code=204, tags=["meta"])
     async def client_error(body: ClientError) -> Response:

@@ -1,0 +1,15 @@
+Reminder: {original_subject}
+
+Dear Sir or Madam,
+
+On {sent}, I sent you the request copied below, under the General Data Protection Regulation (GDPR). The one-month period set by its Article 12(3) has passed, and I have received no reply.
+
+Please act on it without further delay. Otherwise, I will lodge a complaint with a data protection authority.
+
+Yours faithfully,
+
+{signature}
+
+--- My request of {sent} ---
+
+{original}

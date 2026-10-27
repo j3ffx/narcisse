@@ -8,6 +8,7 @@ nothing. The texts live in `data/letters/<lang>/<template>.txt`: the subject on 
 then a blank line, then the body.
 """
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date
 from functools import cache
@@ -15,7 +16,7 @@ from pathlib import Path
 from typing import Literal
 
 Lang = Literal["fr", "en"]
-TEMPLATES = ("erasure", "objection", "account_deletion", "archive", "dereference")
+TEMPLATES = ("erasure", "objection", "account_deletion", "archive", "dereference", "reminder")
 LETTERS = Path(__file__).parent / "data" / "letters"
 
 MONTHS = {
@@ -90,6 +91,22 @@ def _text(template: str, lang: Lang) -> tuple[str, str]:
     return subject.strip(), body.strip()
 
 
+def reminder(
+    lang: Lang, ctx: LetterContext, *, sent: date, subject: str | None, body: str | None
+) -> Letter:
+    """The reminder of a request sent on `sent`, the request itself copied below it."""
+    return render(
+        "reminder",
+        lang,
+        ctx,
+        {
+            "sent": _date(sent, lang),
+            "original_subject": subject or "",
+            "original": body or "",
+        },
+    )
+
+
 def _date(day: date, lang: Lang) -> str:
     month = MONTHS[lang][day.month - 1]
     return f"{day.day} {month} {day.year}"
@@ -99,7 +116,9 @@ def _list(items: tuple[str, ...]) -> str:
     return "\n".join(f"- {item}" for item in items)
 
 
-def render(template: str, lang: Lang, ctx: LetterContext) -> Letter:
+def render(
+    template: str, lang: Lang, ctx: LetterContext, extra: Mapping[str, str] | None = None
+) -> Letter:
     blank = BLANKS[lang]
     name = ctx.name or blank["name"]
     email = ctx.email or blank["email"]
@@ -116,5 +135,6 @@ def render(template: str, lang: Lang, ctx: LetterContext) -> Letter:
         "concerned": concerned,
         "pages": pages,
         "signature": signature,
+        **(extra or {}),
     }
     return Letter(subject=subject.format(**fields), body=body.format(**fields))

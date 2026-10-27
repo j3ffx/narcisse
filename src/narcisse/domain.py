@@ -69,3 +69,23 @@ class RunStatus(StrEnum):
 
 
 FINISHED_RUN_STATUSES = frozenset({RunStatus.FAILED, RunStatus.DONE, RunStatus.CANCELLED})
+
+
+class RequestStatus(StrEnum):
+    """Where a removal request the user follows stands."""
+
+    TODO = "todo"
+    SENT = "sent"
+    WAITING = "waiting"  # the site answered, the removal isn't done yet
+    DONE = "done"
+    REFUSED = "refused"
+
+
+OPEN_REQUEST_STATUSES = frozenset({RequestStatus.SENT, RequestStatus.WAITING})
+
+
+class CheckOutcome(StrEnum):
+    """What the last scan that looked again for a request's trace saw."""
+
+    GONE = "gone"
+    STILL_THERE = "still_there"

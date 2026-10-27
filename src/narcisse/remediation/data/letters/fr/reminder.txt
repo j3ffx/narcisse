@@ -1,0 +1,15 @@
+Relance : {original_subject}
+
+Madame, Monsieur,
+
+Le {sent}, je vous ai adressé la demande reproduite ci-dessous, au titre du règlement général sur la protection des données (RGPD). Le délai d’un mois prévu par son article 12.3 est écoulé, et je n’ai pas reçu de réponse.
+
+Je vous remercie d’y donner suite sans délai. À défaut, je saisirai la Commission nationale de l’informatique et des libertés (CNIL).
+
+Je vous prie d’agréer, Madame, Monsieur, mes salutations distinguées.
+
+{signature}
+
+--- Ma demande du {sent} ---
+
+{original}

@@ -232,6 +232,54 @@ class SavedView(Base):
     updated_at: Mapped[datetime]
 
 
+class RemovalRequest(Base):
+    """An action the user took on a trace (a request sent, an account deleted…), followed until
+    the trace is gone."""
+
+    __tablename__ = "removal_request"
+    __table_args__ = (UniqueConstraint("entity_id", "action", "service"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    profile_id: Mapped[int] = mapped_column(
+        ForeignKey("profile.id", ondelete="CASCADE"), index=True
+    )
+    entity_id: Mapped[int] = mapped_column(ForeignKey("entity.id", ondelete="CASCADE"), index=True)
+    action: Mapped[str] = mapped_column(String(50))  # the action sheet's code
+    service: Mapped[str] = mapped_column(String(200), default="")  # "" when no site is named
+    letter: Mapped[str | None] = mapped_column(String(30))
+    recipient: Mapped[str | None] = mapped_column(String(320))
+    subject: Mapped[str | None] = mapped_column(String(500))
+    body: Mapped[str | None] = mapped_column(Text)  # the text as the user sent it
+    status: Mapped[str] = mapped_column(String(20), index=True)
+    note: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime]
+    updated_at: Mapped[datetime]
+    sent_at: Mapped[datetime | None]
+    reminded_at: Mapped[datetime | None]  # the last reminder the user sent
+    closed_at: Mapped[datetime | None]  # done or refused
+    # What the last scan that looked for the trace again saw ("gone", "still_there").
+    check: Mapped[str | None] = mapped_column(String(20))
+    checked_at: Mapped[datetime | None]
+    check_scan_id: Mapped[int | None] = mapped_column(ForeignKey("scan.id", ondelete="SET NULL"))
+
+    entity: Mapped[Entity] = relationship(lazy="joined")
+
+
+class ExposureSnapshot(Base):
+    """A profile's exposure as a finished scan left it: how many traces at each risk level."""
+
+    __tablename__ = "exposure_snapshot"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    profile_id: Mapped[int] = mapped_column(
+        ForeignKey("profile.id", ondelete="CASCADE"), index=True
+    )
+    scan_id: Mapped[int | None] = mapped_column(ForeignKey("scan.id", ondelete="SET NULL"))
+    taken_at: Mapped[datetime]
+    levels: Mapped[dict[str, Any]]  # {"low": 12, "medium": 4, "high": 2, "critical": 1}
+    exposure: Mapped[float]  # the sum of the traces' risks (0..1 each)
+
+
 class Event(Base):
     """Everything the UI is told, kept so that a reconnecting browser misses nothing."""
 

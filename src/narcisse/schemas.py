@@ -7,9 +7,11 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from narcisse.domain import (
+    CheckOutcome,
     EntityKind,
     EntityStatus,
     ProfileKind,
+    RequestStatus,
     RunStatus,
     ScanStatus,
     SeedStatus,
@@ -379,6 +381,75 @@ class LetterOut(Schema):
     body: str
 
 
+class RequestOut(Schema):
+    """An action the user follows on a trace, and where it stands."""
+
+    id: int
+    profile_id: int
+    entity: EntityOut
+    action: str
+    service: str  # "" when no site is named
+    letter: str | None
+    recipient: str | None
+    subject: str | None
+    body: str | None
+    status: RequestStatus
+    note: str | None
+    created_at: datetime
+    updated_at: datetime
+    sent_at: datetime | None
+    reminded_at: datetime | None
+    closed_at: datetime | None
+    check: CheckOutcome | None  # what the last scan that looked again saw
+    checked_at: datetime | None
+    check_scan_id: int | None
+    reminder_at: datetime | None  # when it deserves a reminder (a month after sending)
+    due: bool  # that time has come
+
+
+class RequestIn(Schema):
+    """Following an action of a trace's sheet (a request sent, an account to delete…)."""
+
+    action: str = Field(min_length=1, max_length=50)
+    service: str = Field(default="", max_length=200)
+    letter: str | None = Field(default=None, max_length=30)
+    recipient: str | None = Field(default=None, max_length=320)
+    subject: str | None = Field(default=None, max_length=500)
+    body: str | None = Field(default=None, max_length=20_000)
+    status: RequestStatus = RequestStatus.TODO
+
+
+class RequestPatch(Schema):
+    status: RequestStatus | None = None
+    recipient: str | None = Field(default=None, max_length=320)
+    note: str | None = Field(default=None, max_length=2000)
+    reminded: bool | None = None  # True: the user just sent a reminder
+
+
+class ExposurePoint(Schema):
+    taken_at: datetime
+    scan_id: int | None
+    levels: dict[str, int]
+    exposure: float
+
+
+class ExposureOut(Schema):
+    """How exposed a profile is now, how it went scan after scan, and where its requests are."""
+
+    levels: dict[str, int]  # traces per risk level
+    exposure: float  # the sum of their risks
+    history: list[ExposurePoint]
+    requests: dict[str, int]  # per status
+    due: int  # requests to remind
+    gone: int  # traces a scan no longer found after the user acted
+
+
+class DueOut(Schema):
+    """Requests due for a reminder, for the tray's daily notice."""
+
+    count: int
+
+
 class ActionOut(Schema):
     """One thing the user can do about a trace; Narcisse prepares it, the user does it."""
 
@@ -391,6 +462,7 @@ class ActionOut(Schema):
     letter: str | None
     letters: dict[str, LetterOut]
     lang: str
+    request: RequestOut | None  # the user follows it
 
 
 class RemediationOut(Schema):
