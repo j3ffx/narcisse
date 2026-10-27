@@ -109,7 +109,8 @@ fixtures, docs, commit messages or commit metadata.
 - **Licences are checked** before reusing a tool or dataset. The project is GPL-3.0-only, compatible
   with what it draws on so far: Maigret, Sherlock, JustDeleteMe (MIT), PhoneInfoga (GPL-3.0),
   WhatsMyName's data (CC BY-SA 4.0, credited), libphonenumber (Apache-2.0), dnspython (ISC),
-  XposedOrNot (credited, personal use, never redistributed), Pwned Passwords (CC BY 4.0).
+  XposedOrNot (credited, personal use, never redistributed), Pwned Passwords (CC BY 4.0),
+  cryptography (Apache-2.0 or BSD-3-Clause, for encrypted backups).
 - **A password never leaves the page.** Pwned Passwords is asked by k-anonymity: the browser hashes
   it, only five characters of the hash go out, the comparison happens in the page; nothing keeps it
   (no query cache, no storage, no log).
@@ -136,6 +137,9 @@ fixtures, docs, commit messages or commit metadata.
   `scoring.py` kept up to date by `rescore.py`, the leads scans may follow in `pivot.py`),
   `modules/` (one file per source; `_text.py` reads profiles' bios and relates findings to the
   profile they were read on), `api/`, `storage/` (models, Alembic migrations: `scripts/new-migration.py`),
+  `history.py` (what changed between two scans), `export.py` (a profile's complete export,
+  which the UI turns into CSV and HTML in `web/src/lib/report.ts`), `storage/backup.py`
+  (backups, plain or sealed with a passphrase, and restoring them in place),
   `remediation/` (what to do about each trace: the knowledge base in `data/`, with a copy of
   JustDeleteMe and Narcisse's own sheets, the rules in `actions.py`, the GDPR letters in
   `data/letters/`, and in `follow.py` the requests the user follows: reminders, the check a

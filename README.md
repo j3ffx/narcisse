@@ -254,6 +254,22 @@ d’effacer la page, avec la demande suivie, puis de la faire déréférencer](d
 ![L’onglet « À faire » d’un profil fictif : l’exposition par niveau de risque, une demande à
 relancer et des demandes en cours](docs/capture-a-faire.png)
 
+### Ce qui a changé, tes exports, ta sauvegarde
+
+Une trace que plus aucun scan ne trouve (toutes les recherches qui l’avaient trouvée sont
+repassées sans erreur, sans la revoir) est marquée **disparue** : grisée dans le graphe et la
+liste, sortie de ton exposition, et de retour si un scan la retrouve. L’onglet **Scans** compare
+deux scans terminés : les traces nouvelles, disparues, modifiées (la page a changé), et celles
+qu’on ne peut pas dire disparues parce que leurs recherches ne sont pas toutes repassées.
+
+Le bouton **Exporter** d’un profil enregistre un rapport HTML à lire ou imprimer (sans script ni
+ressource extérieure), ses traces en CSV pour un tableur, ou tout en JSON. Dans les **Réglages**,
+« Télécharger une sauvegarde » met tous tes profils, demandes et réglages dans un fichier
+`.narcisse`, chiffré si tu donnes une phrase de passe (il garde alors aussi tes tokens) ;
+« Restaurer » le remet en place, après avoir gardé tes données du moment dans une sauvegarde de
+sécurité. En ligne de commande, `narcisse backup [--chiffrer]` et `narcisse restore FICHIER` font
+de même (le second, Narcisse arrêté).
+
 ## Ajouter une source
 
 Une source est un fichier dans `src/narcisse/modules/`, avec une classe qui décrit ce qu’elle fait

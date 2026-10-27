@@ -4,6 +4,18 @@ Les changements de chaque version de Narcisse, la plus récente en premier. Les 
 [versionnage sémantique](https://semver.org/lang/fr/) : tant qu’ils commencent par 0, l’outil évolue
 encore beaucoup.
 
+## En préparation
+
+- Une trace que plus aucun scan ne trouve est marquée disparue : grisée dans le graphe et la
+  liste (un filtre la masque), sortie de ton exposition, de retour si un scan la retrouve. Une
+  demande n’est close que si toutes les recherches qui avaient trouvé sa trace sont repassées.
+- Comparer deux scans : traces nouvelles, disparues, modifiées, et celles qu’on ne peut pas dire
+  disparues.
+- Exporter un profil : rapport HTML à lire ou imprimer, traces en CSV, tout en JSON.
+- Sauvegarder et restaurer toutes tes données (Réglages ou `narcisse backup` / `narcisse restore`),
+  avec chiffrement par phrase de passe si tu veux ; une restauration garde d’abord tes données du
+  moment.
+
 ## 0.1.0 (2026-10-27)
 
 La première version utilisable : Narcisse cherche tes traces sur de vraies sources, les relie dans
