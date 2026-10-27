@@ -15,6 +15,7 @@ import { KIND_LABELS } from '@/lib/labels';
 import { useResults, useScan } from '@/lib/queries';
 import { formatDate, useNow } from '@/lib/time';
 import type { EntityKind } from '@/lib/types';
+import { ArrowLeftIcon } from 'lucide-react';
 import { useDeferredValue, useState } from 'react';
 import { Link } from 'wouter';
 import { ResultList } from './ResultList';
@@ -44,12 +45,14 @@ export function ScanPage({ id }: { id: number }) {
     <div className="grid gap-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-sm text-muted-foreground">
-            <Link href={`/profils/${data.profile_id}`} className="hover:underline">
-              {data.profile_name}
-            </Link>{' '}
-            · {formatDate(data.created_at)}
-          </p>
+          <Link
+            href={`/profils/${data.profile_id}`}
+            className="inline-flex items-center gap-1 text-sm font-medium underline underline-offset-2"
+          >
+            <ArrowLeftIcon aria-hidden className="size-4" />
+            {data.profile_name}
+          </Link>
+          <p className="text-sm text-muted-foreground">{formatDate(data.created_at)}</p>
           <h1 className="flex flex-wrap items-center gap-3 font-heading text-2xl font-semibold">
             Scan
             <ScanStatusBadge status={data.status} />
