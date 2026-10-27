@@ -23,7 +23,8 @@ const end = lines.findIndex((line, i) => i > start && line.startsWith('## '));
 const unwrapped = [];
 for (const line of lines.slice(start + 1, end === -1 ? undefined : end)) {
   const previous = unwrapped.at(-1);
-  const continues = line.trim() && !/^(- |#)/.test(line) && previous && !previous.startsWith('#');
+  const continues =
+    line.trim() && !/^(- |#)/.test(line.trim()) && previous && !previous.startsWith('#');
   if (continues) unwrapped[unwrapped.length - 1] = `${previous} ${line.trim()}`;
   else unwrapped.push(line);
 }
