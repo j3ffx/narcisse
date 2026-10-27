@@ -108,6 +108,8 @@ export interface Entity {
   confidence: number | null;
   risk: number | null;
   attributes: Record<string, unknown>;
+  /** Since when no scan finds it (every search that found it ran again and saw nothing). */
+  gone_at?: string | null;
 }
 
 /** One rule behind a score: a code (lib/scores.ts says it), and what it did to the score. */
@@ -218,6 +220,25 @@ export interface Action {
   lang: Lang;
   /** The user follows it (À faire). */
   request: FollowedRequest | null;
+}
+
+/** What changed from one scan to a later one. */
+export interface Diff {
+  before: Scan;
+  after: Scan;
+  new: Entity[];
+  gone: Entity[];
+  unchecked: Entity[];
+  modified: Entity[];
+}
+
+/** What a restore brought back. */
+export interface Restored {
+  profiles: number;
+  created_at: string;
+  narcisse: string;
+  /** Where the data before the restore was kept. */
+  safety: string;
 }
 
 export type RequestStatus = 'todo' | 'sent' | 'waiting' | 'done' | 'refused';

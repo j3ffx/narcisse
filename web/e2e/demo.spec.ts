@@ -493,3 +493,59 @@ test('no long task over 200 ms on the graph while a scan streams into it', async
   );
   expect(longTasks.filter((d) => d > 200)).toEqual([]);
 });
+
+test('two scans compared, the profile exported, everything backed up then restored', async ({
+  page,
+  request,
+}) => {
+  test.setTimeout(90_000);
+  const id = await demoProfile(request, 'Jeanne Exemple (historique)');
+  for (let i = 0; i < 2; i++) {
+    const started = await request.post(`/api/profiles/${id}/scans`, { data: {} });
+    const { id: scanId } = (await started.json()) as { id: number };
+    await expect
+      .poll(
+        async () =>
+          ((await (await request.get(`/api/scans/${scanId}`)).json()) as { status: string }).status,
+        { timeout: 30_000 },
+      )
+      .toBe('done');
+  }
+
+  // What changed between the two scans (the demo finds the same traces twice).
+  await page.goto(`/profils/${id}/scans`);
+  const diff = page.getByTestId('scan-diff');
+  await expect(diff.getByTestId('diff-new')).toContainText('Nouvelles (0)');
+  await expect(diff.getByTestId('diff-gone')).toContainText('Disparues (0)');
+
+  // The exports, made by the page and saved as downloads.
+  for (const [item, extension] of [
+    ['Rapport à lire ou imprimer (HTML)', 'html'],
+    ['Les traces, pour un tableur (CSV)', 'csv'],
+    ['Tout, en JSON', 'json'],
+  ] as const) {
+    await page.getByRole('button', { name: 'Exporter' }).click();
+    const download = page.waitForEvent('download');
+    await page.getByRole('menuitem', { name: item }).click();
+    const file = await download;
+    const name = file.suggestedFilename();
+    expect(name.startsWith('narcisse-jeanne-exemple-historique-')).toBe(true);
+    expect(name.endsWith(`.${extension}`)).toBe(true);
+  }
+
+  // A backup, then another profile, then the backup restored: the other profile is gone.
+  await page.goto('/reglages');
+  const backups = page.getByTestId('backups');
+  const download = page.waitForEvent('download');
+  await backups.getByRole('button', { name: 'Télécharger une sauvegarde' }).click();
+  const saved = await (await download).path();
+  await request.post('/api/profiles', { data: { name: 'Profil après la sauvegarde' } });
+
+  await backups.getByLabel('Fichier .narcisse').setInputFiles(saved);
+  await backups.getByRole('button', { name: 'Restaurer' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Restaurer' }).click();
+  await expect(page.getByText(/Restauré : \d+ profils?/)).toBeVisible();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByText('Jeanne Exemple (historique)')).toBeVisible();
+  await expect(page.getByText('Profil après la sauvegarde')).toHaveCount(0);
+});

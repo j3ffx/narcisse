@@ -135,6 +135,12 @@ function Detail({
         <dd>{formatDate(entity.first_seen)}</dd>
         <dt className="text-muted-foreground">Vue en dernier</dt>
         <dd>{formatDate(entity.last_seen)}</dd>
+        {entity.gone_at && (
+          <>
+            <dt className="text-muted-foreground">Disparue</dt>
+            <dd data-testid="trace-gone">plus trouvée depuis le {formatDate(entity.gone_at)}</dd>
+          </>
+        )}
       </dl>
       <ScoreReasonsDetails reasons={data.reasons} />
       {entity.kind !== 'identity' && <Remediation entityId={entity.id} />}

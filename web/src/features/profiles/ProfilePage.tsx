@@ -44,7 +44,9 @@ import { useTraceViewState } from '@/features/graph/useTraceView';
 import { cn } from 'cn';
 import { AssistedSearch } from '@/features/search/AssistedSearch';
 import { Leads, PivotDepth } from './Leads';
+import { ExportMenu } from './ExportMenu';
 import { Requests } from './Requests';
+import { ScanDiff } from '@/features/scans/ScanDiff';
 import { SeedsEditor } from './SeedsEditor';
 import { TABS, type ProfileTab } from './tabs';
 
@@ -78,6 +80,7 @@ export function ProfilePage({ id, tab }: { id: number; tab: ProfileTab }) {
         </div>
         <div className="flex gap-2">
           <StartScanDialog profile={data} />
+          <ExportMenu profileId={id} />
           <DeleteProfile id={id} name={data.name} />
         </div>
       </div>
@@ -288,6 +291,7 @@ function ScanHistory({ profileId }: { profileId: number }) {
       {scans.data?.length === 0 && (
         <p className="text-sm text-muted-foreground">Aucun scan encore.</p>
       )}
+      {scans.data && <ScanDiff profileId={profileId} scans={scans.data} />}
       <ul className="divide-y rounded-lg border empty:hidden">
         {scans.data?.map((scan) => (
           <li key={scan.id}>
@@ -295,7 +299,10 @@ function ScanHistory({ profileId }: { profileId: number }) {
               href={`/scans/${scan.id}`}
               className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 hover:bg-muted/50"
             >
-              <span>{formatDate(scan.created_at)}</span>
+              <span>
+                {formatDate(scan.created_at)}
+                {scan.notes?.check ? ` · vérification de « ${scan.notes.trace} »` : ''}
+              </span>
               <span className="flex items-center gap-3 text-sm text-muted-foreground">
                 {scan.results_count} résultat{scan.results_count > 1 ? 's' : ''}
                 <ScanStatusBadge status={scan.status} />

@@ -61,7 +61,13 @@ export function withEntity(data: GraphData, entity: Entity, falsePositives: bool
     ...data,
     nodes: data.nodes.map((n) =>
       n.id === entity.id
-        ? { ...n, status: entity.status, confidence: entity.confidence, risk: entity.risk }
+        ? {
+            ...n,
+            status: entity.status,
+            confidence: entity.confidence,
+            risk: entity.risk,
+            gone_at: entity.gone_at ?? null,
+          }
         : n,
     ),
   };
@@ -80,6 +86,8 @@ export interface TraceFilter {
   minRisk: number;
   /** Only traces seen since this day (ISO date), or null. */
   since: string | null;
+  /** Leave out the traces no scan finds any more. */
+  hideGone: boolean;
 }
 
 export const NO_FILTER: TraceFilter = {
@@ -89,6 +97,7 @@ export const NO_FILTER: TraceFilter = {
   minConfidence: 0,
   minRisk: 0,
   since: null,
+  hideGone: false,
 };
 
 export function isFiltering(filter: TraceFilter): boolean {
@@ -98,7 +107,8 @@ export function isFiltering(filter: TraceFilter): boolean {
     filter.statuses.length > 0 ||
     filter.minConfidence > 0 ||
     filter.minRisk > 0 ||
-    filter.since !== null
+    filter.since !== null ||
+    filter.hideGone
   );
 }
 
@@ -114,6 +124,7 @@ export function passes(node: GraphNode, filter: TraceFilter): boolean {
   }
   if (filter.minRisk > 0 && (node.risk ?? 0) < filter.minRisk) return false;
   if (filter.since && node.last_seen.slice(0, 10) < filter.since) return false;
+  if (filter.hideGone && node.gone_at) return false;
   return true;
 }
 
@@ -378,6 +389,7 @@ export function readViewState(raw: unknown): GraphViewState {
       minConfidence: isNumber(f.minConfidence) ? f.minConfidence : 0,
       minRisk: isNumber(f.minRisk) ? f.minRisk : 0,
       since: isString(f.since) && /^\d{4}-\d{2}-\d{2}$/.test(f.since) ? f.since : null,
+      hideGone: f.hideGone === true,
     },
     falsePositives: r.falsePositives === true,
     grouping: GROUPINGS.includes(r.grouping as Grouping) ? (r.grouping as Grouping) : 'none',

@@ -109,7 +109,7 @@ export function TraceList({ profileId, view }: { profileId: number; view: TraceV
                   className={cn(
                     'absolute inset-x-0 flex items-center gap-3 border-b px-3',
                     active && 'bg-accent',
-                    node.status === 'false_positive' && 'opacity-60',
+                    (node.status === 'false_positive' || node.gone_at) && 'opacity-60',
                   )}
                   style={{ height: ROW_HEIGHT, transform: `translateY(${row.start}px)` }}
                 >
@@ -130,6 +130,7 @@ export function TraceList({ profileId, view }: { profileId: number; view: TraceV
                         .map((m) => (m === 'seed' ? 'déclaré par toi' : sourceTitle(m)))
                         .join(', ')}{' '}
                       · {ENTITY_STATUS_LABELS[node.status]}
+                      {node.gone_at ? ` · disparue le ${formatDate(node.gone_at)}` : ''}
                       {node.risk !== null && node.kind !== 'identity'
                         ? ` · risque ${RISK_LEVEL_LABELS[riskLevel(node.risk)]} (${points(node.risk)})`
                         : ''}{' '}

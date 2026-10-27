@@ -16,6 +16,7 @@ import type {
   Activity,
   AppInfo,
   SearxngStatus,
+  Diff,
   EntityDetail,
   Exposure,
   FollowedRequest,
@@ -103,6 +104,14 @@ export const useRemediation = (id: number) =>
   useQuery({
     queryKey: keys.remediation(id),
     queryFn: () => get<Remediation>(`/entities/${id}/remediation`),
+  });
+
+/** What changed between two of the profile's scans. */
+export const useDiff = (profileId: number, before: number | null, after: number | null) =>
+  useQuery({
+    queryKey: ['diff', profileId, before, after],
+    queryFn: () => get<Diff>(`/profiles/${profileId}/diff?before=${before}&after=${after}`),
+    enabled: before !== null && after !== null,
   });
 
 /** The actions the user follows on a profile's traces. */

@@ -1,4 +1,5 @@
 import { Pending } from '@/components/Pending';
+import { Backups } from './Backups';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -58,6 +59,7 @@ export function SettingsPage() {
             autostart={preferences.data.searxng_autostart}
           />
           <AdultSites excluded={preferences.data.exclude_adult} />
+          <Backups />
         </>
       )}
     </div>

@@ -78,7 +78,8 @@ function nodeLook(node: GraphNode, theme: Theme) {
     labelColor: STAGE_COLORS[theme].label,
     backdropColor: STAGE_COLORS[theme].labelBackdrop,
     shape: declared ? ('square' as const) : ('circle' as const),
-    opacity: node.status === 'false_positive' ? 0.35 : 1,
+    // Rejected traces fade most; those no scan finds any more, a little less.
+    opacity: node.status === 'false_positive' ? 0.35 : node.gone_at ? 0.5 : 1,
     declared,
     members: typeof node.attributes.members === 'number' ? node.attributes.members : 0,
     risk: node.risk ?? 0,

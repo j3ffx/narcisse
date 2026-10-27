@@ -78,6 +78,12 @@ export function TraceFilters({
               }
             />
           ))}
+          <Choice
+            id="filter-hide-gone"
+            label="Masquer les disparues"
+            checked={filter.hideGone}
+            onChange={(on) => onChange({ ...filter, hideGone: on })}
+          />
         </Group>
         <div className="grid gap-1.5">
           <Label htmlFor="filter-confidence">Confiance minimale</Label>

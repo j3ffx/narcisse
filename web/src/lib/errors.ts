@@ -44,6 +44,19 @@ const MESSAGES: Record<string, (p: Params) => string> = {
     `Aucun registre public connu pour l’extension .${typeof p.tld === 'string' ? p.tld : '?'}.`,
   domain_not_found: () => 'Ce domaine n’existe pas dans le DNS.',
   phone_unreadable: () => 'Ce numéro ne peut être un numéro de téléphone nulle part.',
+  backup_invalid: () => 'Ce fichier n’est pas une sauvegarde de Narcisse, ou il est abîmé.',
+  backup_passphrase_needed: () => 'Cette sauvegarde est chiffrée : indique sa phrase de passe.',
+  backup_wrong_passphrase: () => 'Ce n’est pas la bonne phrase de passe pour cette sauvegarde.',
+  backup_too_new: (p) =>
+    `Cette sauvegarde vient d’une version plus récente de Narcisse (${String(p.version ?? '')}) : mets Narcisse à jour, puis réessaie.`,
+  restore_while_scanning: () =>
+    'Un scan est en cours : attends sa fin (ou mets-le en pause) avant de restaurer.',
+  request_not_sent: () => 'Cette demande n’a pas encore été envoyée : rien à relancer.',
+  request_exists: () => 'Cette action est déjà suivie.',
+  not_enough_scans: () => 'Il faut au moins deux scans terminés pour comparer.',
+  scans_out_of_order: () => 'Le premier scan doit être plus ancien que le second.',
+  nothing_to_check: () =>
+    'Aucune recherche à refaire pour cette trace (ajoutée à la main, ou ses sources ne sont plus disponibles).',
   searxng_down: () =>
     'Ton instance SearXNG ne répond pas (arrêtée avec l’ordinateur ?) : relance-la depuis la fenêtre « Lancer un scan » ou les Réglages, puis réessaie.',
   searxng_not_set: () => 'Il lui faut l’adresse de ton instance SearXNG, dans les réglages.',
