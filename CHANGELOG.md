@@ -47,7 +47,10 @@ Pas encore de version : la 0.1.0 sortira quand Narcisse sera utilisable sur de v
   DuckDuckGo et Qwant, ouvertes dans ton navigateur (Narcisse n’interroge jamais un moteur) ; une
   page trouvée ainsi se colle en retour et rejoint tes traces.
 - La recherche web pendant les scans, par ta propre instance SearXNG : `narcisse searxng`
-  l’installe et la lance avec Docker, sur ta machine seulement.
+  l’installe et la lance avec Docker, sur ta machine seulement. Arrêtée avec l’ordinateur, elle
+  se relance d’un clic (fenêtre du scan, Réglages), ou toute seule avec Narcisse si tu le
+  choisis.
+- Épinglée à la barre des tâches, la fenêtre de Narcisse reste sous son épingle.
 - « Ajouter comme élément » : une trace trouvée (un domaine cité dans une bio, un compte…) devient
   un point de départ des scans suivants.
 - Les liens et adresses d’une bio deviennent des traces (sur GitHub aussi).
