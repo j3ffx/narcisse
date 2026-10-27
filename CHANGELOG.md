@@ -4,13 +4,13 @@ Les changements de chaque version de Narcisse, la plus récente en premier. Les 
 [versionnage sémantique](https://semver.org/lang/fr/) : tant qu’ils commencent par 0, l’outil évolue
 encore beaucoup.
 
-## En préparation
+## 0.1.0 (2026-10-27)
 
-Pas encore de version : la 0.1.0 sortira quand Narcisse sera utilisable sur de vraies sources.
+La première version utilisable : Narcisse cherche tes traces sur de vraies sources, les relie dans
+un graphe, dit à quel point chacune est à toi et t’expose, ce que tu peux en faire, et suit tes
+demandes jusqu’à ce que la trace disparaisse. S’installe avec `uv tool install` (voir le README).
 
-### Déjà en place
-
-- Premières vraies sources :
+- Les sources :
   - comptes par pseudo, sur plus de 600 sites de la liste WhatsMyName (les sites adultes sont
     vérifiés et signalés, ou exclus dans les réglages) ;
   - GitHub : profil public et emails visibles dans les commits ; pour un email, les comptes qui

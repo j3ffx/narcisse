@@ -1,6 +1,6 @@
 [project]
 name = "narcisse"
-version = "0.0.0"
+version = "0.1.0"
 description = "Ce qu'Internet sait de toi, et comment le réduire : un outil d'auto-OSINT local, passif par défaut."
 readme = "README.md"
 license = "GPL-3.0-only"
