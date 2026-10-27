@@ -138,7 +138,8 @@ fixtures, docs, commit messages or commit metadata.
   profile they were read on), `api/`, `storage/` (models, Alembic migrations: `scripts/new-migration.py`),
   `remediation/` (what to do about each trace: the knowledge base in `data/`, with a copy of
   JustDeleteMe and Narcisse's own sheets, the rules in `actions.py`, the GDPR letters in
-  `data/letters/`), `demo_graph.py` (fictitious graphs of thousands of traces, demo mode only),
+  `data/letters/`, and in `follow.py` the requests the user follows: reminders, the check a
+  later scan makes, the exposure snapshot taken when a scan ends), `demo_graph.py` (fictitious graphs of thousands of traces, demo mode only),
   `desktop/` (tray, Windows integration, the icon drawn in `art.py` and exported by
   `scripts/make-icons.py`).
   `tests/`: pytest (`tests/fakes.py` holds modules whose timing tests control).

@@ -81,6 +81,10 @@ Pas encore de version : la 0.1.0 sortira quand Narcisse sera utilisable sur de v
   inoffensive. Les demandes RGPD (effacement, opposition), de suppression de compte et de
   déréférencement sont prêtes, en français ou en anglais, signées avec ton profil : tu les relis,
   les copies ou les ouvres dans ta messagerie. Narcisse n’envoie rien.
+- L’onglet « À faire » suit ce que tu as fait : statut de chaque demande, relance prête au bout
+  d’un mois sans réponse (rappelée une fois par jour par l’icône), vérification qui relance
+  seulement les recherches concernées ; une trace qu’un scan ne retrouve plus est marquée
+  disparue et sa demande close. En tête, ton exposition par niveau de risque et son évolution.
 - Le type de profil compte : pour un profil pro, ton entreprise, ton domaine et le registre pèsent
   moitié moins dans le risque, et la première action proposée est de les garder.
 - Une page « Sources » qui dit ce que chaque source interroge, à quel rythme et sous quelle

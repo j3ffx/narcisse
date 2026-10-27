@@ -226,6 +226,13 @@ email, adresse) et des « [à compléter] » pour le reste. Tu la relis, tu la m
 copies ou tu l’ouvres dans ta messagerie : **Narcisse n’envoie jamais rien**. Sans réponse sous un
 mois, la page renvoie vers la plainte à la CNIL.
 
+« Je l’ai envoyée » (ou « Ajouter à « À faire » ») fait suivre l’action dans l’onglet **À faire**
+du profil : son statut (à faire, envoyée, en attente, faite, refusée), la relance prête un mois
+après l’envoi (l’onglet le signale, et l’icône de Narcisse te le rappelle une fois par jour), et
+« Vérifier maintenant », qui relance seulement les recherches qui avaient trouvé la trace. Tout
+scan qui ne la retrouve plus la marque disparue et clôt la demande. En haut de l’onglet, ton
+exposition : tes traces par niveau de risque, et son évolution scan après scan.
+
 ## Ajouter une source
 
 Une source est un fichier dans `src/narcisse/modules/`, avec une classe qui décrit ce qu’elle fait
