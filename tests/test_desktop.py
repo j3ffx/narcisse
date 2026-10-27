@@ -13,7 +13,7 @@ from narcisse import cli
 from narcisse.config import Settings
 from narcisse.desktop import mode, system, taskbar
 from narcisse.desktop.art import TrayState, tray_icon
-from narcisse.desktop.state import notifications, summarize
+from narcisse.desktop.state import notifications, reminder_notice, summarize
 
 
 def run(id_: int, status: str, kind: str = "name") -> dict[str, Any]:
@@ -259,3 +259,11 @@ def test_the_native_menu_setup_does_nothing_off_windows(monkeypatch: pytest.Monk
     monkeypatch.setattr("sys.platform", "linux")
     monkeypatch.setattr("ctypes.WinDLL", None, raising=False)  # would fail if reached
     native.prepare_native_ui()
+
+
+def test_the_daily_word_on_requests_to_remind() -> None:
+    assert reminder_notice(0) is None
+    assert reminder_notice(1) == (
+        "Une demande attend sa réponse depuis un mois : prépare sa relance dans « À faire »."
+    )
+    assert reminder_notice(3).startswith("3 demandes attendent")  # type: ignore[union-attr]

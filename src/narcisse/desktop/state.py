@@ -91,3 +91,15 @@ def notifications(
                     )
                 )
     return found
+
+
+def reminder_notice(count: int) -> str | None:
+    """The tray's daily word on the requests a month old without an answer."""
+    if count <= 0:
+        return None
+    if count == 1:
+        return "Une demande attend sa réponse depuis un mois : prépare sa relance dans « À faire »."
+    return (
+        f"{count} demandes attendent leur réponse depuis un mois : prépare leur relance dans "
+        "« À faire »."
+    )

@@ -8,6 +8,7 @@ same API as the UI, over loopback, every two seconds.
 import json
 import logging
 import threading
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -19,7 +20,7 @@ from narcisse.app import create_app
 from narcisse.config import HOST, Settings
 from narcisse.desktop import mode, system
 from narcisse.desktop.art import TrayState, tray_icon
-from narcisse.desktop.state import Summary, notifications, summarize
+from narcisse.desktop.state import Summary, notifications, reminder_notice, summarize
 from narcisse.server import Server
 
 log = logging.getLogger(__name__)
@@ -37,10 +38,14 @@ class Preferences:
         except (OSError, ValueError):
             data = {}
         self.notifications: bool = bool(data.get("notifications", True))
+        # The day the tray last said that requests wait for a reminder (once a day at most).
+        reminded = data.get("reminded_on")
+        self.reminded_on: str | None = reminded if isinstance(reminded, str) else None
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.path.write_text(json.dumps({"notifications": self.notifications}), encoding="utf-8")
+        data = {"notifications": self.notifications, "reminded_on": self.reminded_on}
+        self.path.write_text(json.dumps(data), encoding="utf-8")
 
 
 class Tray:
@@ -67,6 +72,7 @@ class Tray:
             "narcisse", tray_icon(TrayState.IDLE), self.summary.tooltip, self._menu()
         )
         self._shown_state = TrayState.IDLE
+        self._checked_on: str | None = None
 
     # What a restart runs again: this side. (The start with Windows opens the side chosen last.)
     @property
@@ -125,6 +131,7 @@ class Tray:
                     activity = None
                 if activity is not None:
                     self._show(activity)
+                    self._remind(client)
                     if self.open_on_start:
                         self.open_on_start = False
                         self.open()
@@ -158,6 +165,24 @@ class Tray:
             self.summary = summary
             self.icon.title = summary.tooltip
             self.icon.update_menu()
+
+    def _remind(self, client: httpx.Client) -> None:
+        """Once a day, says how many sent requests wait for a reminder (a month without an
+        answer)."""
+        today = date.today().isoformat()
+        if self._checked_on == today:
+            return
+        self._checked_on = today
+        if not self.prefs.notifications or self.prefs.reminded_on == today:
+            return
+        try:
+            count = int(client.get(f"{self.api}/requests/due").json()["count"])
+        except (httpx.HTTPError, ValueError, KeyError, TypeError):
+            return
+        if message := reminder_notice(count):
+            self.icon.notify(message, "Narcisse")
+            self.prefs.reminded_on = today
+            self.prefs.save()
 
     # Menu actions (pystray calls them from its own thread)
 
