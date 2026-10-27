@@ -7,15 +7,15 @@ publiques de cette identité, les relie dans un graphe pour montrer comment elle
 évalue ce que chacune expose, et t’aide à faire le ménage : supprimer un compte, demander un
 déréférencement, envoyer une demande RGPD. Puis il suit tes progrès d’un scan à l’autre.
 
-> **En construction.** Narcisse cherche déjà tes comptes à partir d’un pseudo (plus de 600 sites),
+> **Première version.** Narcisse cherche tes comptes à partir d’un pseudo (plus de 600 sites),
 > lit tes profils publics (GitHub, GitLab, Bluesky, Mastodon, Hacker News, Stack Exchange, Keybase),
 > ce que Gravatar et les serveurs de clés PGP publient sur toi, ce que disent tes domaines (registre,
-> DNS, certificats, mentions légales de ton site), ce qu’en gardent les archives du web, te prépare
-> les recherches à faire sur les moteurs, les relie dans un graphe qui se remplit pendant le
-> scan, te dit pour chaque trace à quel point c’est toi et à quel point elle t’expose (en
-> expliquant pourquoi), et te laisse la trier (« c’est moi » / « pas moi »). La remédiation et
-> d’autres sources arrivent. Le
-> [journal des changements](CHANGELOG.md) dira quand la première version sortira.
+> DNS, certificats, mentions légales de ton site), ce qu’en gardent les archives du web, les fuites
+> où figure ton email et les registres d’entreprises, et te prépare les recherches à faire sur les
+> moteurs. Il relie tout dans un graphe, te dit pour chaque trace à quel point c’est toi et à quel
+> point elle t’expose (en expliquant pourquoi), te dit quoi faire de chacune (avec les demandes RGPD
+> prêtes à envoyer) et suit tes demandes jusqu’à ce que la trace disparaisse. Ce que chaque version
+> apporte : le [journal des changements](CHANGELOG.md).
 
 ![Le graphe d’un profil fictif en mode démo : une trace sélectionnée et le chemin qui la relie à
 l’identité, le reste atténué, la mini-carte et le détail de la trace](docs/capture-graphe.png)
@@ -58,18 +58,32 @@ discréditer. Ces usages sont souvent illégaux, et toujours contraires à l’e
 - **Gratuit.** Aucune API payante ; un token gratuit (GitHub, par exemple) peut lever des limites,
   mais rien ne l’exige.
 
-## Essayer
+## Installer
 
-Il faut [uv](https://docs.astral.sh/uv/) (Python) et [Node.js](https://nodejs.org/) 22 ou plus,
-le temps que Narcisse soit publié sous forme de paquet.
+Il te faut [uv](https://docs.astral.sh/uv/getting-started/installation/), qui installe aussi
+Python s’il manque. Puis, dans un terminal :
 
 ```bash
-git clone https://github.com/j3ffx/narcisse.git
-cd narcisse
-npm ci
-npm run build
-uv run narcisse serve --demo
+uv tool install https://github.com/j3ffx/narcisse/releases/download/v0.1.0/narcisse-0.1.0-py3-none-any.whl
 ```
+
+(Pour une version plus récente, prends le lien du fichier `.whl` sur la page des
+[versions](https://github.com/j3ffx/narcisse/releases).) Ensuite :
+
+```bash
+narcisse serve --demo
+```
+
+- **Mettre à jour** : la même commande avec le lien de la nouvelle version et `--force`, puis
+  « Redémarrer » dans le menu de l’icône de Narcisse.
+- **Désinstaller** : `uv tool uninstall narcisse`. Tes données restent dans leur dossier
+  (`narcisse paths` te dit où) : supprime-le si tu veux tout effacer.
+- **Depuis les sources** (pour contribuer) : il faut aussi [Node.js](https://nodejs.org/) 22 ou
+  plus. `git clone https://github.com/j3ffx/narcisse.git`, puis dans le dossier `npm ci`,
+  `npm run build` et `uv run narcisse serve --demo`. Les règles du dépôt sont dans
+  [CLAUDE.md](CLAUDE.md).
+
+## Premiers pas
 
 Le navigateur s’ouvre sur <http://narcisse.localhost> : une adresse que les navigateurs
 envoient d’eux-mêmes vers ta machine, sans réglage. En mode démo, crée un profil fictif (« Jeanne Exemple »), ajoute un
@@ -96,7 +110,7 @@ que tout le monde peut lire. En mode démo, le bouton « Graphe fictif » crée 
 ### Comme une appli (Windows)
 
 ```powershell
-uv run narcisse shortcut --demo
+narcisse shortcut --demo
 ```
 
 (Sans `--demo`, il s’ouvre directement sur tes vraies données.)
@@ -114,7 +128,8 @@ Pour l’installer comme une appli du navigateur (icône dans la barre des tâch
 <http://narcisse.localhost> dans Chrome ou Edge et clique sur l’icône d’installation dans la barre
 d’adresse.
 
-Mettre à jour : `git pull`, puis `npm run build`, puis « Redémarrer » dans le menu de l’icône.
+Depuis les sources, mettre à jour : `git pull`, puis `npm run build`, puis « Redémarrer » dans le
+menu de l’icône.
 
 ### Une adresse encore plus courte (facultatif)
 
@@ -179,7 +194,7 @@ Si tu veux que les scans cherchent aussi sur le web, installe ta propre instance
 [SearXNG](https://docs.searxng.org/) (un métamoteur qui tourne chez toi) avec Docker :
 
 ```bash
-uv run narcisse searxng
+narcisse searxng
 ```
 
 La commande écrit sa configuration dans ton dossier de configuration (avec une clé secrète qui lui
@@ -232,6 +247,12 @@ après l’envoi (l’onglet le signale, et l’icône de Narcisse te le rappell
 « Vérifier maintenant », qui relance seulement les recherches qui avaient trouvé la trace. Tout
 scan qui ne la retrouve plus la marque disparue et clôt la demande. En haut de l’onglet, ton
 exposition : tes traces par niveau de risque, et son évolution scan après scan.
+
+![Le détail d’une trace fictive en mode démo : « Que faire ? » propose de demander au site
+d’effacer la page, avec la demande suivie, puis de la faire déréférencer](docs/capture-que-faire.png)
+
+![L’onglet « À faire » d’un profil fictif : l’exposition par niveau de risque, une demande à
+relancer et des demandes en cours](docs/capture-a-faire.png)
 
 ## Ajouter une source
 
