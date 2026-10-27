@@ -5,10 +5,13 @@ import importlib
 import os
 import subprocess
 import sys
+import threading
 import webbrowser
 from contextlib import suppress
 from pathlib import Path
 from typing import Any
+
+from narcisse.desktop import taskbar
 
 APP_NAME = "Narcisse"
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
@@ -66,13 +69,16 @@ def _app_mode_browser() -> str | None:
     return None
 
 
-def open_window(app_url: str, tab_url: str) -> None:
-    """Narcisse in a window of its own when the default browser can, else in a new tab."""
+def open_window(app_url: str, tab_url: str) -> threading.Thread | None:
+    """Narcisse in a window of its own when the default browser can, else in a new tab. The
+    window then gets Narcisse's own place on the taskbar (see `taskbar`), from a thread a
+    short-lived process waits for."""
     browser = _app_mode_browser()
     if browser:
         subprocess.Popen([browser, f"--app={app_url}"], close_fds=True)
-    else:
-        webbrowser.open(tab_url)
+        return taskbar.brand_new_windows(_quote(command("open")), str(ICON))
+    webbrowser.open(tab_url)
+    return None
 
 
 def spawn_detached(args: list[str]) -> None:
@@ -161,4 +167,6 @@ def create_shortcut(args: list[str]) -> Path:
         check=True,
         capture_output=True,
     )
+    if target.exists():
+        taskbar.brand_shortcut(str(target))
     return target

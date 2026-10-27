@@ -21,7 +21,7 @@ import uvicorn
 from narcisse import __version__, searxng
 from narcisse.app import create_app
 from narcisse.config import DEFAULT_PORT, FALLBACK_PORT, HOST, Settings
-from narcisse.desktop import mode, system
+from narcisse.desktop import mode, system, taskbar
 from narcisse.logs import setup_logging
 from narcisse.preferences import Preferences
 from narcisse.server import Server
@@ -77,6 +77,14 @@ def _locate(port: int | None, demo: bool) -> tuple[Settings, bool]:
     raise typer.Exit(1)
 
 
+def _open(settings: Settings) -> None:
+    """Opens the window, and waits for it to get its place on the taskbar before this process
+    ends."""
+    branding = system.open_window(settings.app_url, settings.url)
+    if branding is not None:
+        branding.join(taskbar.WAIT_SECONDS)
+
+
 def _open_when_ready(server: Server, settings: Settings) -> None:
     while not server.started and not server.should_exit:
         time.sleep(0.05)
@@ -98,7 +106,7 @@ def serve(
     if running:
         typer.echo(f"Narcisse tourne déjà sur {settings.url}.")
         if browser:
-            system.open_window(settings.app_url, settings.url)
+            _open(settings)
         return
     setup_logging(settings, verbose=verbose)
     config = uvicorn.Config(
@@ -130,7 +138,7 @@ def tray(
     settings, running = _locate(port, mode.demo_remembered() if demo is None else demo)
     if running:
         if open_window:
-            system.open_window(settings.app_url, settings.url)
+            _open(settings)
         return
     from narcisse.desktop.native import prepare_native_ui
     from narcisse.desktop.tray import Tray  # pystray needs a desktop session: load it only here
@@ -146,7 +154,7 @@ def open_(port: Port = None, demo: Side = None) -> None:
     demo = mode.demo_remembered() if demo is None else demo
     settings, running = _locate(port, demo)
     if running:
-        system.open_window(settings.app_url, settings.url)
+        _open(settings)
         return
     args = [
         "tray",

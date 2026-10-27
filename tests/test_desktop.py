@@ -11,7 +11,7 @@ from typer.testing import CliRunner
 
 from narcisse import cli
 from narcisse.config import Settings
-from narcisse.desktop import mode, system
+from narcisse.desktop import mode, system, taskbar
 from narcisse.desktop.art import TrayState, tray_icon
 from narcisse.desktop.state import notifications, summarize
 
@@ -141,8 +141,10 @@ def test_narcisse_opens_in_an_app_window_when_the_browser_can(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     launched: list[Any] = []
+    branded: list[str] = []
     monkeypatch.setattr("subprocess.Popen", lambda args, **_: launched.append(args))
     monkeypatch.setattr("webbrowser.open", lambda url: launched.append(url))
+    monkeypatch.setattr(taskbar, "brand_new_windows", lambda command, icon: branded.append(command))
 
     monkeypatch.setattr(system, "_app_mode_browser", lambda: "chrome.exe")
     system.open_window("http://narcisse.localhost", "http://narcisse")
@@ -150,6 +152,9 @@ def test_narcisse_opens_in_an_app_window_when_the_browser_can(
     system.open_window("http://narcisse.localhost", "http://narcisse")
 
     assert launched == [["chrome.exe", "--app=http://narcisse.localhost"], "http://narcisse"]
+    # Only the app window gets Narcisse's place on the taskbar: pinned, it runs `narcisse open`.
+    [command] = branded
+    assert command.endswith("-m narcisse open")
 
 
 def test_the_shortcut_script_never_contains_the_paths(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -161,6 +166,7 @@ def test_the_shortcut_script_never_contains_the_paths(monkeypatch: pytest.Monkey
 
     monkeypatch.setattr(system, "IS_WINDOWS", True)
     monkeypatch.setattr("subprocess.run", fake_run)
+    monkeypatch.setattr(taskbar, "brand_shortcut", lambda path: True)  # never the real entry
     target = r"D:\Outils de Jeanne O'Exemple\pythonw.exe"
     path = system.create_shortcut([target, "-m", "narcisse", "open", "--demo"])
 
