@@ -330,6 +330,7 @@ class PreferencesOut(Schema):
     exclude_adult: bool
     fediverse_instances: list[str]
     searxng_url: str | None
+    searxng_autostart: bool
 
 
 class PreferencesPatch(Schema):
@@ -341,6 +342,7 @@ class PreferencesPatch(Schema):
     fediverse_instances: list[str] | None = Field(default=None, max_length=50)
     # The address of the user's SearXNG instance; an empty string (or null) removes it.
     searxng_url: str | None = Field(default=None, max_length=200)
+    searxng_autostart: bool | None = None
 
 
 class SearxngOut(Schema):

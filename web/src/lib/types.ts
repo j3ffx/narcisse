@@ -296,6 +296,8 @@ export interface Preferences {
   exclude_adult: boolean;
   fediverse_instances: string[];
   searxng_url: string | null;
+  /** Start Narcisse's SearXNG with Narcisse when it doesn't answer. */
+  searxng_autostart: boolean;
 }
 
 /** The user's SearXNG: Docker present, an instance answering, and how a launch is going. */
@@ -314,6 +316,7 @@ export interface PreferencesChanges {
   exclude_adult?: boolean;
   fediverse_instances?: string[];
   searxng_url?: string | null;
+  searxng_autostart?: boolean;
 }
 
 export interface EntityUpdate extends Entity {

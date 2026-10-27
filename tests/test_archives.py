@@ -227,6 +227,19 @@ async def test_an_instance_without_json(http_client: httpx.AsyncClient) -> None:
     assert refused.value.code == "searxng_json_off"
 
 
+@respx.mock
+async def test_an_instance_that_does_not_answer_says_so(http_client: httpx.AsyncClient) -> None:
+    respx.get(f"{INSTANCE}/search").mock(side_effect=httpx.ConnectError("refused"))
+    module = SearXNG()
+    with pytest.raises(SourceUnavailable) as down:
+        await run(
+            module,
+            FakeContext(module, http_client, preferences=WITH_INSTANCE),
+            target(EntityKind.NAME, "Jeanne Exemple"),
+        )
+    assert (down.value.code, down.value.params) == ("searxng_down", {"host": "127.0.0.1"})
+
+
 def test_searxng_needs_an_instance_and_reaches_it_only() -> None:
     module = SearXNG()
     assert module.unavailable(Preferences()) == "searxng_not_set"

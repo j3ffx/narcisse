@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { errorMessage, messageFor } from '@/lib/errors';
+import { errorMessage } from '@/lib/errors';
+import { launchState } from '@/lib/searxng';
 import {
   useInfo,
   usePreferences,
@@ -52,7 +53,10 @@ export function SettingsPage() {
             site. Il se crée dans GitLab : Preferences → Access tokens.
           </Token>
           <FediverseInstances instances={preferences.data.fediverse_instances} />
-          <SearxngInstance address={preferences.data.searxng_url} />
+          <SearxngInstance
+            address={preferences.data.searxng_url}
+            autostart={preferences.data.searxng_autostart}
+          />
           <AdultSites excluded={preferences.data.exclude_adult} />
         </>
       )}
@@ -204,13 +208,7 @@ function FediverseInstances({ instances }: { instances: string[] }) {
   );
 }
 
-const LAUNCH_STEPS: Record<string, string> = {
-  desktop: 'Démarrage de Docker Desktop (ça peut prendre une minute)…',
-  compose: 'Lancement de SearXNG avec Docker…',
-  waiting: 'Attente de la première réponse de SearXNG…',
-};
-
-function SearxngInstance({ address }: { address: string | null }) {
+function SearxngInstance({ address, autostart }: { address: string | null; autostart: boolean }) {
   const [value, setValue] = useState(address ?? '');
   const update = useUpdatePreferences();
   const status = useSearxng();
@@ -255,20 +253,27 @@ function SearxngInstance({ address }: { address: string | null }) {
           ) : (
             <PlayIcon aria-hidden />
           )}
-          {status.data?.running ? 'Relancer SearXNG' : 'Installer et lancer avec Docker'}
+          {address ? 'Relancer SearXNG' : 'Installer et lancer avec Docker'}
         </Button>
         <p id="searxng-launch-state" className="text-sm text-muted-foreground" role="status">
-          {starting
-            ? (LAUNCH_STEPS[status.data?.step ?? ''] ?? 'Lancement…')
-            : status.data?.state === 'ready'
-              ? 'C’est prêt.'
-              : status.data?.state === 'failed' && status.data.error
-                ? messageFor(status.data.error)
-                : status.data && !status.data.docker
-                  ? 'Docker n’est pas installé : installe Docker Desktop, puis réessaie.'
-                  : ''}
+          {launchState(status.data) ||
+            (status.data && address && !status.data.running
+              ? `SearXNG ne répond pas sur ${address} : il s’est sans doute arrêté avec l’ordinateur.`
+              : '')}
         </p>
       </div>
+      {address && (
+        <Label className="flex items-start gap-2 font-normal">
+          <Checkbox
+            checked={autostart}
+            onCheckedChange={(checked) => update.mutate({ searxng_autostart: checked === true })}
+          />
+          <span>
+            Relancer SearXNG quand Narcisse démarre, s’il ne répond pas (après un redémarrage de
+            l’ordinateur, par exemple). Docker Desktop s’ouvre si besoin.
+          </span>
+        </Label>
+      )}
       <details className="text-sm">
         <summary className="w-fit cursor-pointer text-muted-foreground underline-offset-2 hover:underline">
           Régler l’adresse à la main

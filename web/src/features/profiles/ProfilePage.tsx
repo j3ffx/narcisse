@@ -1,5 +1,6 @@
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Pending } from '@/components/Pending';
+import { SearxngDown } from '@/components/SearxngDown';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -191,6 +192,7 @@ function StartScanDialog({ profile }: { profile: ProfileDetail }) {
                       )}
                     </Label>
                     <p className="text-sm text-muted-foreground">{module.description}</p>
+                    {module.name === 'searxng' && !module.unavailable && <SearxngDown />}
                     {module.unavailable && (
                       <p id={`${id}-needs`} className="text-sm">
                         {messageFor(module.unavailable)}{' '}

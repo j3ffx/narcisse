@@ -197,6 +197,7 @@ class Launcher:
         self.preferences_path = preferences_path
         self.current = LaunchState()
         self._task: asyncio.Task[None] | None = None
+        self._check: asyncio.Task[None] | None = None
 
     async def answers(self, address: str) -> bool:
         """Whether an instance answers there right now (its health check: no search is run)."""
@@ -206,6 +207,21 @@ class Launcher:
             return False
         return response.status_code == 200
 
+    def autostart(self) -> None:
+        """`start_if_down`, in the background: the health check mustn't hold Narcisse's start."""
+        self._check = asyncio.create_task(self.start_if_down(), name="searxng-autostart")
+
+    async def start_if_down(self) -> None:
+        """On Narcisse's start: starts the instance Narcisse installed if the user asked for it
+        and it doesn't answer (the machine restarted, say). An instance of their own elsewhere
+        is theirs to start."""
+        preferences = Preferences.load(self.preferences_path)
+        if not preferences.searxng_autostart or preferences.searxng_url != url():
+            return
+        if not await self.answers(url()):
+            log.info("SearXNG doesn't answer: starting it, as the settings ask")
+            self.start()
+
     def start(self) -> None:
         if self.current.state == "starting":
             return  # one launch at a time
@@ -214,11 +230,14 @@ class Launcher:
 
     def cancel(self) -> None:
         """Stops a launch under way (the app is shutting down); Docker keeps what it started."""
-        if self._task is not None and not self._task.done():
-            self._task.cancel()
+        for task in (self._check, self._task):
+            if task is not None and not task.done():
+                task.cancel()
 
     async def wait(self) -> None:
         """Until the launch under way is over (for tests and shutdown)."""
+        if self._check is not None:
+            await asyncio.gather(self._check, return_exceptions=True)
         if self._task is not None:
             await asyncio.gather(self._task, return_exceptions=True)
 

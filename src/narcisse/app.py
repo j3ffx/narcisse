@@ -97,6 +97,8 @@ def create_app(
             await engine.start()
             launcher = Launcher(client, settings.preferences_path)
             app.state.services = Services(settings, db, bus, engine, launcher)
+            if not settings.demo:
+                launcher.autostart()
             log.info("Narcisse %s ready, data in %s", __version__, settings.data_dir)
             try:
                 yield

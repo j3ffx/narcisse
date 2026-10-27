@@ -21,6 +21,9 @@ class Preferences:
     fediverse_instances: tuple[str, ...] = ()
     # The user's own SearXNG instance (its address), for the web search source. Optional.
     searxng_url: str | None = None
+    # Start the SearXNG instance Narcisse installed when Narcisse starts, if it isn't running
+    # (after the machine restarted, say). Off until the user ticks it: it may open Docker Desktop.
+    searxng_autostart: bool = False
 
     @classmethod
     def load(cls, path: Path) -> "Preferences":

@@ -21,6 +21,7 @@ from narcisse.engine.plugin import (
     SourceModule,
     SourceUnavailable,
     Target,
+    TransientError,
 )
 from narcisse.modules._text import is_profile
 from narcisse.normalize import fold
@@ -101,9 +102,16 @@ class SearXNG(SourceModule):
         total = 0
         for page in range(1, PAGES + 1):
             await ctx.progress(page - 1, PAGES)
-            response = await ctx.http.get(
-                f"{base}/search", params={"q": query, "format": "json", "pageno": str(page)}
-            )
+            try:
+                response = await ctx.http.get(
+                    f"{base}/search", params={"q": query, "format": "json", "pageno": str(page)}
+                )
+            except TransientError as exc:
+                if exc.code != "network_error":
+                    raise
+                # Stopped with the machine, most often: the UI offers to start it again (and
+                # retrying in a few seconds wouldn't help).
+                raise SourceUnavailable("searxng_down", host=host) from exc
             if response.status_code == 403:
                 raise SourceUnavailable("searxng_json_off", host=host)
             if response.status_code >= 400:

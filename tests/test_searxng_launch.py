@@ -6,6 +6,8 @@ import httpx
 import pytest
 
 from narcisse import searxng
+from narcisse.config import Settings
+from narcisse.preferences import Preferences
 from tests.conftest import Api, ApiFactory
 
 
@@ -132,3 +134,53 @@ async def test_demo_mode_never_starts_anything(
     api = await make_api(None, demo=True, http_transport=instance())
     await api.json("POST", "/searxng/start", {}, status=409)
     assert (fake.opened, fake.composed) == (0, [])
+
+
+@pytest.mark.parametrize(
+    ("autostart", "address", "started"),
+    [
+        (True, "http://127.0.0.1:8888", True),
+        (False, "http://127.0.0.1:8888", False),  # not without the user's say-so
+        (True, "https://searx.example.org", False),  # an instance of their own: theirs to start
+    ],
+)
+async def test_narcisse_starts_its_searxng_again_when_asked(
+    make_api: ApiFactory,
+    monkeypatch: pytest.MonkeyPatch,
+    settings: Settings,
+    autostart: bool,
+    address: str,
+    started: bool,
+) -> None:
+    fake = FakeDocker(monkeypatch)
+    fake.up = True
+    Preferences(searxng_url=address, searxng_autostart=autostart).save(settings.preferences_path)
+    monkeypatch.setattr(searxng.Launcher, "READY_WAIT", 0.0)
+
+    # The machine restarted: nothing answers until the container is started again.
+    def handle(request: httpx.Request) -> httpx.Response:
+        if fake.composed and request.url.path == "/healthz":
+            return httpx.Response(200, text="OK")
+        raise httpx.ConnectError("nothing listens there")
+
+    api = await make_api(None, demo=False, http_transport=httpx.MockTransport(handle))
+    await api.app.state.services.searxng.wait()
+    assert bool(fake.composed) is started
+    if started:
+        assert (await api.json("GET", "/searxng"))["state"] == "ready"
+
+
+async def test_a_running_instance_is_left_alone_on_start(
+    make_api: ApiFactory, monkeypatch: pytest.MonkeyPatch, settings: Settings
+) -> None:
+    fake = FakeDocker(monkeypatch)
+    Preferences(searxng_url=searxng.url(), searxng_autostart=True).save(settings.preferences_path)
+    api = await make_api(None, demo=False, http_transport=instance())
+    await api.app.state.services.searxng.wait()
+    assert (fake.composed, fake.opened) == ([], 0)
+
+
+async def test_the_autostart_is_a_setting(api: Api) -> None:
+    assert (await api.json("GET", "/preferences"))["searxng_autostart"] is False
+    saved = await api.json("PATCH", "/preferences", {"searxng_autostart": True})
+    assert saved["searxng_autostart"] is True

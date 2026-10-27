@@ -44,6 +44,8 @@ const MESSAGES: Record<string, (p: Params) => string> = {
     `Aucun registre public connu pour l’extension .${typeof p.tld === 'string' ? p.tld : '?'}.`,
   domain_not_found: () => 'Ce domaine n’existe pas dans le DNS.',
   phone_unreadable: () => 'Ce numéro ne peut être un numéro de téléphone nulle part.',
+  searxng_down: () =>
+    'Ton instance SearXNG ne répond pas (arrêtée avec l’ordinateur ?) : relance-la depuis la fenêtre « Lancer un scan » ou les Réglages, puis réessaie.',
   searxng_not_set: () => 'Il lui faut l’adresse de ton instance SearXNG, dans les réglages.',
   searxng_json_off: (p) =>
     `${host(p)} refuse les résultats en JSON : active « json » dans « search: formats » de son settings.yml.`,
