@@ -50,7 +50,9 @@ Pas encore de version : la 0.1.0 sortira quand Narcisse sera utilisable sur de v
   l’installe et la lance avec Docker, sur ta machine seulement. Arrêtée avec l’ordinateur, elle
   se relance d’un clic (fenêtre du scan, Réglages), ou toute seule avec Narcisse si tu le
   choisis.
-- Épinglée à la barre des tâches, la fenêtre de Narcisse reste sous son épingle.
+- Épinglée à la barre des tâches, la fenêtre de Narcisse reste sous son épingle, et un lien vers
+  un autre site s’ouvre dans ton navigateur, jamais dans la fenêtre de Narcisse.
+- Depuis un scan, un lien bien visible ramène au profil.
 - « Ajouter comme élément » : une trace trouvée (un domaine cité dans une bio, un compte…) devient
   un point de départ des scans suivants.
 - Les liens et adresses d’une bio deviennent des traces (sur GitHub aussi).
