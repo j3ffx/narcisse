@@ -87,8 +87,9 @@ export interface Scan {
   status: ScanStatus;
   modules: string[];
   results_count: number;
-  /** What the scan reports as a whole: traces it followed, and those left past its cap. */
-  notes: { pivots?: number; capped?: number[] } | null;
+  /** What the scan reports as a whole: traces it followed, and those left past its cap; for a
+   * check, the followed request and its trace. */
+  notes: { pivots?: number; capped?: number[]; check?: number; trace?: string } | null;
   created_at: string;
   finished_at: string | null;
 }
@@ -215,6 +216,55 @@ export interface Action {
   letters: Partial<Record<Lang, Letter>>;
   /** The language the recipient most likely reads. */
   lang: Lang;
+  /** The user follows it (À faire). */
+  request: FollowedRequest | null;
+}
+
+export type RequestStatus = 'todo' | 'sent' | 'waiting' | 'done' | 'refused';
+
+/** An action the user follows on a trace, and where it stands. */
+export interface FollowedRequest {
+  id: number;
+  profile_id: number;
+  entity: Entity;
+  action: string;
+  /** "" when no site is named. */
+  service: string;
+  letter: string | null;
+  recipient: string | null;
+  subject: string | null;
+  body: string | null;
+  status: RequestStatus;
+  note: string | null;
+  created_at: string;
+  updated_at: string;
+  sent_at: string | null;
+  reminded_at: string | null;
+  closed_at: string | null;
+  /** What the last scan that looked for the trace again saw. */
+  check: 'gone' | 'still_there' | null;
+  checked_at: string | null;
+  check_scan_id: number | null;
+  /** When it deserves a reminder (a month after sending), and whether that time has come. */
+  reminder_at: string | null;
+  due: boolean;
+}
+
+export interface ExposurePoint {
+  taken_at: string;
+  scan_id: number | null;
+  levels: Record<string, number>;
+  exposure: number;
+}
+
+/** How exposed a profile is now, how it went scan after scan, and where its requests are. */
+export interface Exposure {
+  levels: Record<string, number>;
+  exposure: number;
+  history: ExposurePoint[];
+  requests: Record<RequestStatus, number>;
+  due: number;
+  gone: number;
 }
 
 export interface Remediation {
@@ -329,4 +379,5 @@ export type LiveEvent =
   | { type: 'run.updated'; data: Run }
   | { type: 'run.progress'; data: RunProgress }
   | { type: 'result.created'; data: Result }
-  | { type: 'entity.updated'; data: EntityUpdate };
+  | { type: 'entity.updated'; data: EntityUpdate }
+  | { type: 'requests.updated'; data: { profile_id: number } };

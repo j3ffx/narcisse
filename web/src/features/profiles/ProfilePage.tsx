@@ -27,7 +27,14 @@ import { Label } from '@/components/ui/label';
 import { ScanStatusBadge } from '@/features/scans/status';
 import { errorMessage, messageFor } from '@/lib/errors';
 import { KIND_LABELS, PROFILE_KIND_LABELS } from '@/lib/labels';
-import { useDeleteProfile, useModules, useProfile, useScans, useStartScan } from '@/lib/queries';
+import {
+  useDeleteProfile,
+  useExposure,
+  useModules,
+  useProfile,
+  useScans,
+  useStartScan,
+} from '@/lib/queries';
 import { formatDate } from '@/lib/time';
 import type { ProfileDetail } from '@/lib/types';
 import { RadarIcon, Trash2Icon } from 'lucide-react';
@@ -37,6 +44,7 @@ import { useTraceViewState } from '@/features/graph/useTraceView';
 import { cn } from 'cn';
 import { AssistedSearch } from '@/features/search/AssistedSearch';
 import { Leads, PivotDepth } from './Leads';
+import { Requests } from './Requests';
 import { SeedsEditor } from './SeedsEditor';
 import { TABS, type ProfileTab } from './tabs';
 
@@ -51,6 +59,7 @@ const TraceList = lazy(() =>
 export function ProfilePage({ id, tab }: { id: number; tab: ProfileTab }) {
   const profile = useProfile(id);
   const view = useTraceViewState();
+  const due = useExposure(id).data?.due;
   if (profile.isPending) return <Pending label="Chargement du profil…" />;
   if (profile.isError) return <p role="alert">{errorMessage(profile.error)}</p>;
   const data = profile.data;
@@ -86,6 +95,12 @@ export function ProfilePage({ id, tab }: { id: number; tab: ProfileTab }) {
             )}
           >
             {title}
+            {key === 'a-faire' && !!due && (
+              <span className="ml-1.5 rounded-full bg-primary px-1.5 text-xs text-primary-foreground">
+                {due}
+                <span className="sr-only"> à relancer</span>
+              </span>
+            )}
           </Link>
         ))}
       </nav>
@@ -103,6 +118,7 @@ export function ProfilePage({ id, tab }: { id: number; tab: ProfileTab }) {
         </div>
       )}
       {tab === 'recherche' && <AssistedSearch profileId={id} seeds={data.seeds} />}
+      {tab === 'a-faire' && <Requests profileId={id} />}
       {tab === 'scans' && <ScanHistory profileId={id} />}
     </div>
   );

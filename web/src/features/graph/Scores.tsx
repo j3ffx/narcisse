@@ -17,6 +17,11 @@ const DOTS: Record<RiskLevel, string> = {
   critical: 'bg-red-600 dark:bg-red-400',
 };
 
+/** A risk level's dot (decorative: the level is written next to it). */
+export function LevelDot({ level }: { level: RiskLevel }) {
+  return <span aria-hidden className={cn('size-2 shrink-0 rounded-full', DOTS[level])} />;
+}
+
 /** A risk as « 72 / 100 · élevé », with its level's dot. */
 export function RiskValue({ risk, className }: { risk: number; className?: string }) {
   const level = riskLevel(risk);

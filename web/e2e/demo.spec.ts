@@ -272,7 +272,20 @@ test('scores say why, actions say what to do, and leads become elements', async 
   );
   await letter.getByRole('button', { name: 'English' }).click();
   await expect(text).toHaveValue(/Article 17/);
-  await page.keyboard.press('Escape');
+
+  // Sent: the request is followed, and « À faire » shows it with the profile's exposure.
+  await letter.getByRole('button', { name: 'Je l’ai envoyée' }).click();
+  await expect(letter).toBeHidden();
+  await expect(sheet.getByTestId('followed')).toContainText('Envoyée le');
+  await sheet.getByRole('link', { name: 'Voir dans « À faire »' }).click();
+  await expect(page.getByTestId('exposure')).toContainText('Ton exposition');
+  const followed = page.getByTestId('request');
+  await expect(followed).toHaveCount(1);
+  await expect(followed).toContainText('journal.example.net');
+  await expect(followed.getByRole('combobox', { name: 'Statut' })).toHaveValue('sent');
+  await followed.getByRole('combobox', { name: 'Statut' }).selectOption('waiting');
+  await expect(followed.getByTestId('request-summary')).toContainText('En attente');
+  await page.goto(`/profils/${id}/liste`);
 
   // Leads: one dismissed, one added as an element. (A lead's text may name another as the trace
   // it was found through: they are told apart by their own link.)

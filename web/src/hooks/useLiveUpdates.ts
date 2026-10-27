@@ -23,6 +23,7 @@ const EVENT_TYPES: LiveEvent['type'][] = [
   'run.progress',
   'result.created',
   'entity.updated',
+  'requests.updated',
 ];
 
 /**
@@ -111,6 +112,8 @@ function apply(client: QueryClient, event: LiveEvent) {
       update(event.data.id, (s) => withScan(s, event.data));
       void client.invalidateQueries({ queryKey: keys.scans(event.data.profile_id) });
       void client.invalidateQueries({ queryKey: keys.leads(event.data.profile_id) });
+      // A finished scan takes a photo of the exposure.
+      void client.invalidateQueries({ queryKey: keys.exposure(event.data.profile_id) });
       break;
     case 'run.updated':
       update(event.data.scan_id, (s) => withRun(s, event.data));
@@ -149,6 +152,11 @@ function apply(client: QueryClient, event: LiveEvent) {
         void client.invalidateQueries({ queryKey: keys.entity(result.edge.source_id) });
       break;
     }
+    case 'requests.updated':
+      void client.invalidateQueries({ queryKey: keys.requests(event.data.profile_id) });
+      void client.invalidateQueries({ queryKey: keys.exposure(event.data.profile_id) });
+      void client.invalidateQueries({ queryKey: ['remediation'] });
+      break;
     case 'entity.updated':
       reviewed(client, event.data);
       // Its scores' reasons, if its detail is open; the leads, which follow its scores.

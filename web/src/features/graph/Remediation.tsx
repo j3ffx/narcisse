@@ -12,16 +12,26 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { errorMessage } from '@/lib/errors';
-import { useRemediation } from '@/lib/queries';
+import { useFollowAction, useRemediation } from '@/lib/queries';
 import {
   DIFFICULTY_LABELS,
   LETTER_LABELS,
   actionText,
+  checkText,
   letterText,
   mailtoHref,
+  requestSummary,
 } from '@/lib/remediation';
 import type { Action, Lang } from '@/lib/types';
-import { CopyIcon, ExternalLinkIcon, MailIcon, PenLineIcon } from 'lucide-react';
+import {
+  CheckIcon,
+  CopyIcon,
+  ExternalLinkIcon,
+  ListPlusIcon,
+  MailIcon,
+  PenLineIcon,
+} from 'lucide-react';
+import { Link } from 'wouter';
 import { useId, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -45,7 +55,11 @@ export function Remediation({ entityId }: { entityId: number }) {
       </div>
       <ol className="grid gap-2">
         {actions.map((action, index) => (
-          <ActionItem key={`${action.code}-${action.service?.name ?? index}`} action={action} />
+          <ActionItem
+            key={`${action.code}-${action.service?.name ?? index}`}
+            action={action}
+            entityId={entityId}
+          />
         ))}
       </ol>
       <p className="text-xs text-muted-foreground">
@@ -63,9 +77,11 @@ export function Remediation({ entityId }: { entityId: number }) {
   );
 }
 
-function ActionItem({ action }: { action: Action }) {
+function ActionItem({ action, entityId }: { action: Action; entityId: number }) {
   const text = actionText(action.code);
   const service = action.service;
+  const follow = useFollowAction(entityId);
+  const request = action.request;
   return (
     <li className="grid gap-1.5 rounded-lg border p-3 text-sm" data-testid="action">
       <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
@@ -98,8 +114,36 @@ function ActionItem({ action }: { action: Action }) {
             </a>
           </Button>
         )}
-        {action.letter && action.letters.fr && <LetterDialog action={action} />}
+        {action.letter && action.letters.fr && <LetterDialog action={action} entityId={entityId} />}
+        {!request && (
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={follow.isPending}
+            onClick={() =>
+              follow.mutate(
+                { action: action.code, service: service?.name ?? '', letter: action.letter },
+                { onSuccess: () => toast.success('Ajoutée à « À faire ».') },
+              )
+            }
+          >
+            <ListPlusIcon aria-hidden />
+            Ajouter à « À faire »
+          </Button>
+        )}
       </div>
+      {request && (
+        <p className="text-xs" data-testid="followed">
+          <span className="font-medium">Suivie</span> : {requestSummary(request)}
+          {checkText(request) ? ` · ${checkText(request)}` : ''}.{' '}
+          <Link
+            href={`/profils/${request.profile_id}/a-faire`}
+            className="underline underline-offset-2"
+          >
+            Voir dans « À faire »
+          </Link>
+        </p>
+      )}
       {action.links.length > 0 && (
         <ul className="grid gap-0.5 text-xs">
           {action.links.map((link) => (
@@ -124,8 +168,10 @@ const LANG_LABELS: Record<Lang, string> = { fr: 'Français', en: 'English' };
 
 /** The prepared request: the user reads it, completes it, then copies it or opens it in their
  * own mail client. */
-function LetterDialog({ action }: { action: Action }) {
+function LetterDialog({ action, entityId }: { action: Action; entityId: number }) {
   const id = useId();
+  const [open, setOpen] = useState(false);
+  const follow = useFollowAction(entityId);
   const [lang, setLang] = useState<Lang>(action.lang);
   const [to, setTo] = useState(action.email ?? '');
   const [subject, setSubject] = useState(action.letters[action.lang]?.subject ?? '');
@@ -156,8 +202,10 @@ function LetterDialog({ action }: { action: Action }) {
 
   return (
     <Dialog
-      onOpenChange={(open) => {
-        if (open) switchTo(action.lang);
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (next) switchTo(action.lang);
       }}
     >
       <DialogTrigger asChild>
@@ -239,6 +287,34 @@ function LetterDialog({ action }: { action: Action }) {
               </a>
             </Button>
           )}
+          <Button
+            variant="secondary"
+            disabled={follow.isPending}
+            onClick={() =>
+              follow.mutate(
+                {
+                  action: action.code,
+                  service: action.service?.name ?? '',
+                  letter: action.letter,
+                  recipient: to.trim() || null,
+                  subject: byMail ? subject : null,
+                  body,
+                  status: 'sent',
+                },
+                {
+                  onSuccess: () => {
+                    setOpen(false);
+                    toast.success(
+                      'Suivie dans « À faire » : une relance te sera proposée dans un mois.',
+                    );
+                  },
+                },
+              )
+            }
+          >
+            <CheckIcon aria-hidden />
+            Je l’ai envoyée
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

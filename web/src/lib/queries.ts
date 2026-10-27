@@ -17,6 +17,11 @@ import type {
   AppInfo,
   SearxngStatus,
   EntityDetail,
+  Exposure,
+  FollowedRequest,
+  Lang,
+  Letter,
+  RequestStatus,
   GraphData,
   Lead,
   SavedView,
@@ -59,6 +64,8 @@ export const keys = {
   leads: (profileId: number) => ['leads', profileId] as const,
   entities: ['entity'] as const,
   remediation: (id: number) => ['remediation', id] as const,
+  requests: (profileId: number) => ['requests', profileId] as const,
+  exposure: (profileId: number) => ['exposure', profileId] as const,
 };
 
 // Reads
@@ -97,6 +104,89 @@ export const useRemediation = (id: number) =>
     queryKey: keys.remediation(id),
     queryFn: () => get<Remediation>(`/entities/${id}/remediation`),
   });
+
+/** The actions the user follows on a profile's traces. */
+export const useRequests = (profileId: number) =>
+  useQuery({
+    queryKey: keys.requests(profileId),
+    queryFn: () => get<FollowedRequest[]>(`/profiles/${profileId}/requests`),
+  });
+
+export const useExposure = (profileId: number) =>
+  useQuery({
+    queryKey: keys.exposure(profileId),
+    queryFn: () => get<Exposure>(`/profiles/${profileId}/exposure`),
+  });
+
+/** The reminder of a sent request (loaded when the user asks for it). */
+export const useReminder = (requestId: number, enabled: boolean) =>
+  useQuery({
+    queryKey: ['reminder', requestId],
+    queryFn: () => get<Partial<Record<Lang, Letter>>>(`/requests/${requestId}/reminder`),
+    enabled,
+    staleTime: 0,
+  });
+
+function requestsChanged(client: QueryClient, profileId: number) {
+  void client.invalidateQueries({ queryKey: keys.requests(profileId) });
+  void client.invalidateQueries({ queryKey: keys.exposure(profileId) });
+  void client.invalidateQueries({ queryKey: ['remediation'] });
+}
+
+export interface FollowBody {
+  action: string;
+  service?: string;
+  letter?: string | null;
+  recipient?: string | null;
+  subject?: string | null;
+  body?: string | null;
+  status?: RequestStatus;
+}
+
+/** Follows an action of a trace's sheet (or updates the one followed). */
+export function useFollowAction(entityId: number) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: FollowBody) => post<FollowedRequest>(`/entities/${entityId}/requests`, body),
+    onSuccess: (request) => requestsChanged(client, request.profile_id),
+    onError: failed,
+  });
+}
+
+export function useUpdateRequest(profileId: number) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      ...body
+    }: {
+      id: number;
+      status?: RequestStatus;
+      note?: string;
+      recipient?: string;
+      reminded?: boolean;
+    }) => patch<FollowedRequest>(`/requests/${id}`, body),
+    onSuccess: () => requestsChanged(client, profileId),
+    onError: failed,
+  });
+}
+
+export function useStopFollowing(profileId: number) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => del(`/requests/${id}`),
+    onSuccess: () => requestsChanged(client, profileId),
+    onError: failed,
+  });
+}
+
+/** Runs again the searches that found the trace: their end says whether it is gone. */
+export function useCheckRequest() {
+  return useMutation({
+    mutationFn: (id: number) => post<ScanDetail>(`/requests/${id}/check`),
+    onError: failed,
+  });
+}
 
 /** Traces sure enough to search from that aren't elements yet. */
 export const useLeads = (profileId: number) =>

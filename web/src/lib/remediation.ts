@@ -2,7 +2,7 @@
 // (remediation/actions.py) explained in French, the difficulty the knowledge base gives, and the
 // e-mail link that opens a prepared request in the user's own mail client. Pure functions,
 // tested in remediation.test.ts.
-import type { Difficulty } from './types';
+import type { Difficulty, FollowedRequest, RequestStatus } from './types';
 
 export interface ActionText {
   title: string;
@@ -115,3 +115,37 @@ export function mailtoHref(to: string, subject: string, body: string): string {
 /** The letter as one text, to paste anywhere. */
 export const letterText = (subject: string, body: string) =>
   subject ? `Objet : ${subject}\n\n${body}` : body;
+
+export const REQUEST_STATUS_LABELS: Record<RequestStatus, string> = {
+  todo: 'À faire',
+  sent: 'Envoyée',
+  waiting: 'En attente',
+  done: 'Faite',
+  refused: 'Refusée',
+};
+
+/** What the last scan that looked for the trace again saw, in a sentence. */
+export function checkText(request: FollowedRequest): string | null {
+  if (!request.check || !request.checked_at) return null;
+  const when = formatDay(request.checked_at);
+  return request.check === 'gone'
+    ? `Disparue : le scan du ${when} ne l’a plus trouvée.`
+    : `Toujours là au scan du ${when}.`;
+}
+
+/** Where a followed request stands, in a few words. */
+export function requestSummary(request: FollowedRequest): string {
+  const sent = request.sent_at ? `envoyée le ${formatDay(request.sent_at)}` : null;
+  const parts =
+    request.status === 'sent' && sent
+      ? [`Envoyée le ${formatDay(request.sent_at!)}`]
+      : [REQUEST_STATUS_LABELS[request.status], ...(sent ? [sent] : [])];
+  if (request.reminded_at) parts.push(`relancée le ${formatDay(request.reminded_at)}`);
+  if (request.due) parts.push('à relancer');
+  else if (request.reminder_at && request.status !== 'done')
+    parts.push(`relance possible le ${formatDay(request.reminder_at)}`);
+  return parts.join(' · ');
+}
+
+export const formatDay = (iso: string) =>
+  new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });

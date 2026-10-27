@@ -60,6 +60,12 @@ export function ScanPage({ id }: { id: number }) {
         </div>
         <ScanControls scan={data} size="default" />
       </div>
+      {data.notes?.check && (
+        <p className="text-sm" data-testid="scan-check">
+          Vérification de « {data.notes.trace} » : seules les recherches qui l’avaient trouvée
+          repassent. À la fin, ta demande dans « À faire » dit si elle a disparu.
+        </p>
+      )}
       <section aria-labelledby="runs-title" className="grid gap-2">
         <h2 id="runs-title" className="font-heading text-lg font-semibold">
           Recherches

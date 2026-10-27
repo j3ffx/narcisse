@@ -69,7 +69,13 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await page.getByRole('button', { name: 'Préparer la demande' }).first().click();
       await expect(page.getByRole('dialog').getByLabel('Texte')).toBeVisible();
       await audit(page);
-      await page.keyboard.press('Escape');
+      await page.getByRole('button', { name: 'Je l’ai envoyée' }).click();
+      await expect(page.getByTestId('followed')).toBeVisible();
+      await audit(page);
+
+      await page.goto(`/profils/${id}/a-faire`);
+      await expect(page.getByTestId('request')).toHaveCount(1);
+      await audit(page);
 
       await page.goto(`/profils/${id}/elements`);
       await expect(page.getByTestId('lead').first()).toBeVisible();
