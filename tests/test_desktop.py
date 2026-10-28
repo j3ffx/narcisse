@@ -13,7 +13,7 @@ from narcisse import cli
 from narcisse.config import Settings
 from narcisse.desktop import mode, system, taskbar
 from narcisse.desktop.art import TrayState, tray_icon
-from narcisse.desktop.state import notifications, reminder_notice, summarize
+from narcisse.desktop.state import changes_text, notifications, reminder_notice, summarize
 
 
 def run(id_: int, status: str, kind: str = "name") -> dict[str, Any]:
@@ -267,3 +267,12 @@ def test_the_daily_word_on_requests_to_remind() -> None:
         "Une demande attend sa réponse depuis un mois : prépare sa relance dans « À faire »."
     )
     assert reminder_notice(3).startswith("3 demandes attendent")  # type: ignore[union-attr]
+
+
+def test_the_end_of_a_scan_says_what_changed() -> None:
+    assert changes_text(None) is None
+    assert changes_text({"new": 0, "gone": 0, "modified": 0}) == (
+        "Rien de nouveau depuis le scan précédent."
+    )
+    assert changes_text({"new": 3, "gone": 1, "modified": 0}) == "3 nouvelles traces, 1 disparue."
+    assert changes_text({"new": 1, "gone": 0, "modified": 2}) == "1 nouvelle trace, 2 modifiées."

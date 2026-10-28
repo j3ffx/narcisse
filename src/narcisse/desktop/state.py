@@ -60,6 +60,23 @@ def summarize(activity: dict[str, Any] | None) -> Summary:
     return Summary(state, text[:127], running)
 
 
+def changes_text(changes: dict[str, int] | None) -> str | None:
+    """« 3 nouvelles traces, 1 disparue » (what a scan found new since the previous one)."""
+    if changes is None:
+        return None
+    new, gone, modified = (changes.get(k, 0) for k in ("new", "gone", "modified"))
+    if not (new or gone or modified):
+        return "Rien de nouveau depuis le scan précédent."
+    parts = []
+    if new:
+        parts.append(f"{new} nouvelle{'s' if new > 1 else ''} trace{'s' if new > 1 else ''}")
+    if gone:
+        parts.append(f"{gone} disparue{'s' if gone > 1 else ''}")
+    if modified:
+        parts.append(f"{modified} modifiée{'s' if modified > 1 else ''}")
+    return ", ".join(parts).capitalize() + "."
+
+
 def notifications(
     before: dict[str, Any] | None, after: dict[str, Any] | None
 ) -> list[Notification]:
@@ -76,7 +93,8 @@ def notifications(
             found.append(
                 Notification(
                     f"Scan terminé : {scan['profile_name']}",
-                    f"{_plural(scan['results_count'], 'résultat')}.",
+                    changes_text((scan.get("notes") or {}).get("changes"))
+                    or f"{_plural(scan['results_count'], 'résultat')}.",
                 )
             )
         for run in scan["runs"]:

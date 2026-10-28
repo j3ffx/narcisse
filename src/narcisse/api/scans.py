@@ -71,6 +71,12 @@ async def start_scan(profile_id: int, body: ScanIn, s: ServicesDep) -> ScanDetai
     return await s.engine.start_scan(profile_id, body.modules or None)
 
 
+@router.post("/schedule/due")
+async def start_due_scan(s: ServicesDep) -> ScanDetail | None:
+    """Starts the scan a profile asks for on its own, if one is due now (`narcisse scan`)."""
+    return await s.engine.start_due_scan()
+
+
 @router.get("/scans/{scan_id}")
 async def get_scan(scan_id: int, s: ServicesDep) -> ScanDetail:
     async with s.db.read() as session:

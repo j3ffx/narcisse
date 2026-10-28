@@ -44,6 +44,8 @@ Side = Annotated[
         show_default=False,
     ),
 ]
+SCAN_POLL_SECONDS = 5.0
+
 Port = Annotated[int | None, typer.Option(help="Port local (80 si possible, sinon 8765).")]
 
 
@@ -226,6 +228,47 @@ def paths() -> None:
     typer.echo(f"Données : {settings.data_dir}")
     typer.echo(f"Base    : {settings.database_path}")
     typer.echo(f"Journal : {settings.log_dir / 'narcisse.log'}")
+
+
+@app.command()
+def scan(
+    profile: Annotated[
+        int | None,
+        typer.Option("--profil", help="Le numéro du profil (sinon : les scans programmés dus)."),
+    ] = None,
+    demo: Side = None,
+) -> None:
+    """Lance un scan et attend sa fin : celui d’un profil, ou ceux que les profils programment
+    (pour cron ou le Planificateur de tâches). Démarre Narcisse s’il ne tourne pas."""
+    from narcisse.desktop.state import changes_text
+
+    side = mode.demo_remembered() if demo is None else demo
+    settings, running = _locate(None, side)
+    if not running:
+        system.spawn_detached(system.command("tray", "--demo" if side else "--real"))
+        deadline = time.monotonic() + 60
+        while not _narcisse_answers(settings.port):
+            if time.monotonic() > deadline:
+                typer.echo("Narcisse n’a pas démarré : regarde son journal (narcisse paths).")
+                raise typer.Exit(1)
+            time.sleep(1)
+    api = f"http://{HOST}:{settings.port}/api"
+    with httpx.Client(timeout=30) as client:
+        path = f"/profiles/{profile}/scans" if profile is not None else "/schedule/due"
+        started = client.post(f"{api}{path}", json={})
+        if started.status_code >= 400:
+            typer.echo(f"Scan refusé ({started.json().get('code', started.status_code)}).")
+            raise typer.Exit(1)
+        detail = started.json()
+        if detail is None:
+            typer.echo("Aucun scan programmé n’est dû pour l’instant.")
+            return
+        typer.echo(f"Scan de « {detail['profile_name']} » lancé…")
+        while detail["status"] in ("running", "paused"):
+            time.sleep(SCAN_POLL_SECONDS)
+            detail = client.get(f"{api}/scans/{detail['id']}").json()
+    changes = changes_text((detail.get("notes") or {}).get("changes"))
+    typer.echo(f"Scan terminé : {changes or str(detail['results_count']) + ' résultat(s).'}")
 
 
 @app.command()

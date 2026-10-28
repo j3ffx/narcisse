@@ -2,7 +2,7 @@
 
 import json
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -28,6 +28,8 @@ class ProfileSettings(Schema):
     pivot_depth: int = Field(default=0, ge=0, le=2)
     # Modules ticked by default when starting a scan; empty means every applicable one.
     modules: list[str] = Field(default_factory=list)
+    # Scan again on its own (with those modules) while Narcisse runs.
+    rescan: Literal["never", "weekly", "monthly"] = "never"
 
 
 class ProfileIn(Schema):

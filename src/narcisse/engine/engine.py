@@ -19,6 +19,7 @@ import httpx
 from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from narcisse import history
 from narcisse.clock import Clock
 from narcisse.domain import (
     FINISHED_RUN_STATUSES,
@@ -28,7 +29,7 @@ from narcisse.domain import (
     ScanStatus,
     SeedStatus,
 )
-from narcisse.engine import pivot
+from narcisse.engine import pivot, schedule
 from narcisse.engine.events import EventBus, Transaction
 from narcisse.engine.http import DomainPacer, HttpClient
 from narcisse.engine.plugin import (
@@ -264,6 +265,7 @@ class Engine:
         self._gates: dict[int, asyncio.Event] = {}
         self._wake = asyncio.Event()
         self._dispatcher: asyncio.Task[None] | None = None
+        self._scheduler: asyncio.Task[None] | None = None
         self._stopping = False
 
     # Life cycle
@@ -293,11 +295,14 @@ class Engine:
             for scan_id in paused:
                 self.gate(scan_id).clear()
         self._dispatcher = asyncio.create_task(self._dispatch_loop(), name="engine-dispatcher")
+        self._scheduler = asyncio.create_task(self._schedule_loop(), name="engine-scheduler")
 
     async def stop(self) -> None:
         """Stops every task, leaving their runs as they are: the next start resumes them."""
         self._stopping = True
-        tasks = [t for t in (self._dispatcher, *self._tasks.values()) if t is not None]
+        tasks = [
+            t for t in (self._dispatcher, self._scheduler, *self._tasks.values()) if t is not None
+        ]
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
@@ -312,7 +317,12 @@ class Engine:
 
     # Commands
 
-    async def start_scan(self, profile_id: int, module_names: list[str] | None) -> ScanDetail:
+    async def start_scan(
+        self,
+        profile_id: int,
+        module_names: list[str] | None,
+        notes: dict[str, Any] | None = None,
+    ) -> ScanDetail:
         now = self.clock.now()
         async with self.bus.transaction() as tx:
             profile = await tx.session.get(Profile, profile_id)
@@ -343,7 +353,7 @@ class Engine:
                 status=ScanStatus.RUNNING,
                 modules=names,
                 results_count=0,
-                notes=None,
+                notes=notes,
                 created_at=now,
                 finished_at=None,
             )
@@ -443,6 +453,47 @@ class Engine:
             tx.emit("scan.created", detail, scan.id)
         self._wake.set()
         return detail
+
+    async def _schedule_loop(self) -> None:
+        await self.clock.sleep(schedule.FIRST_LOOK)
+        while not self._stopping:
+            try:
+                await self.start_due_scan()
+            except Exception:
+                log.exception("scheduled scan failed to start")
+            await self.clock.sleep(schedule.LOOK_EVERY)
+
+    async def start_due_scan(self) -> ScanDetail | None:
+        """Starts the scan a profile asks for on its own, if one is due (`schedule.py`)."""
+        now = self.clock.now()
+        async with self.db.snapshot() as session:
+            profiles = list(await session.scalars(select(Profile)))
+            scans = list(await session.scalars(select(Scan).order_by(Scan.id)))
+        states = []
+        scheduled_running = False
+        for profile in profiles:
+            if schedule.interval(profile.settings or {}) is None:
+                continue
+            mine = [s for s in scans if s.profile_id == profile.id]
+            busy = any(s.status in (ScanStatus.RUNNING, ScanStatus.PAUSED) for s in mine)
+            full = [s for s in mine if not (s.notes or {}).get("check")]
+            states.append(
+                schedule.ProfileState(
+                    profile_id=profile.id,
+                    rescan=str((profile.settings or {}).get("rescan")),
+                    last_scan=full[-1].created_at if full else None,
+                    busy=busy,
+                )
+            )
+        scheduled_running = any(
+            s.status in (ScanStatus.RUNNING, ScanStatus.PAUSED) and (s.notes or {}).get("scheduled")
+            for s in scans
+        )
+        profile_id = schedule.due(states, now, scheduled_running)
+        if profile_id is None:
+            return None
+        log.info("starting the scheduled scan of profile %s", profile_id)
+        return await self.start_scan(profile_id, None, notes={"scheduled": True})
 
     async def pause(self, scan_id: int) -> None:
         async with self.bus.transaction() as tx:
@@ -900,6 +951,18 @@ class Engine:
             checked = await follow.check_requests(tx.session, scan, found, gone, scan.finished_at)
             await tx.session.flush()
             await follow.snapshot(tx.session, scan, scan.finished_at)
+            if not history.is_check(scan):
+                # What changed since the previous scan, for its page and the tray's notice.
+                with suppress(AppError):  # the profile's first scan
+                    diff = await history.compare(tx.session, scan.profile_id, None, scan.id)
+                    scan.notes = {
+                        **(scan.notes or {}),
+                        "changes": {
+                            "new": len(diff.new),
+                            "gone": len(diff.gone),
+                            "modified": len(diff.modified),
+                        },
+                    }
             tx.emit("scan.updated", scan_out(scan), scan.id)
             if checked:
                 tx.emit("requests.updated", {"profile_id": scan.profile_id}, None)

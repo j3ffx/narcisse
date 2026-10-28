@@ -11,7 +11,7 @@ async def test_a_profile_with_its_seeds(api: Api) -> None:
         status=201,
     )
     assert profile["name"] == "Jeanne Exemple"
-    assert profile["settings"] == {"pivot_depth": 1, "modules": []}
+    assert profile["settings"] == {"pivot_depth": 1, "modules": [], "rescan": "never"}
     url = f"/profiles/{profile['id']}/seeds"
     seed = await api.json("POST", url, {"kind": "email", "value": "Jeanne@Example.org"}, 201)
     assert seed["normalized"] == "jeanne@example.org"
