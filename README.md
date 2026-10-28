@@ -262,6 +262,15 @@ liste, sortie de ton exposition, et de retour si un scan la retrouve. L’onglet
 deux scans terminés : les traces nouvelles, disparues, modifiées (la page a changé), et celles
 qu’on ne peut pas dire disparues parce que leurs recherches ne sont pas toutes repassées.
 
+Un profil peut se **relancer tout seul** chaque semaine ou chaque mois (onglet Éléments) : tant
+que Narcisse tourne (« Démarrer avec Windows » dans le menu de son icône pour qu’il tourne
+toujours), il relance un scan avec les sources cochées par défaut, et un ordinateur éteint le
+rattrape au démarrage. À la fin de chaque scan, sa page et la notification disent ce qui a changé
+(« 3 nouvelles traces, 1 disparue »). Pour cron ou le Planificateur de tâches, `narcisse scan`
+lance les scans programmés dus (ou `--profil N` celui d’un profil), attend leur fin et le dit.
+Au-dessus du graphe et de la liste, un **curseur** remonte le temps : les traces telles que
+chaque scan les a laissées.
+
 Le bouton **Exporter** d’un profil enregistre un rapport HTML à lire ou imprimer (sans script ni
 ressource extérieure), ses traces en CSV pour un tableur, ou tout en JSON. Dans les **Réglages**,
 « Télécharger une sauvegarde » met tous tes profils, demandes et réglages dans un fichier

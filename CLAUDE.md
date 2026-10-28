@@ -134,7 +134,8 @@ fixtures, docs, commit messages or commit metadata.
 ## Layout
 
 - `src/narcisse/`: Python package. `engine/` (scheduling, events, HTTP for modules, the scores in
-  `scoring.py` kept up to date by `rescore.py`, the leads scans may follow in `pivot.py`),
+  `scoring.py` kept up to date by `rescore.py`, the leads scans may follow in `pivot.py`, the scans profiles ask for on their own in
+  `schedule.py`),
   `modules/` (one file per source; `_text.py` reads profiles' bios and relates findings to the
   profile they were read on), `api/`, `storage/` (models, Alembic migrations: `scripts/new-migration.py`),
   `history.py` (what changed between two scans), `export.py` (a profile's complete export,

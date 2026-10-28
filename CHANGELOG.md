@@ -12,6 +12,10 @@ encore beaucoup.
 - Comparer deux scans : traces nouvelles, disparues, modifiées, et celles qu’on ne peut pas dire
   disparues.
 - Exporter un profil : rapport HTML à lire ou imprimer, traces en CSV, tout en JSON.
+- Relancer un profil tout seul, chaque semaine ou chaque mois, tant que Narcisse tourne (rattrapé
+  au démarrage) ; `narcisse scan` pour cron ou le Planificateur de tâches.
+- La fin d’un scan dit ce qui a changé depuis le précédent, sur sa page et dans la notification.
+- Un curseur au-dessus du graphe et de la liste les montre tels que chaque scan les a laissés.
 - Sauvegarder et restaurer toutes tes données (Réglages ou `narcisse backup` / `narcisse restore`),
   avec chiffrement par phrase de passe si tu veux ; une restauration garde d’abord tes données du
   moment.
