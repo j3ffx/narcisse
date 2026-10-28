@@ -512,6 +512,26 @@ test('two scans compared, the profile exported, everything backed up then restor
       .toBe('done');
   }
 
+  // The second scan says what changed since the first.
+  await page.goto(`/profils/${id}/scans`);
+  await page.locator('a[href^="/scans/"]').first().click(); // the latest
+  await expect(page.getByTestId('scan-changes')).toContainText('Depuis le scan précédent');
+
+  // The list as the first scan left it, then now.
+  await page.goto(`/profils/${id}/liste`);
+  const slider = page.getByTestId('time-slider').getByRole('slider');
+  await expect(slider).toHaveAccessibleName('Maintenant');
+  await slider.focus();
+  await page.keyboard.press('Home');
+  await expect(page.getByTestId('time-slider')).toContainText(/Au scan du .* apparues? à ce scan/);
+  await page.keyboard.press('End');
+  await expect(slider).toHaveAccessibleName('Maintenant');
+
+  // Scanned again on its own, every week.
+  await page.goto(`/profils/${id}/elements`);
+  await page.getByLabel('Relancer un scan').selectOption('weekly');
+  await expect(page.getByTestId('next-scan')).toContainText('Prochain scan vers le');
+
   // What changed between the two scans (the demo finds the same traces twice).
   await page.goto(`/profils/${id}/scans`);
   const diff = page.getByTestId('scan-diff');

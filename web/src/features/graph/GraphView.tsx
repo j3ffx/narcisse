@@ -22,6 +22,7 @@ import { MaximizeIcon, ShrinkIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { GraphCanvas, type GraphCanvasHandle } from './GraphCanvas';
 import { KIND_COLORS, KIND_ICONS } from './kinds';
+import { TimeSlider } from './TimeSlider';
 import { TraceFilters } from './TraceFilters';
 import { GroupPanel } from './GroupPanel';
 import { PathFinder } from './PathFinder';
@@ -32,12 +33,14 @@ import { useHidden, useSelectedTrace, useSourceTitle, type TraceView } from './u
 
 /** The toolbar both views share: search, filters, "not me" traces, and what is shown. */
 export function TraceToolbar({
+  profileId,
   data,
   view,
   hidden,
   onPick,
   children,
 }: {
+  profileId: number;
   data: GraphData;
   view: TraceView;
   hidden: ReadonlySet<number>;
@@ -54,6 +57,12 @@ export function TraceToolbar({
         filter={view.filter}
         onChange={view.setFilter}
         sourceTitle={sourceTitle}
+      />
+      <TimeSlider
+        profileId={profileId}
+        nodes={data.nodes}
+        asOf={view.filter.asOf}
+        onChange={(asOf) => view.setFilter({ ...view.filter, asOf })}
       />
       <Label className="flex items-center gap-2 font-normal">
         <Checkbox
@@ -211,7 +220,7 @@ export function GraphView({ profileId, view }: { profileId: number; view: TraceV
 
   return (
     <div className="grid gap-3">
-      <TraceToolbar data={all} view={view} hidden={hidden} onPick={show}>
+      <TraceToolbar profileId={profileId} data={all} view={view} hidden={hidden} onPick={show}>
         <Label className="flex items-center gap-2 font-normal">
           Regrouper
           <select

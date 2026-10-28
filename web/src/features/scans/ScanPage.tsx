@@ -60,6 +60,15 @@ export function ScanPage({ id }: { id: number }) {
         </div>
         <ScanControls scan={data} size="default" />
       </div>
+      {data.notes?.changes && (
+        <p className="text-sm" data-testid="scan-changes">
+          {data.notes.scheduled ? 'Scan programmé. ' : ''}Depuis le scan précédent :{' '}
+          {changesText(data.notes.changes)}{' '}
+          <Link href={`/profils/${data.profile_id}/scans`} className="underline underline-offset-2">
+            Voir le détail
+          </Link>
+        </p>
+      )}
       {data.notes?.check && (
         <p className="text-sm" data-testid="scan-check">
           Vérification de « {data.notes.trace} » : seules les recherches qui l’avaient trouvée
@@ -173,4 +182,17 @@ function Results({ scanId, live }: { scanId: number; live: boolean }) {
       )}
     </section>
   );
+}
+
+/** « 3 nouvelles traces, 1 disparue » (as the tray says it). */
+function changesText(changes: { new: number; gone: number; modified: number }): string {
+  const parts: string[] = [];
+  if (changes.new)
+    parts.push(
+      `${changes.new} nouvelle${changes.new > 1 ? 's' : ''} trace${changes.new > 1 ? 's' : ''}`,
+    );
+  if (changes.gone) parts.push(`${changes.gone} disparue${changes.gone > 1 ? 's' : ''}`);
+  if (changes.modified)
+    parts.push(`${changes.modified} modifiée${changes.modified > 1 ? 's' : ''}`);
+  return parts.length ? `${parts.join(', ')}.` : 'rien de nouveau.';
 }

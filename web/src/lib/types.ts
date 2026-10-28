@@ -28,9 +28,13 @@ export type RunStatus =
 
 export type Params = Record<string, unknown>;
 
+export type Rescan = 'never' | 'weekly' | 'monthly';
+
 export interface ProfileSettings {
   pivot_depth: number;
   modules: string[];
+  /** Scan again on its own while Narcisse runs. */
+  rescan: Rescan;
 }
 
 export interface Profile {
@@ -89,7 +93,16 @@ export interface Scan {
   results_count: number;
   /** What the scan reports as a whole: traces it followed, and those left past its cap; for a
    * check, the followed request and its trace. */
-  notes: { pivots?: number; capped?: number[]; check?: number; trace?: string } | null;
+  notes: {
+    pivots?: number;
+    capped?: number[];
+    check?: number;
+    trace?: string;
+    /** Started by the profile's schedule. */
+    scheduled?: boolean;
+    /** What it found new since the previous scan. */
+    changes?: { new: number; gone: number; modified: number };
+  } | null;
   created_at: string;
   finished_at: string | null;
 }

@@ -43,7 +43,7 @@ import { Link, useLocation } from 'wouter';
 import { useTraceViewState } from '@/features/graph/useTraceView';
 import { cn } from 'cn';
 import { AssistedSearch } from '@/features/search/AssistedSearch';
-import { Leads, PivotDepth } from './Leads';
+import { Leads, PivotDepth, RescanSetting } from './Leads';
 import { ExportMenu } from './ExportMenu';
 import { Requests } from './Requests';
 import { ScanDiff } from '@/features/scans/ScanDiff';
@@ -118,6 +118,7 @@ export function ProfilePage({ id, tab }: { id: number; tab: ProfileTab }) {
           <SeedsEditor profileId={id} seeds={data.seeds} />
           <Leads profileId={id} />
           <PivotDepth profile={data} />
+          <RescanSetting profile={data} />
         </div>
       )}
       {tab === 'recherche' && <AssistedSearch profileId={id} seeds={data.seeds} />}
@@ -302,6 +303,7 @@ function ScanHistory({ profileId }: { profileId: number }) {
               <span>
                 {formatDate(scan.created_at)}
                 {scan.notes?.check ? ` · vérification de « ${scan.notes.trace} »` : ''}
+                {scan.notes?.scheduled ? ' · programmé' : ''}
               </span>
               <span className="flex items-center gap-3 text-sm text-muted-foreground">
                 {scan.results_count} résultat{scan.results_count > 1 ? 's' : ''}

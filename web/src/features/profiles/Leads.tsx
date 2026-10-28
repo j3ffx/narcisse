@@ -3,9 +3,10 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { errorMessage } from '@/lib/errors';
 import { KIND_LABELS, RELATION_LABELS } from '@/lib/labels';
-import { useAddSeed, useDismissLead, useLeads, useUpdateProfile } from '@/lib/queries';
+import { useAddSeed, useDismissLead, useLeads, useScans, useUpdateProfile } from '@/lib/queries';
+import { formatDay } from '@/lib/remediation';
 import { RISK_LEVEL_LABELS, points, riskLevel } from '@/lib/scores';
-import type { Lead, ProfileDetail, SeedKind } from '@/lib/types';
+import type { Lead, ProfileDetail, Rescan, SeedKind } from '@/lib/types';
 import { PlusIcon, XIcon } from 'lucide-react';
 import { useId } from 'react';
 import { toast } from 'sonner';
@@ -16,6 +17,71 @@ const DEPTHS: [number, string][] = [
   [1, 'Oui, à un saut des éléments'],
   [2, 'Oui, jusqu’à deux sauts'],
 ];
+
+const RESCANS: [Rescan, string][] = [
+  ['never', 'Jamais : je les lance moi-même'],
+  ['weekly', 'Chaque semaine'],
+  ['monthly', 'Chaque mois'],
+];
+
+const INTERVAL_DAYS: Record<Rescan, number | null> = { never: null, weekly: 7, monthly: 30 };
+
+/** Whether the profile is scanned again on its own, and when next. */
+export function RescanSetting({ profile }: { profile: ProfileDetail }) {
+  const update = useUpdateProfile(profile.id);
+  const scans = useScans(profile.id);
+  const id = useId();
+  const rescan = profile.settings.rescan ?? 'never';
+  const last = (scans.data ?? [])
+    .filter((s) => !s.notes?.check)
+    .map((s) => s.created_at)
+    .sort()
+    .at(-1);
+  const days = INTERVAL_DAYS[rescan];
+  const next =
+    days !== null && last ? new Date(new Date(last).getTime() + days * 86_400_000) : null;
+  return (
+    <section aria-labelledby={`${id}-title`} className="grid gap-3">
+      <div>
+        <h2 id={`${id}-title`} className="font-heading text-lg font-semibold">
+          Relancer les scans tout seul
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Tant que Narcisse tourne (coche « Démarrer avec Windows » dans le menu de son icône pour
+          qu’il tourne toujours), il relance un scan du profil avec ses sources cochées par défaut,
+          puis te dit ce qui a changé. Un ordinateur éteint rattrape le scan au démarrage suivant.
+        </p>
+      </div>
+      <div className="grid w-fit gap-1.5">
+        <Label htmlFor={`${id}-rescan`}>Relancer un scan</Label>
+        <select
+          id={`${id}-rescan`}
+          className="h-8 rounded-lg border bg-background px-2 text-sm"
+          value={rescan}
+          disabled={update.isPending}
+          onChange={(e) =>
+            update.mutate({
+              settings: { ...profile.settings, rescan: e.target.value as Rescan },
+            })
+          }
+        >
+          {RESCANS.map(([value, title]) => (
+            <option key={value} value={value}>
+              {title}
+            </option>
+          ))}
+        </select>
+      </div>
+      {days !== null && (
+        <p className="text-sm" data-testid="next-scan">
+          {next
+            ? `Prochain scan vers le ${formatDay(next.toISOString())}.`
+            : 'Le premier scan programmé suivra ton premier scan.'}
+        </p>
+      )}
+    </section>
+  );
+}
 
 /** Whether scans follow the surest leads by themselves, and how far. */
 export function PivotDepth({ profile }: { profile: ProfileDetail }) {
@@ -31,8 +97,7 @@ export function PivotDepth({ profile }: { profile: ProfileDetail }) {
           Une piste est une trace trouvée qui pourrait servir de point de départ (un email lu dans
           un profil, un domaine cité dans une bio…). Par défaut, Narcisse te les propose ci-dessus
           et tu choisis. Il peut aussi suivre de lui-même les plus sûres (confiance d’au moins 70),
-          25 au plus par scan, jamais une trace que tu as rejetée ; les sources « actif léger » ne
-          reçoivent qu’une piste que tu as confirmée ou presque certaine (85 et plus).
+          25 au plus par scan, jamais une trace que tu as rejetée.
         </p>
       </div>
       <div className="grid w-fit gap-1.5">

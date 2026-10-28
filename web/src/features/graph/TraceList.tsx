@@ -68,7 +68,13 @@ export function TraceList({ profileId, view }: { profileId: number; view: TraceV
 
   return (
     <div className="grid gap-3">
-      <TraceToolbar data={graph.data} view={view} hidden={hidden} onPick={pick} />
+      <TraceToolbar
+        profileId={profileId}
+        data={graph.data}
+        view={view}
+        hidden={hidden}
+        onPick={pick}
+      />
       <label className="flex w-fit items-center gap-2 text-sm">
         Afficher d’abord
         <select

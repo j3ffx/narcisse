@@ -88,6 +88,8 @@ export interface TraceFilter {
   since: string | null;
   /** Leave out the traces no scan finds any more. */
   hideGone: boolean;
+  /** The graph as it was when this scan ended (ISO date), or null for now. */
+  asOf: string | null;
 }
 
 export const NO_FILTER: TraceFilter = {
@@ -98,6 +100,7 @@ export const NO_FILTER: TraceFilter = {
   minRisk: 0,
   since: null,
   hideGone: false,
+  asOf: null,
 };
 
 export function isFiltering(filter: TraceFilter): boolean {
@@ -108,7 +111,8 @@ export function isFiltering(filter: TraceFilter): boolean {
     filter.minConfidence > 0 ||
     filter.minRisk > 0 ||
     filter.since !== null ||
-    filter.hideGone
+    filter.hideGone ||
+    filter.asOf !== null
   );
 }
 
@@ -125,6 +129,11 @@ export function passes(node: GraphNode, filter: TraceFilter): boolean {
   if (filter.minRisk > 0 && (node.risk ?? 0) < filter.minRisk) return false;
   if (filter.since && node.last_seen.slice(0, 10) < filter.since) return false;
   if (filter.hideGone && node.gone_at) return false;
+  if (filter.asOf !== null) {
+    // Not known yet then, or already gone (only its last disappearance is known).
+    if (node.first_seen > filter.asOf) return false;
+    if (node.gone_at && node.gone_at <= filter.asOf) return false;
+  }
   return true;
 }
 
@@ -390,6 +399,8 @@ export function readViewState(raw: unknown): GraphViewState {
       minRisk: isNumber(f.minRisk) ? f.minRisk : 0,
       since: isString(f.since) && /^\d{4}-\d{2}-\d{2}$/.test(f.since) ? f.since : null,
       hideGone: f.hideGone === true,
+      // A saved view shows the graph as it is now, not as it was.
+      asOf: null,
     },
     falsePositives: r.falsePositives === true,
     grouping: GROUPINGS.includes(r.grouping as Grouping) ? (r.grouping as Grouping) : 'none',

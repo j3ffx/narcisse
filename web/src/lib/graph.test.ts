@@ -293,3 +293,20 @@ describe('saved view state', () => {
     expect(readViewState('nonsense')).toMatchObject({ filter: NO_FILTER, grouping: 'none' });
   });
 });
+
+describe('the graph as a past scan left it', () => {
+  const trace = node(4, 'https://forum.example.org/jeanne', {
+    first_seen: '2026-03-01T00:00:00Z',
+    gone_at: '2026-05-01T00:00:00Z',
+  });
+  const at = (asOf: string) => passes(trace, { ...NO_FILTER, asOf });
+
+  it('shows a trace from its first sight until it went', () => {
+    expect(at('2026-02-01T00:00:00Z')).toBe(false); // not known yet
+    expect(at('2026-03-01T00:00:00Z')).toBe(true);
+    expect(at('2026-04-01T00:00:00Z')).toBe(true);
+    expect(at('2026-05-01T00:00:00Z')).toBe(false); // gone by then
+    expect(passes(trace, NO_FILTER)).toBe(true); // now: shown, greyed
+    expect(passes(trace, { ...NO_FILTER, hideGone: true })).toBe(false);
+  });
+});
