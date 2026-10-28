@@ -4,7 +4,10 @@ Les changements de chaque version de Narcisse, la plus récente en premier. Les 
 [versionnage sémantique](https://semver.org/lang/fr/) : tant qu’ils commencent par 0, l’outil évolue
 encore beaucoup.
 
-## En préparation
+## 0.2.0 (2026-10-28)
+
+L’historique : ce qui a changé d’un scan à l’autre, des traces qui disparaissent, des scans qui se
+relancent tout seuls, et tes données à emporter (exports, sauvegardes).
 
 - Une trace que plus aucun scan ne trouve est marquée disparue : grisée dans le graphe et la
   liste (un filtre la masque), sortie de ton exposition, de retour si un scan la retrouve. Une
