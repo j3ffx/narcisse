@@ -13,6 +13,10 @@ export default defineConfig({
   testDir: 'e2e',
   fullyParallel: false,
   workers: 1,
+  // A test waits for scans of about 20 s; Playwright's 30 s (and 5 s per assertion) failed them
+  // whenever the machine was busy.
+  timeout: 120_000,
+  expect: { timeout: 15_000 },
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',

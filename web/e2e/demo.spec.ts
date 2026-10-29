@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { demoProfile, results, run, startScanFromUi } from './helpers';
+import { demoProfile, LONG_WAIT, results, run, startScanFromUi } from './helpers';
 
 test('a profile is created and given seeds from the UI', async ({ page }) => {
   await page.goto('/');
@@ -36,11 +36,11 @@ test('a scan shows results live, every state, and can be retried', async ({ page
   await expect(failed.getByText('demo.example est indisponible pour le moment.')).toBeVisible();
 
   await expect(page.getByRole('heading', { name: /Scan/ }).getByText('Terminé')).toBeVisible({
-    timeout: 30_000,
+    timeout: LONG_WAIT,
   });
   await failed.getByRole('button', { name: 'Réessayer' }).click();
   await expect(failed.getByText('En cours').or(failed.getByText('En file'))).toBeVisible();
-  await expect(failed.getByText('Terminé')).toBeVisible({ timeout: 30_000 });
+  await expect(failed.getByText('Terminé')).toBeVisible({ timeout: LONG_WAIT });
   await expect(page.getByText(/Résultats \(48/)).toBeVisible();
 });
 
@@ -97,7 +97,7 @@ test('no long task over 200 ms while a scan streams', async ({ page, request }) 
   await page.getByRole('searchbox', { name: 'Chercher dans les résultats' }).fill('forum');
   await page.getByRole('searchbox', { name: 'Chercher dans les résultats' }).fill('');
   await expect(page.getByRole('heading', { name: /Scan/ }).getByText('Terminé')).toBeVisible({
-    timeout: 30_000,
+    timeout: LONG_WAIT,
   });
 
   const longTasks = await page.evaluate(
@@ -110,7 +110,7 @@ test('a trace marked "not me" leaves the list, and the choice holds', async ({ p
   const id = await demoProfile(request, 'Jeanne Exemple (tri)');
   await startScanFromUi(page, id);
   await expect(page.getByRole('heading', { name: /Scan/ }).getByText('Terminé')).toBeVisible({
-    timeout: 30_000,
+    timeout: LONG_WAIT,
   });
   const first = results(page).first();
   const value = await first.getByTestId('result-value').innerText();
@@ -159,7 +159,7 @@ test('the graph and the list show the same traces and follow one selection', asy
   const id = await demoProfile(request, 'Jeanne Exemple (graphe)');
   await startScanFromUi(page, id);
   await expect(page.getByRole('heading', { name: /Scan/ }).getByText('Terminé')).toBeVisible({
-    timeout: 30_000,
+    timeout: LONG_WAIT,
   });
 
   await page.goto(`/profils/${id}`);
@@ -206,7 +206,7 @@ test('a trace found becomes one of the profile’s elements', async ({ page, req
     .poll(
       async () =>
         ((await (await request.get(`/api/scans/${scanId}`)).json()) as { status: string }).status,
-      { timeout: 30_000 },
+      { timeout: LONG_WAIT },
     )
     .toBe('done');
 
@@ -233,7 +233,7 @@ test('scores say why, actions say what to do, and leads become elements', async 
     .poll(
       async () =>
         ((await (await request.get(`/api/scans/${scanId}`)).json()) as { status: string }).status,
-      { timeout: 30_000 },
+      { timeout: LONG_WAIT },
     )
     .toBe('done');
 
@@ -400,7 +400,7 @@ test('the traces still answer the pointer once the graph is dragged about', asyn
   await page.goto(`/profils/${id}`);
   const canvas = page.getByTestId('graph-canvas');
   await expect(canvas).toHaveAttribute('data-nodes', /\d+/);
-  await expect(canvas).not.toHaveAttribute('data-settling', { timeout: 30_000 });
+  await expect(canvas).not.toHaveAttribute('data-settling', { timeout: LONG_WAIT });
   const box = (await canvas.boundingBox())!;
   expect(await sweepFindsTrace(page, box)).toBe(true);
 
@@ -481,7 +481,7 @@ test('no long task over 200 ms on the graph while a scan streams into it', async
             status: string;
           }
         ).status,
-      { timeout: 30_000 },
+      { timeout: LONG_WAIT },
     )
     .toBe('done');
   await expect
@@ -498,7 +498,7 @@ test('two scans compared, the profile exported, everything backed up then restor
   page,
   request,
 }) => {
-  test.setTimeout(90_000);
+  test.setTimeout(240_000); // two scans
   const id = await demoProfile(request, 'Jeanne Exemple (historique)');
   for (let i = 0; i < 2; i++) {
     const started = await request.post(`/api/profiles/${id}/scans`, { data: {} });
@@ -507,7 +507,7 @@ test('two scans compared, the profile exported, everything backed up then restor
       .poll(
         async () =>
           ((await (await request.get(`/api/scans/${scanId}`)).json()) as { status: string }).status,
-        { timeout: 30_000 },
+        { timeout: LONG_WAIT },
       )
       .toBe('done');
   }

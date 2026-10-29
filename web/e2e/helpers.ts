@@ -26,3 +26,9 @@ export async function startScanFromUi(page: Page, profileId: number): Promise<vo
 
 export const results = (page: Page) => page.getByTestId('result');
 export const run = (page: Page, kind: string) => page.getByTestId('run').filter({ hasText: kind });
+
+/**
+ * How long to wait for a demo scan to finish (or a big graph to settle): about 20 s on a calm
+ * machine; the margin is for a busy one, which runs everything several times slower.
+ */
+export const LONG_WAIT = 90_000;

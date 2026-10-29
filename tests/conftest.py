@@ -81,10 +81,11 @@ class Api:
         return await self.json("GET", f"/scans/{scan_id}")
 
     async def wait_scan(
-        self, scan_id: int, until: Callable[[Any], bool], within: float = 30.0
+        self, scan_id: int, until: Callable[[Any], bool], within: float = 90.0
     ) -> Any:
-        # 30 s, not 10: a scan that takes 2 s alone can pass 10 s while the machine is busy (the
-        # whole suite, a build); a scan that really hangs still fails long before the 120 s cap.
+        # 90 s: a scan that takes 2 s alone took more than 30 s while the machine was busy (the
+        # whole suite, a build, something else); one that really hangs still fails before the
+        # 120 s cap, with this clearer error.
         async with asyncio.timeout(within):
             while True:
                 scan = await self.scan(scan_id)

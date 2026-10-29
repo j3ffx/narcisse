@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { demoProfile, results, startScanFromUi } from './helpers';
+import { demoProfile, LONG_WAIT, results, startScanFromUi } from './helpers';
 
 async function audit(page: Page) {
   // Contrast is measured on what settles on screen, not halfway through a fade-in.
@@ -23,7 +23,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
     test.use({ colorScheme });
 
     test('every screen meets WCAG 2.1 AA', async ({ page, request }) => {
-      test.setTimeout(60_000); // a dozen screens, a scan to wait for
+      test.setTimeout(240_000); // fifteen screens audited (2 to 5 s each), a scan to wait for
       const id = await demoProfile(request, `Jeanne Exemple (${colorScheme})`);
       await page.goto('/');
       await expect(page.getByRole('heading', { name: 'Profils' })).toBeVisible();
@@ -42,7 +42,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       // Audited once it ends: a result arriving live would be measured halfway through its
       // fade-in. The failed run keeps an error and a retry button on the page.
       await expect(page.getByRole('heading', { name: /Scan/ }).getByText('Terminé')).toBeVisible({
-        timeout: 30_000,
+        timeout: LONG_WAIT,
       });
       await audit(page);
 
