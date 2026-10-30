@@ -109,7 +109,11 @@ async def make_api(settings: Settings) -> AsyncIterator[ApiFactory]:
             overrides.setdefault("demo", False)
         # The outside world, as a test fakes it; none by default.
         transport = overrides.pop("http_transport", None) or NoNetwork()
-        app = create_app(replace(settings, **overrides), modules=modules, http_transport=transport)
+        # The assistant's providers, as a test fakes them; the real ones by default.
+        llm = overrides.pop("llm", None)
+        app = create_app(
+            replace(settings, **overrides), modules=modules, http_transport=transport, llm=llm
+        )
         lifespan = app.router.lifespan_context(app)
         await lifespan.__aenter__()
         client = httpx.AsyncClient(

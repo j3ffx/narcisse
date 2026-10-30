@@ -1,4 +1,4 @@
-"""The settings of the sources. Tokens are written, never read back."""
+"""The settings of the sources and of the assistant. Tokens are written, never read back."""
 
 from dataclasses import replace
 from urllib.parse import urlsplit
@@ -25,6 +25,9 @@ def _out(preferences: Preferences) -> PreferencesOut:
         fediverse_instances=list(preferences.fediverse_instances),
         searxng_url=preferences.searxng_url,
         searxng_autostart=preferences.searxng_autostart,
+        llm_provider=preferences.llm_provider,
+        llm_model=preferences.llm_model,
+        llm_remote_ok=preferences.llm_remote_ok,
     )
 
 
@@ -55,7 +58,13 @@ async def update_preferences(body: PreferencesPatch, s: ServicesDep) -> Preferen
     path = s.settings.preferences_path
     preferences = Preferences.load(path)
     changes = body.model_dump(exclude_unset=True)
-    for key in ("exclude_adult", "fediverse_instances", "searxng_autostart"):
+    for key in (
+        "exclude_adult",
+        "fediverse_instances",
+        "searxng_autostart",
+        "llm_provider",
+        "llm_remote_ok",
+    ):
         if key in changes and changes[key] is None:
             del changes[key]
     for key in TOKENS:
@@ -65,6 +74,11 @@ async def update_preferences(body: PreferencesPatch, s: ServicesDep) -> Preferen
         changes["searxng_url"] = _searxng(changes["searxng_url"])
     if "fediverse_instances" in changes:
         changes["fediverse_instances"] = _instances(changes["fediverse_instances"])
+    if changes.get("llm_provider") not in (None, *s.assistant.providers()):
+        raise AppError("llm_provider_unavailable", status=422)
+    if "llm_model" in changes:
+        changes["llm_model"] = (changes["llm_model"] or "").strip() or None
     preferences = replace(preferences, **changes)
     preferences.save(path)
+    s.assistant.forget()
     return _out(preferences)

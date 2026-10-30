@@ -24,6 +24,13 @@ class Preferences:
     # Start the SearXNG instance Narcisse installed when Narcisse starts, if it isn't running
     # (after the machine restarted, say). Off until the user ticks it: it may open Docker Desktop.
     searxng_autostart: bool = False
+    # The assistant (an LLM) the user chose: "none" (nothing is ever sent), "claude_code" (their
+    # Claude Code, run headless), "demo" (demo mode's fake one). `llm_model` is the provider's
+    # model name (its default when None).
+    llm_provider: str = "none"
+    llm_model: str | None = None
+    # The user agreed that traces they ask about are sent to a provider outside the machine.
+    llm_remote_ok: bool = False
 
     @classmethod
     def load(cls, path: Path) -> "Preferences":

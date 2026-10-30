@@ -15,6 +15,7 @@ from fastapi.telemetry import TelemetryConfig
 
 from narcisse import __version__
 from narcisse.api import (
+    assistant,
     backups,
     browser,
     entities,
@@ -36,6 +37,7 @@ from narcisse.engine.events import EventBus
 from narcisse.engine.http import new_transport_client
 from narcisse.engine.plugin import SourceModule
 from narcisse.errors import AppError
+from narcisse.llm.assistant import Assistant, Factory
 from narcisse.modules import discover
 from narcisse.preferences import Preferences
 from narcisse.schemas import AppInfo, ClientError
@@ -79,8 +81,10 @@ def create_app(
     *,
     modules: dict[str, SourceModule] | None = None,
     http_transport: httpx.AsyncBaseTransport | None = None,
+    llm: Factory | None = None,
 ) -> FastAPI:
-    """`modules` and `http_transport` let tests swap the sources and the network."""
+    """`modules`, `http_transport` and `llm` let tests swap the sources, the network and the
+    assistant's providers."""
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -103,10 +107,18 @@ def create_app(
                     preferences=lambda: Preferences.load(settings.preferences_path),
                 )
                 await engine.start()
-                return Services(settings, db, bus, engine, launcher, reopen)
+                helper = Assistant(
+                    bus,
+                    lambda: Preferences.load(settings.preferences_path),
+                    demo=settings.demo,
+                    factory=llm,
+                )
+                await helper.start()
+                return Services(settings, db, bus, engine, launcher, helper, reopen)
 
             async def close_runtime(services: Services) -> None:
                 services.bus.close()
+                await services.assistant.stop()
                 await services.engine.stop()
                 await services.db.close()
 
@@ -178,6 +190,7 @@ def create_app(
     api.include_router(requests.router)
     api.include_router(history.router)
     api.include_router(backups.router)
+    api.include_router(assistant.router)
 
     @api.post("/client-errors", status_code=204, tags=["meta"])
     async def client_error(body: ClientError) -> Response:

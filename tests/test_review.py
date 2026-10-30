@@ -76,6 +76,9 @@ async def test_settings_keep_the_tokens_without_ever_showing_them(
         "fediverse_instances": [],
         "searxng_url": None,
         "searxng_autostart": False,
+        "llm_provider": "none",
+        "llm_model": None,
+        "llm_remote_ok": False,
     }
     assert await api.json("GET", "/preferences") == nothing
     shown: Any = await api.json(

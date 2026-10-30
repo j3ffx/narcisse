@@ -15,8 +15,16 @@ from narcisse.api.remediation import request_out
 from narcisse.engine.engine import scan_detail
 from narcisse.errors import not_found
 from narcisse.remediation import follow
-from narcisse.schemas import EdgeOut, EntityOut, EvidenceOut, ProfileDetail, ScoreReasons
+from narcisse.schemas import (
+    AnnotationOut,
+    EdgeOut,
+    EntityOut,
+    EvidenceOut,
+    ProfileDetail,
+    ScoreReasons,
+)
 from narcisse.storage.models import (
+    Annotation,
     Edge,
     Entity,
     Evidence,
@@ -57,6 +65,9 @@ async def profile_export(session: AsyncSession, profile_id: int, now: datetime) 
         select(RemovalRequest)
         .where(RemovalRequest.profile_id == profile_id)
         .order_by(RemovalRequest.id)
+    )
+    annotations = await session.scalars(
+        select(Annotation).where(Annotation.profile_id == profile_id).order_by(Annotation.id)
     )
     snapshots = await session.scalars(
         select(ExposureSnapshot)
@@ -102,6 +113,9 @@ async def profile_export(session: AsyncSession, profile_id: int, now: datetime) 
         ],
         "scans": [scan_detail(scan).model_dump(mode="json") for scan in scans],
         "requests": [request_out(r, now).model_dump(mode="json") for r in requests],
+        "annotations": [
+            AnnotationOut.model_validate(a).model_dump(mode="json") for a in annotations
+        ],
         "history": [
             {
                 "taken_at": shot.taken_at.isoformat(),

@@ -283,6 +283,31 @@ class ExposureSnapshot(Base):
     exposure: Mapped[float]  # the sum of the traces' risks (0..1 each)
 
 
+class Annotation(Base):
+    """What the user's assistant (an LLM they chose) said about a trace, asked by the user, kept
+    with what was sent. It changes nothing until the user accepts it."""
+
+    __tablename__ = "llm_annotation"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    profile_id: Mapped[int] = mapped_column(
+        ForeignKey("profile.id", ondelete="CASCADE"), index=True
+    )
+    entity_id: Mapped[int] = mapped_column(ForeignKey("entity.id", ondelete="CASCADE"), index=True)
+    task: Mapped[str] = mapped_column(String(20))  # "triage", "explain"
+    provider: Mapped[str] = mapped_column(String(30))
+    model: Mapped[str | None] = mapped_column(String(100))
+    prompt: Mapped[str] = mapped_column(Text)  # exactly what was sent
+    output: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    edited: Mapped[bool] = mapped_column(Boolean, default=False)  # the user rewrote the output
+    state: Mapped[str] = mapped_column(String(10), index=True)  # queued, running, done, failed
+    error_code: Mapped[str | None] = mapped_column(String(50))
+    error_params: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    decision: Mapped[str] = mapped_column(String(10))  # pending, accepted, dismissed
+    created_at: Mapped[datetime]
+    finished_at: Mapped[datetime | None]
+
+
 class Event(Base):
     """Everything the UI is told, kept so that a reconnecting browser misses nothing."""
 

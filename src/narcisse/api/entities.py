@@ -28,29 +28,40 @@ def _emit(tx: Transaction, out: EntityOut, profile_id: int) -> None:
     tx.emit("entity.updated", {**out.model_dump(mode="json"), "profile_id": profile_id}, None)
 
 
+async def review(
+    tx: Transaction,
+    entity: Entity,
+    status: EntityStatus | None = None,
+    pivot_dismissed: bool | None = None,
+) -> EntityOut:
+    """The user's word on a trace (theirs or not, or not suggested any more), with the scores it
+    changes. Also how an assistant's verdict the user accepts is applied."""
+    if status is not None:
+        if entity.kind in FIXED_KINDS:
+            raise AppError("entity_not_reviewable", status=409)
+        entity.status = status
+    if pivot_dismissed is not None:
+        entity.pivot_dismissed = pivot_dismissed
+    await tx.session.flush()
+    # The user's word changes this trace's scores, and its neighbours' (a trace only reached
+    # through one the user rejects is doubted too).
+    touched = [entity.id, *await neighbours(tx.session, entity.id)]
+    changed = await rescore(tx.session, entity.profile_id, touched)
+    for other in changed:
+        if other.id != entity.id:
+            _emit(tx, EntityOut.model_validate(other), other.profile_id)
+    out = EntityOut.model_validate(entity)
+    _emit(tx, out, entity.profile_id)
+    return out
+
+
 @router.patch("/entities/{entity_id}")
 async def review_entity(entity_id: int, body: EntityPatch, s: ServicesDep) -> EntityOut:
     async with s.bus.transaction() as tx:
         entity = await tx.session.get(Entity, entity_id)
         if entity is None:
             raise not_found("entity")
-        if body.status is not None:
-            if entity.kind in FIXED_KINDS:
-                raise AppError("entity_not_reviewable", status=409)
-            entity.status = body.status
-        if body.pivot_dismissed is not None:
-            entity.pivot_dismissed = body.pivot_dismissed
-        await tx.session.flush()
-        # The user's word changes this trace's scores, and its neighbours' (a trace only reached
-        # through one the user rejects is doubted too).
-        touched = [entity_id, *await neighbours(tx.session, entity_id)]
-        changed = await rescore(tx.session, entity.profile_id, touched)
-        for other in changed:
-            if other.id != entity.id:
-                _emit(tx, EntityOut.model_validate(other), other.profile_id)
-        out = EntityOut.model_validate(entity)
-        _emit(tx, out, entity.profile_id)
-    return out
+        return await review(tx, entity, body.status, body.pivot_dismissed)
 
 
 @router.get("/profiles/{profile_id}/leads")

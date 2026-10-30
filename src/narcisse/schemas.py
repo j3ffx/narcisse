@@ -337,6 +337,9 @@ class PreferencesOut(Schema):
     fediverse_instances: list[str]
     searxng_url: str | None
     searxng_autostart: bool
+    llm_provider: str
+    llm_model: str | None
+    llm_remote_ok: bool
 
 
 class PreferencesPatch(Schema):
@@ -349,6 +352,10 @@ class PreferencesPatch(Schema):
     # The address of the user's SearXNG instance; an empty string (or null) removes it.
     searxng_url: str | None = Field(default=None, max_length=200)
     searxng_autostart: bool | None = None
+    llm_provider: Literal["none", "claude_code", "demo"] | None = None
+    # An empty string (or null) goes back to the provider's default model.
+    llm_model: str | None = Field(default=None, max_length=100)
+    llm_remote_ok: bool | None = None
 
 
 class SearxngOut(Schema):
@@ -517,3 +524,63 @@ class PasswordRangeOut(Schema):
     """The hashes Pwned Passwords knows that start like the one asked: (suffix, times seen)."""
 
     suffixes: list[tuple[str, int]]
+
+
+AnnotationTask = Literal["triage", "explain"]
+AnnotationDecision = Literal["pending", "accepted", "dismissed"]
+
+
+class AnnotationOut(Schema):
+    """What the assistant said about a trace, and what was sent to it."""
+
+    id: int
+    entity_id: int
+    task: AnnotationTask
+    provider: str
+    model: str | None
+    prompt: str
+    output: dict[str, Any] | None
+    edited: bool
+    state: Literal["queued", "running", "done", "failed"]
+    error_code: str | None
+    error_params: dict[str, Any] | None
+    decision: AnnotationDecision
+    created_at: datetime
+    finished_at: datetime | None
+
+
+class AnnotationIn(Schema):
+    task: AnnotationTask
+
+
+class AnnotationPatch(Schema):
+    # accepted: a verdict is applied to the trace's status; dismissed: hidden.
+    decision: AnnotationDecision | None = None
+    # The user's rewrite of an explanation (the same shape as the assistant's answer).
+    output: dict[str, Any] | None = None
+
+
+class PromptOut(Schema):
+    """The exact text a question about a trace would send."""
+
+    text: str
+
+
+class AssistantOut(Schema):
+    provider: str  # "none" when no assistant is chosen
+    providers: list[str]  # the ones this side offers (demo mode: the demo one only)
+    model: str | None
+    models: list[str]  # the models the provider can be asked to use
+    remote: bool  # what is sent leaves the machine
+    remote_ok: bool  # the user agreed to that
+    available: bool
+    reason: str | None  # why not available (an error code)
+
+
+class TriageOut(Schema):
+    count: int  # traces asked about (or that would be)
+    capped: bool  # more were waiting for a review than one batch takes
+
+
+class TryOut(Schema):
+    model: str | None
