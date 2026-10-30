@@ -11,7 +11,7 @@ import {
   withScan,
   type ResultFilter,
 } from '@/lib/live';
-import { keys, reviewed } from '@/lib/queries';
+import { annotated, keys, reviewed, unannotated } from '@/lib/queries';
 import type { Activity, GraphData, LiveEvent, ResultsPage, ScanDetail } from '@/lib/types';
 
 export type Connection = 'connecting' | 'live' | 'reconnecting';
@@ -24,6 +24,8 @@ const EVENT_TYPES: LiveEvent['type'][] = [
   'result.created',
   'entity.updated',
   'requests.updated',
+  'annotation.updated',
+  'annotation.deleted',
 ];
 
 /**
@@ -156,6 +158,14 @@ function apply(client: QueryClient, event: LiveEvent) {
       void client.invalidateQueries({ queryKey: keys.requests(event.data.profile_id) });
       void client.invalidateQueries({ queryKey: keys.exposure(event.data.profile_id) });
       void client.invalidateQueries({ queryKey: ['remediation'] });
+      break;
+    case 'annotation.updated':
+      annotated(client, event.data);
+      void client.invalidateQueries({ queryKey: keys.triage(event.data.profile_id) });
+      break;
+    case 'annotation.deleted':
+      unannotated(client, event.data.entity_id, event.data.id);
+      void client.invalidateQueries({ queryKey: keys.triage(event.data.profile_id) });
       break;
     case 'entity.updated':
       reviewed(client, event.data);

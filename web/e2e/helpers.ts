@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import { expect, type APIRequestContext, type Page } from '@playwright/test';
 
 /** A fictitious profile with one seed of each kind the demo module reacts to differently. */
@@ -32,3 +33,20 @@ export const run = (page: Page, kind: string) => page.getByTestId('run').filter(
  * machine; the margin is for a busy one, which runs everything several times slower.
  */
 export const LONG_WAIT = 90_000;
+
+/** Fails on any WCAG 2.1 AA violation on the page as it stands. */
+export async function audit(page: Page) {
+  // Contrast is measured on what settles on screen, not halfway through a fade-in.
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((a) => a.effect?.getComputedTiming().iterations !== Infinity) // spinners
+        .map((a) => a.finished.catch(() => null)),
+    ),
+  );
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target).join(', ')}`)).toEqual([]);
+}

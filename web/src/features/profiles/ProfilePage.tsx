@@ -45,6 +45,7 @@ import { cn } from 'cn';
 import { AssistedSearch } from '@/features/search/AssistedSearch';
 import { Leads, PivotDepth, RescanSetting } from './Leads';
 import { ExportMenu } from './ExportMenu';
+import { TriageButton } from '@/features/assistant/TriageButton';
 import { Requests } from './Requests';
 import { ScanDiff } from '@/features/scans/ScanDiff';
 import { SeedsEditor } from './SeedsEditor';
@@ -80,6 +81,7 @@ export function ProfilePage({ id, tab }: { id: number; tab: ProfileTab }) {
         </div>
         <div className="flex gap-2">
           <StartScanDialog profile={data} />
+          <TriageButton profileId={id} />
           <ExportMenu profileId={id} />
           <DeleteProfile id={id} name={data.name} />
         </div>

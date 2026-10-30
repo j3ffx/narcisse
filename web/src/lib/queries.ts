@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { del, get, patch, post } from './api';
+import { withAnnotation } from './assistant';
 import { errorMessage } from './errors';
 import { withEntity as withEntityInGraph } from './graph';
 import {
@@ -14,6 +15,10 @@ import {
 } from './live';
 import type {
   Activity,
+  Annotation,
+  AnnotationTask,
+  AssistantStatus,
+  Triage,
   AppInfo,
   SearxngStatus,
   Diff,
@@ -67,6 +72,9 @@ export const keys = {
   remediation: (id: number) => ['remediation', id] as const,
   requests: (profileId: number) => ['requests', profileId] as const,
   exposure: (profileId: number) => ['exposure', profileId] as const,
+  assistant: ['assistant'] as const,
+  annotations: (entityId: number) => ['annotations', entityId] as const,
+  triage: (profileId: number) => ['triage', profileId] as const,
 };
 
 // Reads
@@ -531,9 +539,109 @@ export function useUpdatePreferences() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (changes: PreferencesChanges) => patch<Preferences>('/preferences', changes),
-    onSuccess: (preferences) => client.setQueryData(keys.preferences, preferences),
+    onSuccess: (preferences) => {
+      client.setQueryData(keys.preferences, preferences);
+      void client.invalidateQueries({ queryKey: keys.assistant });
+    },
     onError: failed,
   });
+}
+
+// The assistant
+
+/** The assistant the user chose, and whether it can answer now. */
+export const useAssistant = () =>
+  useQuery({ queryKey: keys.assistant, queryFn: () => get<AssistantStatus>('/assistant') });
+
+/** A neutral question (no data sent), to see that the assistant answers. */
+export function useTryAssistant() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => post<{ model: string | null }>('/assistant/try'),
+    onSettled: () => void client.invalidateQueries({ queryKey: keys.assistant }),
+    onError: failed,
+  });
+}
+
+export const useAnnotations = (entityId: number, enabled = true) =>
+  useQuery({
+    queryKey: keys.annotations(entityId),
+    queryFn: () => get<Annotation[]>(`/entities/${entityId}/annotations`),
+    enabled,
+  });
+
+/** What asking about a trace would send (fetched when the user opens it). */
+export const usePrompt = (entityId: number, task: AnnotationTask, enabled: boolean) =>
+  useQuery({
+    queryKey: ['prompt', entityId, task],
+    queryFn: () => get<{ text: string }>(`/entities/${entityId}/prompt?task=${task}`),
+    enabled,
+  });
+
+/** Asks the assistant about a trace; its answer arrives as a live event. */
+export function useAsk() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ entityId, task }: { entityId: number; task: AnnotationTask }) =>
+      post<Annotation>(`/entities/${entityId}/annotations`, { task }),
+    onSuccess: (annotation) => annotated(client, annotation),
+    onError: failed,
+  });
+}
+
+export function useUpdateAnnotation() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      ...changes
+    }: {
+      id: number;
+      decision?: Annotation['decision'];
+      output?: Record<string, unknown>;
+    }) => patch<Annotation>(`/annotations/${id}`, changes),
+    onSuccess: (annotation) => annotated(client, annotation),
+    onError: failed,
+  });
+}
+
+export function useDeleteAnnotation() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (annotation: Annotation) => del(`/annotations/${annotation.id}`),
+    onSuccess: (_, annotation) => unannotated(client, annotation.entity_id, annotation.id),
+    onError: failed,
+  });
+}
+
+/** How many traces a batch of "is it me?" questions would ask about. */
+export const useTriageCount = (profileId: number, enabled: boolean) =>
+  useQuery({
+    queryKey: keys.triage(profileId),
+    queryFn: () => get<Triage>(`/profiles/${profileId}/triage`),
+    enabled,
+  });
+
+export function useTriage(profileId: number) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => post<Triage>(`/profiles/${profileId}/triage`),
+    onSettled: () => void client.invalidateQueries({ queryKey: keys.triage(profileId) }),
+    onError: failed,
+  });
+}
+
+/** An annotation, new or changed, in its trace's list. */
+export function annotated(client: QueryClient, annotation: Annotation) {
+  client.setQueryData<Annotation[]>(keys.annotations(annotation.entity_id), (list) =>
+    list ? withAnnotation(list, annotation) : list,
+  );
+}
+
+export function unannotated(client: QueryClient, entityId: number, id: number) {
+  client.setQueryData<Annotation[]>(keys.annotations(entityId), (list) =>
+    list ? list.filter((a) => a.id !== id) : list,
+  );
 }
 
 /** A trace's new status and scores, everywhere the cache shows it. */

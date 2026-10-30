@@ -1,4 +1,5 @@
 import { Pending } from '@/components/Pending';
+import { AssistantSettings } from '@/features/assistant/AssistantSettings';
 import { Backups } from './Backups';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -59,6 +60,7 @@ export function SettingsPage() {
             autostart={preferences.data.searxng_autostart}
           />
           <AdultSites excluded={preferences.data.exclude_adult} />
+          <AssistantSettings preferences={preferences.data} />
           <Backups />
         </>
       )}

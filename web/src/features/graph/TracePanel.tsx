@@ -2,6 +2,7 @@ import { AddAsSeed } from '@/components/AddAsSeed';
 import { Pending } from '@/components/Pending';
 import { ReviewButtons } from '@/components/ReviewButtons';
 import { Button } from '@/components/ui/button';
+import { TraceAssistant } from '@/features/assistant/TraceAssistant';
 import { errorMessage } from '@/lib/errors';
 import { ENTITY_STATUS_LABELS, KIND_LABELS, RELATION_LABELS } from '@/lib/labels';
 import { useEntityDetail } from '@/lib/queries';
@@ -143,6 +144,7 @@ function Detail({
         )}
       </dl>
       <ScoreReasonsDetails reasons={data.reasons} />
+      {entity.kind !== 'identity' && <TraceAssistant entity={entity} />}
       {entity.kind !== 'identity' && <Remediation entityId={entity.id} />}
       {extra}
       <Section title={`Relations (${data.edges.length})`}>

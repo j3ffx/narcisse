@@ -71,6 +71,22 @@ const MESSAGES: Record<string, (p: Params) => string> = {
   searxng_not_ready: () =>
     'SearXNG ne répond pas encore. Laisse-lui une minute, puis vérifie l’adresse.',
   site_unreachable: (p) => `Le site de ${host(p)} ne répond pas (ni en https, ni en http).`,
+  // The assistant
+  llm_off: () => 'Aucun assistant IA n’est choisi : choisis-en un dans les Réglages.',
+  llm_remote_consent: () =>
+    'Cet assistant envoie la trace hors de ta machine : autorise-le d’abord dans les Réglages.',
+  llm_provider_unavailable: () => 'Cet assistant n’est pas proposé de ce côté (démo ou réel).',
+  llm_missing: () =>
+    'Claude Code n’est pas installé sur cette machine (la commande « claude » est introuvable).',
+  llm_not_logged_in: () =>
+    'Claude Code n’est pas connecté à ton compte : lance « claude » une fois dans un terminal pour te connecter.',
+  llm_quota: () => 'La limite d’usage de ton abonnement est atteinte : réessaie plus tard.',
+  llm_timeout: () => 'L’assistant met trop de temps à répondre. Réessaie.',
+  llm_failed: () => 'L’assistant n’a pas pu répondre. Le détail est dans le journal.',
+  llm_unreadable: () => 'La réponse de l’assistant est illisible. Réessaie.',
+  annotation_not_ready: () => 'Cette réponse n’est pas encore arrivée.',
+  annotation_not_applicable: () => 'Cet avis ne tranche pas : il n’y a rien à appliquer.',
+  annotation_not_editable: () => 'Seule une explication se modifie.',
   module_crashed: () => 'Le module a rencontré un bug. Le détail est dans le journal.',
   module_unavailable: () => 'Ce module n’est plus disponible (mode démo désactivé ?).',
 };

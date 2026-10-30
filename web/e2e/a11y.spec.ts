@@ -1,22 +1,5 @@
-import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
-import { demoProfile, LONG_WAIT, results, startScanFromUi } from './helpers';
-
-async function audit(page: Page) {
-  // Contrast is measured on what settles on screen, not halfway through a fade-in.
-  await page.evaluate(() =>
-    Promise.all(
-      document
-        .getAnimations()
-        .filter((a) => a.effect?.getComputedTiming().iterations !== Infinity) // spinners
-        .map((a) => a.finished.catch(() => null)),
-    ),
-  );
-  const { violations } = await new AxeBuilder({ page })
-    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-    .analyze();
-  expect(violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target).join(', ')}`)).toEqual([]);
-}
+import { expect, test } from '@playwright/test';
+import { audit, demoProfile, LONG_WAIT, results, startScanFromUi } from './helpers';
 
 for (const colorScheme of ['light', 'dark'] as const) {
   test.describe(`${colorScheme} theme`, () => {

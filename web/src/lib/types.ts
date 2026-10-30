@@ -382,6 +382,10 @@ export interface Preferences {
   searxng_url: string | null;
   /** Start Narcisse's SearXNG with Narcisse when it doesn't answer. */
   searxng_autostart: boolean;
+  llm_provider: AssistantProvider;
+  llm_model: string | null;
+  /** The user agreed that what they ask about leaves the machine. */
+  llm_remote_ok: boolean;
 }
 
 /** The user's SearXNG: Docker present, an instance answering, and how a launch is going. */
@@ -401,6 +405,52 @@ export interface PreferencesChanges {
   fediverse_instances?: string[];
   searxng_url?: string | null;
   searxng_autostart?: boolean;
+  llm_provider?: AssistantProvider;
+  llm_model?: string | null;
+  llm_remote_ok?: boolean;
+}
+
+export type AssistantProvider = 'none' | 'claude_code' | 'demo';
+
+/** The assistant the user chose, and whether it can answer now. */
+export interface AssistantStatus {
+  provider: AssistantProvider;
+  /** The ones this side offers (demo mode: the demo one only). */
+  providers: AssistantProvider[];
+  model: string | null;
+  models: string[];
+  /** What is sent leaves the machine. */
+  remote: boolean;
+  remote_ok: boolean;
+  available: boolean;
+  /** Why it isn't available (an error code). */
+  reason: string | null;
+}
+
+export type AnnotationTask = 'triage' | 'explain';
+export type Verdict = 'me' | 'not_me' | 'unsure';
+
+/** What the assistant said about a trace, and what was sent to it. */
+export interface Annotation {
+  id: number;
+  entity_id: number;
+  task: AnnotationTask;
+  provider: AssistantProvider;
+  model: string | null;
+  prompt: string;
+  output: Record<string, unknown> | null;
+  edited: boolean;
+  state: 'queued' | 'running' | 'done' | 'failed';
+  error_code: string | null;
+  error_params: Params | null;
+  decision: 'pending' | 'accepted' | 'dismissed';
+  created_at: string;
+  finished_at: string | null;
+}
+
+export interface Triage {
+  count: number;
+  capped: boolean;
 }
 
 export interface EntityUpdate extends Entity {
@@ -414,4 +464,6 @@ export type LiveEvent =
   | { type: 'run.progress'; data: RunProgress }
   | { type: 'result.created'; data: Result }
   | { type: 'entity.updated'; data: EntityUpdate }
-  | { type: 'requests.updated'; data: { profile_id: number } };
+  | { type: 'requests.updated'; data: { profile_id: number } }
+  | { type: 'annotation.updated'; data: Annotation & { profile_id: number } }
+  | { type: 'annotation.deleted'; data: { id: number; entity_id: number; profile_id: number } };
