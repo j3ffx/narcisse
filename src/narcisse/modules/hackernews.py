@@ -21,6 +21,7 @@ from narcisse.engine.plugin import (
     Target,
 )
 from narcisse.modules._text import html_text, read_on_profiles, text_findings
+from narcisse.notes import note
 
 API = "https://hacker-news.firebaseio.com/v0/user"
 # What Hacker News accepts in a username: anything else can't be one.
@@ -39,10 +40,21 @@ def _account_name(url: str) -> str | None:
 class HackerNews(SourceModule):
     meta: ClassVar[ModuleMeta] = ModuleMeta(
         name="hackernews",
-        title="Hacker News",
+        title={
+            "fr": "Hacker News",
+            "en": "Hacker News",
+        },
         description=(
-            "Le compte Hacker News d’un pseudo : date de création, karma, et les liens et "
-            "adresses de sa présentation (« about »)."
+            {
+                "fr": (
+                    "Le compte Hacker News d’un pseudo : date de création, karma, et les liens et"
+                    " adresses de sa présentation (« about »)."
+                ),
+                "en": (
+                    "A username's Hacker News account: creation date, karma, and the links and "
+                    "addresses of its “about”."
+                ),
+            }
         ),
         category="forums",
         accepts=frozenset({EntityKind.USERNAME, EntityKind.ACCOUNT}),
@@ -87,7 +99,7 @@ class HackerNews(SourceModule):
                 relation="has_account",
                 confidence=0.6,
                 url=url,
-                excerpt=f"Compte Hacker News « {username} » ({user.get('karma', 0)} de karma).",
+                note=note("hackernews_account", username=username, karma=user.get("karma", 0)),
                 attributes={
                     "site": "Hacker News",
                     **(
@@ -102,7 +114,7 @@ class HackerNews(SourceModule):
             about,
             html=True,
             url=url,
-            where=f"dans la présentation du compte Hacker News « {username} »",
+            where=note("in_hackernews_about", username=username),
             confidence=0.6,
         ):
             yield finding

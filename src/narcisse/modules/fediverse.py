@@ -22,6 +22,7 @@ from narcisse.engine.plugin import (
     Target,
 )
 from narcisse.modules._text import html_text, is_profile, links, read_on_profiles, text_findings
+from narcisse.notes import note
 
 if TYPE_CHECKING:
     from narcisse.preferences import Preferences
@@ -67,11 +68,25 @@ def _account_address(url: str) -> tuple[str, str] | None:
 class Fediverse(SourceModule):
     meta: ClassVar[ModuleMeta] = ModuleMeta(
         name="fediverse",
-        title="Mastodon et Fediverse",
+        title={
+            "fr": "Mastodon et Fediverse",
+            "en": "Mastodon and the Fediverse",
+        },
         description=(
-            "Le compte d’un pseudo sur une quinzaine de grandes instances Mastodon (et celles "
-            "ajoutées dans les réglages), ou d’un pseudo@instance sur son instance : nom affiché, "
-            "bio, liens du profil. Un lien vérifié par Mastodon appartient au titulaire du compte."
+            {
+                "fr": (
+                    "Le compte d’un pseudo sur une quinzaine de grandes instances Mastodon (et "
+                    "celles ajoutées dans les réglages), ou d’un pseudo@instance sur son instance"
+                    " : nom affiché, bio, liens du profil. Un lien vérifié par Mastodon "
+                    "appartient au titulaire du compte."
+                ),
+                "en": (
+                    "A username's account on about fifteen large Mastodon instances (and the ones"
+                    " added in the settings), or a username@instance on its instance: display "
+                    "name, bio, profile links. A link verified by Mastodon belongs to the "
+                    "account's holder."
+                ),
+            }
         ),
         category="social",
         accepts=frozenset({EntityKind.USERNAME, EntityKind.ACCOUNT}),
@@ -191,7 +206,7 @@ class Fediverse(SourceModule):
                     # A handle given by the user is theirs; the same name elsewhere may not be.
                     confidence=0.9 if "@" in target.value else 0.5,
                     url=url,
-                    excerpt=f"Compte « {handle} » sur l’instance {host}.",
+                    note=note("fediverse_account", handle=handle, host=host),
                     attributes={
                         "site": f"Fediverse ({host})",
                         **(
@@ -212,14 +227,14 @@ class Fediverse(SourceModule):
                     relation="shows_name",
                     confidence=0.5,
                     url=url,
-                    excerpt=f"Nom affiché sur le compte « {handle} ».",
+                    note=note("fediverse_name", handle=handle),
                 )
             )
         found += text_findings(
             account.get("note") or "",
             html=True,
             url=url,
-            where=f"dans la bio de « {handle} »",
+            where=note("in_fediverse_bio", handle=handle),
             confidence=0.6,
         )
         for field in account.get("fields") or []:
@@ -233,7 +248,7 @@ class Fediverse(SourceModule):
                     relation="links_to",
                     confidence=0.8,
                     url=url,
-                    excerpt=f"Le compte « {handle} » a déménagé vers ce compte.",
+                    note=note("fediverse_moved", handle=handle),
                 )
             )
         return found
@@ -247,7 +262,7 @@ class Fediverse(SourceModule):
                     value,
                     html=True,
                     url=url,
-                    where=f"dans le profil de « {handle} » (champ « {label} »)",
+                    where=note("in_fediverse_field", handle=handle, label=label),
                     confidence=0.6,
                 )
             )
@@ -258,10 +273,7 @@ class Fediverse(SourceModule):
                 relation="links_to",
                 confidence=0.9,
                 url=url,
-                excerpt=(
-                    f"Lien vérifié par Mastodon dans le profil de « {handle} » "
-                    f"(champ « {label} ») : la page renvoie vers le compte."
-                ),
+                note=note("fediverse_verified_link", handle=handle, label=label),
             )
             for link in links(value, html=True)
         ]

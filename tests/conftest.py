@@ -36,6 +36,12 @@ def own_config_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture(autouse=True)
+def french(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The tests read French, whatever the language of the machine they run on."""
+    monkeypatch.setenv("NARCISSE_LANG", "fr")
+
+
+@pytest.fixture(autouse=True)
 def whois(monkeypatch: pytest.MonkeyPatch) -> FakeWhois:
     """WHOIS servers for the tests that need some; any other connection is refused."""
     fake = FakeWhois()

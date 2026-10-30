@@ -57,12 +57,25 @@ def mentions(target: Target, result: dict[str, Any]) -> bool:
 class SearXNG(SourceModule):
     meta: ClassVar[ModuleMeta] = ModuleMeta(
         name="searxng",
-        title="Recherche web (ton instance SearXNG)",
+        title={
+            "fr": "Recherche web (ton instance SearXNG)",
+            "en": "Web search (your SearXNG instance)",
+        },
         description=(
-            "Les pages web qui citent exactement un nom, un pseudo, un email ou un domaine, "
-            "trouvées par ton instance SearXNG (un métamoteur qui tourne chez toi : "
-            "« narcisse searxng » en installe une avec Docker). Narcisse n’interroge jamais un "
-            "moteur de recherche lui-même."
+            {
+                "fr": (
+                    "Les pages web qui citent exactement un nom, un pseudo, un email ou un "
+                    "domaine, trouvées par ton instance SearXNG (un métamoteur qui tourne chez "
+                    "toi : « narcisse searxng » en installe une avec Docker). Narcisse "
+                    "n’interroge jamais un moteur de recherche lui-même."
+                ),
+                "en": (
+                    "The web pages quoting exactly a name, a username, an email or a domain, "
+                    "found by your SearXNG instance (a metasearch engine running at home: "
+                    "“narcisse searxng” installs one with Docker). Narcisse never queries a "
+                    "search engine itself."
+                ),
+            }
         ),
         category="web",
         accepts=frozenset(
@@ -75,7 +88,10 @@ class SearXNG(SourceModule):
             }
         ),
         produces=frozenset({EntityKind.URL, EntityKind.ACCOUNT}),
-        other_hosts="ton instance SearXNG (son adresse, dans les réglages)",
+        other_hosts={
+            "fr": "ton instance SearXNG (son adresse, dans les réglages)",
+            "en": "your SearXNG instance (its address, in the settings)",
+        },
         rate_limit=RateLimit(requests=1, per_seconds=3),
         max_parallel_runs=1,
         licence="SearXNG : AGPL-3.0 (lancé à part, pas embarqué)",

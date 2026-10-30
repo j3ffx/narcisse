@@ -19,16 +19,11 @@ from narcisse.engine.plugin import (
     SourceUnavailable,
     Target,
 )
+from narcisse.notes import note
 
 API = "https://api.xposedornot.com/v1/breach-analytics"
 PAGE = "https://xposedornot.com/breach/"
 
-PASSWORDS = {
-    "plaintext": "en clair",
-    "easytocrack": "faciles à retrouver",
-    "hardtocrack": "difficiles à retrouver",
-    "unknown": "dont on ne sait pas s’ils étaient protégés",
-}
 # The kinds of data XposedOrNot lists, as the user reads them.
 DATA = {
     "email addresses": "adresses email",
@@ -99,12 +94,25 @@ def breaches(answer: Any) -> list[dict[str, Any]]:
 class XposedOrNot(SourceModule):
     meta: ClassVar[ModuleMeta] = ModuleMeta(
         name="xposedornot",
-        title="Fuites de données (XposedOrNot)",
+        title={
+            "fr": "Fuites de données (XposedOrNot)",
+            "en": "Data breaches (XposedOrNot)",
+        },
         description=(
-            "Les fuites de données connues où figure un email : quand, quelles données (mots de "
-            "passe, adresses, dates de naissance…) et si les mots de passe étaient lisibles. "
-            "L’adresse est envoyée à XposedOrNot, service gratuit pour un usage personnel. "
-            "Données : XposedOrNot."
+            {
+                "fr": (
+                    "Les fuites de données connues où figure un email : quand, quelles données "
+                    "(mots de passe, adresses, dates de naissance…) et si les mots de passe "
+                    "étaient lisibles. L’adresse est envoyée à XposedOrNot, service gratuit pour "
+                    "un usage personnel. Données : XposedOrNot."
+                ),
+                "en": (
+                    "The known data breaches an email appears in: when, what data (passwords, "
+                    "addresses, dates of birth…) and whether the passwords were readable. The "
+                    "address is sent to XposedOrNot, a free service for personal use. Data: "
+                    "XposedOrNot."
+                ),
+            }
         ),
         category="leaks",
         accepts=frozenset({EntityKind.EMAIL}),
@@ -136,19 +144,14 @@ class XposedOrNot(SourceModule):
             risk = str(breach.get("password_risk") or "unknown")
             when = str(breach.get("xposed_date") or "").strip()
             site = str(breach.get("domain") or "").strip()
-            excerpt = (
-                f"Fuite {f'de {site} ' if site else ''}{f'en {when} ' if when else ''}: "
-                f"{', '.join(data) or 'données non précisées'}"
-            )
-            if "mots de passe" in data:
-                excerpt += f" ; mots de passe {PASSWORDS.get(risk, PASSWORDS['unknown'])}"
+            raw = [d.strip() for d in str(breach.get("xposed_data") or "").split(";")]
             yield Finding(
                 kind=EntityKind.LEAK,
                 value=name,
                 relation="exposed_in",
                 confidence=0.95,  # the exact address
                 url=f"{PAGE}{quote(name)}",
-                excerpt=f"{excerpt}. Données : XposedOrNot.",
+                note=note("leak", site=site, date=when, data=[d for d in raw if d], risk=risk),
                 attributes={
                     k: v
                     for k, v in {

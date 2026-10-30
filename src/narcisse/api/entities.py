@@ -4,6 +4,7 @@ the leads among them (traces that could become new elements of the profile)."""
 from fastapi import APIRouter
 from sqlalchemy import select
 
+from narcisse import notes
 from narcisse.api.deps import ServicesDep
 from narcisse.domain import EntityKind, EntityStatus
 from narcisse.engine import pivot
@@ -164,7 +165,8 @@ async def add_trace(profile_id: int, body: TraceIn, s: ServicesDep) -> EntityOut
                 run_id=None,
                 module="manual",
                 url=display,
-                excerpt=note or "Ajoutée par toi.",
+                note=None if note else notes.note("added_by_hand"),
+                excerpt=note or None,
                 content_hash=None,
                 captured_at=now,
             )

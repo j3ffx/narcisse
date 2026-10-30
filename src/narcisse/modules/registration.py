@@ -28,6 +28,7 @@ from narcisse.engine.plugin import (
     SourceUnavailable,
     Target,
 )
+from narcisse.notes import note
 
 DATA = json.loads((Path(__file__).parent / "data" / "registries.json").read_text("utf-8"))
 RDAP: dict[str, str] = DATA["rdap"]
@@ -295,11 +296,23 @@ def _kind_of(key: str, value: str) -> EntityKind | None:
 class Registration(SourceModule):
     meta: ClassVar[ModuleMeta] = ModuleMeta(
         name="registration",
-        title="Enregistrement du domaine (RDAP, WHOIS)",
+        title={
+            "fr": "Enregistrement du domaine (RDAP, WHOIS)",
+            "en": "Domain registration (RDAP, WHOIS)",
+        },
         description=(
-            "Qui détient un domaine et chez qui (RDAP, ou WHOIS pour les extensions qui n’ont "
-            "pas RDAP) : nom, email, téléphone, adresse du titulaire quand le registre les "
-            "publie, ou le fait qu’il les masque."
+            {
+                "fr": (
+                    "Qui détient un domaine et chez qui (RDAP, ou WHOIS pour les extensions qui "
+                    "n’ont pas RDAP) : nom, email, téléphone, adresse du titulaire quand le "
+                    "registre les publie, ou le fait qu’il les masque."
+                ),
+                "en": (
+                    "Who holds a domain and with whom (RDAP, or WHOIS for the extensions without "
+                    "RDAP): the holder's name, email, phone and address when the registry "
+                    "publishes them, or the fact that it hides them."
+                ),
+            }
         ),
         category="domains",
         accepts=frozenset({EntityKind.DOMAIN}),
@@ -382,14 +395,8 @@ class Registration(SourceModule):
         self, target: Target, name: str, record: Record, url: str | None
     ) -> Iterator[Finding]:
         parent = name != target.normalized
-        shown = "publiées" if record.contacts else "masquées" if record.hidden else "absentes"
-        dates = "".join(
-            [
-                f" le {record.created}" if record.created else "",
-                f", expire le {record.expires}" if record.expires else "",
-            ]
-        )
-        intro = f"{name} (domaine parent de {target.normalized})" if parent else name
+        child = target.normalized if parent else None
+        shown = "shown" if record.contacts else "hidden" if record.hidden else "absent"
         if record.registrar:
             yield Finding(
                 kind=EntityKind.ORGANIZATION,
@@ -397,9 +404,14 @@ class Registration(SourceModule):
                 relation="registered_with",
                 confidence=0.9,
                 url=url,
-                excerpt=(
-                    f"{intro} est enregistré chez {record.registrar}{dates}. "
-                    f"Coordonnées du titulaire : {shown}."
+                note=note(
+                    "registered_with",
+                    domain=name,
+                    child=child,
+                    registrar=record.registrar,
+                    created=record.created,
+                    expires=record.expires,
+                    contacts=shown,
                 ),
                 attributes={
                     k: v for k, v in (("created", record.created), ("expires", record.expires)) if v
@@ -407,8 +419,6 @@ class Registration(SourceModule):
             )
         for (kind, value), roles in record.contacts.items():
             relation, _, confidence = ROLES[roles[0]]
-            labels = [ROLES[role][1] for role in roles]
-            said = " et ".join([", ".join(labels[:-1]), labels[-1]] if len(labels) > 1 else labels)
             yield Finding(
                 kind=kind,
                 value=value,
@@ -416,5 +426,5 @@ class Registration(SourceModule):
                 # Details of a parent domain (a hosting service's) are seldom the user's.
                 confidence=0.2 if parent else confidence,
                 url=url,
-                excerpt=f"Publié comme {said} de {intro} par le registre.",
+                note=note("registry_contact", roles=list(roles), domain=name, child=child),
             )

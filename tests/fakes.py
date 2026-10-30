@@ -4,6 +4,7 @@ import asyncio
 from collections.abc import AsyncIterator
 from typing import ClassVar
 
+from narcisse import notes
 from narcisse.domain import SEED_KINDS, EntityKind
 from narcisse.engine.plugin import (
     Finding,
@@ -141,3 +142,8 @@ class _Writer:
 
     def close(self) -> None:
         return None
+
+
+def said(finding: Finding) -> str:
+    """What a finding's proof says, in French (its note, then the text read on the page)."""
+    return notes.text(finding.note, finding.excerpt, "fr") or ""

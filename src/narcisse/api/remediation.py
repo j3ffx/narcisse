@@ -8,9 +8,10 @@ from fastapi import APIRouter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from narcisse.api.deps import ServicesDep
+from narcisse.api.deps import LangDep, ServicesDep
 from narcisse.domain import EntityKind, EntityStatus, ProfileKind, SeedStatus
 from narcisse.errors import not_found
+from narcisse.i18n import Lang
 from narcisse.remediation import follow, letters
 from narcisse.remediation.actions import Action, TraceFacts, actions_for
 from narcisse.remediation.knowledge import Service, guide
@@ -66,14 +67,15 @@ def _lang(action: Action) -> letters.Lang:
     return "en"
 
 
-def _service(service: Service) -> ServiceOut:
+def _service(service: Service, lang: Lang) -> ServiceOut:
+    english = lang == "en" and service.notes_en
     return ServiceOut(
         name=service.name,
         category=service.category,
         url=service.url,
         difficulty=service.difficulty,
-        notes=service.notes,
-        notes_lang=service.notes_lang,
+        notes=service.notes_en if english else service.notes,
+        notes_lang="en" if english else service.notes_lang,
         source=service.source,
     )
 
@@ -147,7 +149,7 @@ async def trace_context(session: AsyncSession, entity_id: int) -> TraceContext:
 
 
 @router.get("/entities/{entity_id}/remediation")
-async def get_remediation(entity_id: int, s: ServicesDep) -> RemediationOut:
+async def get_remediation(entity_id: int, s: ServicesDep, lang: LangDep) -> RemediationOut:
     now = s.engine.clock.now()
     async with s.db.snapshot() as session:
         trace = await trace_context(session, entity_id)
@@ -170,10 +172,10 @@ async def get_remediation(entity_id: int, s: ServicesDep) -> RemediationOut:
             out.append(
                 ActionOut(
                     code=action.code,
-                    service=_service(action.service) if action.service else None,
+                    service=_service(action.service, lang) if action.service else None,
                     url=action.url,
                     email=action.email,
-                    links=[GuideOut(title=g.title, url=g.url) for g in action.links],
+                    links=[GuideOut(title=g.title_in(lang), url=g.url) for g in action.links],
                     letter=action.letter,
                     letters=rendered,
                     lang=_lang(action),
@@ -181,4 +183,6 @@ async def get_remediation(entity_id: int, s: ServicesDep) -> RemediationOut:
                 )
             )
     complaint = guide("cnil_complaint")
-    return RemediationOut(actions=out, complaint=GuideOut(title=complaint.title, url=complaint.url))
+    return RemediationOut(
+        actions=out, complaint=GuideOut(title=complaint.title_in(lang), url=complaint.url)
+    )

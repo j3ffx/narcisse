@@ -5,6 +5,8 @@ from typing import Any, Protocol
 
 from pydantic import BaseModel
 
+from narcisse.i18n import Lang, Text, pick
+
 
 class LLMError(Exception):
     """Why a provider couldn't answer: a code the UI translates (`llm_missing`, `llm_quota`…)."""
@@ -20,12 +22,21 @@ class Task:
     """One thing the assistant is asked: its instructions and the shape of its answer."""
 
     name: str
-    system: str
+    system: Text  # the instructions, in both languages
     output: type[BaseModel]
 
     @property
     def schema(self) -> dict[str, Any]:
         return self.output.model_json_schema()
+
+    @property
+    def instructions(self) -> str:
+        """The instructions as sent (French, unless the task was localized)."""
+        return pick(self.system, "fr")
+
+    def localized(self, lang: Lang) -> "Task":
+        """The same task, with its instructions in this language."""
+        return Task(self.name, pick(self.system, lang), self.output)
 
 
 @dataclass(frozen=True)

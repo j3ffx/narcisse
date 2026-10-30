@@ -65,7 +65,10 @@ UI_MISSING = """<!doctype html><html lang="fr"><meta charset="utf-8"><title>Narc
 <body style="font-family:system-ui;max-width:40rem;margin:4rem auto;padding:0 1rem">
 <h1>Narcisse</h1><p>L’API tourne, mais l’interface n’a pas été construite.</p>
 <p>Depuis le dossier du projet : <code>npm ci &amp;&amp; npm run build</code>, puis relance
-<code>narcisse serve</code>. Pour développer : <code>npm run dev</code>.</p></body></html>"""
+<code>narcisse serve</code>. Pour développer : <code>npm run dev</code>.</p>
+<p lang="en">The API runs, but the interface wasn’t built. From the project’s folder:
+<code>npm ci &amp;&amp; npm run build</code>, then run <code>narcisse serve</code> again. To work on
+it: <code>npm run dev</code>.</p></body></html>"""
 
 
 def app_from_env() -> FastAPI:

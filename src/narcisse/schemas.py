@@ -331,6 +331,7 @@ class AppInfo(Schema):
 
 
 class PreferencesOut(Schema):
+    ui_lang: Literal["auto", "fr", "en"]
     github_token_set: bool
     gitlab_token_set: bool
     exclude_adult: bool
@@ -345,6 +346,8 @@ class PreferencesOut(Schema):
 
 
 class PreferencesPatch(Schema):
+    # The language Narcisse speaks ("auto": the browser's, else the system's).
+    ui_lang: Literal["auto", "fr", "en"] | None = None
     # An empty string (or null) removes the token.
     github_token: str | None = Field(default=None, max_length=200)
     gitlab_token: str | None = Field(default=None, max_length=200)
@@ -627,7 +630,7 @@ class LocalServerOut(Schema):
 class RecommendationOut(Schema):
     model: str
     size_gb: float
-    speed: str
+    speed: Literal["fast", "processor", "slow"]
 
 
 class MachineOut(Schema):

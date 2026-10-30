@@ -213,6 +213,9 @@ class Evidence(Base):
     run_id: Mapped[int | None] = mapped_column(ForeignKey("module_run.id", ondelete="CASCADE"))
     module: Mapped[str] = mapped_column(String(100))
     url: Mapped[str | None] = mapped_column(String(2000))
+    # What the proof says (`notes.py`: a code and its facts), and the text read on the page.
+    # Proofs stored before notes existed have their French sentence in `excerpt`.
+    note: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     excerpt: Mapped[str | None] = mapped_column(Text)
     content_hash: Mapped[str | None] = mapped_column(String(64))
     captured_at: Mapped[datetime]
@@ -298,6 +301,8 @@ class Annotation(Base):
     provider: Mapped[str] = mapped_column(String(30))
     model: Mapped[str | None] = mapped_column(String(100))
     prompt: Mapped[str] = mapped_column(Text)  # exactly what was sent
+    # The language of the instructions and of the answer.
+    lang: Mapped[str] = mapped_column(String(2), default="fr", server_default="fr")
     output: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     edited: Mapped[bool] = mapped_column(Boolean, default=False)  # the user rewrote the output
     state: Mapped[str] = mapped_column(String(10), index=True)  # queued, running, done, failed

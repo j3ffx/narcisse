@@ -2,6 +2,7 @@
 
 from collections.abc import AsyncIterator
 
+from narcisse import notes
 from narcisse.domain import EntityKind
 from narcisse.engine.plugin import Finding
 from narcisse.modules._text import (
@@ -12,6 +13,8 @@ from narcisse.modules._text import (
     read_on_profiles,
     text_findings,
 )
+from narcisse.notes import note
+from tests.fakes import said
 
 
 def test_links_in_plain_text_lose_the_punctuation_that_follows_them() -> None:
@@ -65,7 +68,7 @@ def test_text_findings_tell_where_each_trace_was_read() -> None:
         text_findings(
             "https://github.com/jeanne-exemple et jeanne@example.org",
             url="https://bsky.app/profile/jeanne.bsky.social",
-            where="dans la description Bluesky",
+            where=note("in_bluesky_description", handle="jeanne.bsky.social"),
             confidence=0.6,
         )
     )
@@ -73,7 +76,12 @@ def test_text_findings_tell_where_each_trace_was_read() -> None:
         (EntityKind.ACCOUNT, "links_to", "https://github.com/jeanne-exemple"),
         (EntityKind.EMAIL, "shows_email", "jeanne@example.org"),
     ]
-    assert found[0].excerpt == "Lien indiqué dans la description Bluesky."
+    assert said(found[0]) == (
+        "Lien indiqué dans la description du compte Bluesky « jeanne.bsky.social »."
+    )
+    assert notes.render(found[1].note, "en") == (
+        "Address given in the description of the Bluesky account “jeanne.bsky.social”."
+    )
 
 
 async def test_what_follows_a_profile_is_read_on_it() -> None:

@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from narcisse.domain import EntityKind, EntityStatus
 from narcisse.engine.events import EventBus, Transaction
 from narcisse.errors import AppError, not_found
+from narcisse.i18n import Lang, resolve
 from narcisse.llm import claude_code
 from narcisse.llm.claude_code import ClaudeCode
 from narcisse.llm.demo import Demo
@@ -138,21 +139,23 @@ class Assistant:
 
     # Questions
 
-    async def preview(self, entity_id: int, task: str) -> str:
+    async def preview(self, entity_id: int, task: str, lang: Lang = "fr") -> str:
         async with self.bus.db.snapshot() as session:
             entity = await session.get(Entity, entity_id)
             if entity is None:
                 raise not_found("entity")
-            return await prompt(session, TASKS[task], entity)
+            return await prompt(session, TASKS[task], entity, lang)
 
     async def ask(
         self,
         entity_ids: list[int],
         task: str,
         text: Callable[[AsyncSession, Entity], Awaitable[str]] | None = None,
+        lang: Lang = "fr",
     ) -> list[AnnotationOut]:
         """Queues one question per trace; the answers arrive as `annotation.updated` events.
-        `text` writes what is sent, when the task's usual text about the trace isn't it."""
+        `text` writes what is sent, when the task's usual text about the trace isn't it; `lang`
+        is the language asked in, and answered in."""
         provider = self.usable()
         now = self.bus.clock.now()
         created = []
@@ -169,7 +172,8 @@ class Assistant:
                     task=task,
                     provider=provider.name,
                     model=provider.model,
-                    prompt=await (text or self._text(task))(tx.session, entity),
+                    prompt=await (text or self._text(task, lang))(tx.session, entity),
+                    lang=lang,
                     output=None,
                     edited=False,
                     state="queued",
@@ -184,8 +188,8 @@ class Assistant:
         return created
 
     @staticmethod
-    def _text(task: str) -> Callable[[AsyncSession, Entity], Awaitable[str]]:
-        return lambda session, entity: prompt(session, TASKS[task], entity)
+    def _text(task: str, lang: Lang) -> Callable[[AsyncSession, Entity], Awaitable[str]]:
+        return lambda session, entity: prompt(session, TASKS[task], entity, lang)
 
     async def triage_candidates(self, profile_id: int) -> tuple[list[int], bool]:
         """The traces still waiting for a review that were never asked about, the most exposing
@@ -208,11 +212,11 @@ class Assistant:
             )
         return ids[:MAX_BATCH], len(ids) > MAX_BATCH
 
-    async def try_it(self) -> TryOut:
+    async def try_it(self, lang: Lang = "fr") -> TryOut:
         """A neutral question (no data), to see the provider answers."""
         provider = self.usable()
         try:
-            reply = await provider.ask(TRY, "Réponds ok.")
+            reply = await provider.ask(TRY.localized(lang), "ok")
         except LLMError as exc:
             raise AppError(exc.code, status=502, params=exc.params) from exc
         self.forget()
@@ -248,7 +252,7 @@ class Assistant:
                     log.exception("the assistant failed on annotation %s", job[0])
                     await self.bus.db.shielded(self._store(job[0], None, None, "llm_failed", None))
 
-    async def _next(self) -> tuple[int, str, str] | None:
+    async def _next(self) -> tuple[int, str, str, Lang] | None:
         async with self.bus.transaction() as tx:
             annotation = await tx.session.scalar(
                 select(Annotation).where(Annotation.state == "queued").order_by(Annotation.id)
@@ -258,16 +262,16 @@ class Assistant:
             annotation.state = "running"
             await tx.session.flush()
             emit(tx, annotation)
-            return annotation.id, annotation.task, annotation.prompt
+            return annotation.id, annotation.task, annotation.prompt, resolve(annotation.lang)
 
-    async def _answer(self, annotation_id: int, task: str, text: str) -> None:
+    async def _answer(self, annotation_id: int, task: str, text: str, lang: Lang) -> None:
         output = model = code = None
         params: dict[str, object] | None = None
         provider = self.provider()
         try:
             if provider is None:
                 raise LLMError("llm_off")
-            reply = await provider.ask(TASKS[task], text)
+            reply = await provider.ask(TASKS[task].localized(lang), text)
             output, model = reply.data, reply.model
         except LLMError as exc:
             code, params = exc.code, exc.params or None

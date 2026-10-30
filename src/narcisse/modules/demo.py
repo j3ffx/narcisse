@@ -21,6 +21,7 @@ from narcisse.engine.plugin import (
     Target,
     TransientError,
 )
+from narcisse.notes import note
 
 STEPS = 12
 STEP_SECONDS = 2.5  # about 30 s per run
@@ -58,7 +59,7 @@ def handle_of(target: Target) -> str:
 
 def findings_for(target: Target, rng: random.Random) -> list[Finding]:
     h = handle_of(target)
-    excerpt = f"Résultat fictif du module de démonstration, à partir de « {target.value} »."
+    result = note("demo_result", value=target.value)
     found: list[Finding] = []
     for title, url in rng.sample(PLATFORMS, k=len(PLATFORMS)):
         found.append(
@@ -68,7 +69,7 @@ def findings_for(target: Target, rng: random.Random) -> list[Finding]:
                 relation="has_account",
                 confidence=round(rng.uniform(0.3, 0.95), 2),
                 url=url.format(h=h),
-                excerpt=f"{excerpt} Compte « {h} » sur {title} (fictif).",
+                note=note("demo_account", value=target.value, handle=h, site=title),
                 content=f"{title}:{h}",
             )
         )
@@ -80,7 +81,7 @@ def findings_for(target: Target, rng: random.Random) -> list[Finding]:
                 relation="mentioned_on",
                 confidence=round(rng.uniform(0.2, 0.8), 2),
                 url=page.format(h=h),
-                excerpt=excerpt,
+                note=result,
                 content=page.format(h=h),
             )
         )
@@ -91,7 +92,7 @@ def findings_for(target: Target, rng: random.Random) -> list[Finding]:
             relation="shows_email",
             confidence=round(rng.uniform(0.4, 0.9), 2),
             url=found[0].value,
-            excerpt=f"{excerpt} Adresse affichée sur ce compte (fictif).",
+            note=note("demo_email", value=target.value),
             # Read on an account, as a real source would: the graph shows the chain.
             via=(EntityKind.ACCOUNT, found[0].value),
         )
@@ -103,7 +104,7 @@ def findings_for(target: Target, rng: random.Random) -> list[Finding]:
             relation="uses_username",
             confidence=round(rng.uniform(0.2, 0.6), 2),
             url=found[1].value,
-            excerpt=excerpt,
+            note=result,
             via=(EntityKind.ACCOUNT, found[1].value),
         )
     )
@@ -114,7 +115,7 @@ def findings_for(target: Target, rng: random.Random) -> list[Finding]:
             relation="uses_username",
             confidence=round(rng.uniform(0.3, 0.7), 2),
             url=found[2].value,
-            excerpt=excerpt,
+            note=result,
             via=(EntityKind.ACCOUNT, found[2].value),
         )
     )
@@ -124,10 +125,21 @@ def findings_for(target: Target, rng: random.Random) -> list[Finding]:
 class DemoModule(SourceModule):
     meta: ClassVar[ModuleMeta] = ModuleMeta(
         name="demo.fake",
-        title="Module de démonstration",
+        title={
+            "fr": "Module de démonstration",
+            "en": "Demo module",
+        },
         description=(
-            "Produit des résultats fictifs pendant une trentaine de secondes, avec des erreurs et "
-            "des limites de débit simulées. N’interroge aucun site."
+            {
+                "fr": (
+                    "Produit des résultats fictifs pendant une trentaine de secondes, avec des "
+                    "erreurs et des limites de débit simulées. N’interroge aucun site."
+                ),
+                "en": (
+                    "Makes up fictitious results for about thirty seconds, with simulated errors "
+                    "and rate limits. Asks no website anything."
+                ),
+            }
         ),
         category="demo",
         accepts=SEED_KINDS,

@@ -129,7 +129,7 @@ class OpenAICompatible:
             "model": self.model,
             "temperature": 0,
             "messages": [
-                {"role": "system", "content": task.system},
+                {"role": "system", "content": task.instructions},
                 {"role": "user", "content": prompt},
             ],
             "response_format": {
@@ -141,9 +141,7 @@ class OpenAICompatible:
         if response.status_code == 400:
             # A server that doesn't take a schema: the shape goes in the instructions instead.
             shape = json.dumps(task.schema, ensure_ascii=False)
-            body["messages"][0]["content"] = (
-                f"{task.system}\n\nRéponds uniquement par un objet JSON de cette forme : {shape}"
-            )
+            body["messages"][0]["content"] = f"{task.instructions}\n\nJSON schema: {shape}"
             body["response_format"] = {"type": "json_object"}
             response = await self._request("POST", "/v1/chat/completions", timeout, body)
         if response.status_code != 200:

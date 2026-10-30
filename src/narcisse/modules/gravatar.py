@@ -19,6 +19,7 @@ from narcisse.engine.plugin import (
     Target,
 )
 from narcisse.modules._text import read_on_profiles
+from narcisse.notes import note
 
 API = "https://api.gravatar.com/v3/profiles"
 
@@ -31,10 +32,22 @@ def email_hash(email: str) -> str:
 class Gravatar(SourceModule):
     meta: ClassVar[ModuleMeta] = ModuleMeta(
         name="gravatar",
-        title="Gravatar",
+        title={
+            "fr": "Gravatar",
+            "en": "Gravatar",
+        },
         description=(
-            "Le profil Gravatar associé à un email (nom affiché, lieu, comptes qu’il liste). "
-            "Seule l’empreinte SHA-256 de l’adresse est envoyée, jamais l’adresse."
+            {
+                "fr": (
+                    "Le profil Gravatar associé à un email (nom affiché, lieu, comptes qu’il "
+                    "liste). Seule l’empreinte SHA-256 de l’adresse est envoyée, jamais "
+                    "l’adresse."
+                ),
+                "en": (
+                    "The Gravatar profile tied to an email (display name, place, the accounts it "
+                    "lists). Only the address's SHA-256 hash is sent, never the address."
+                ),
+            }
         ),
         category="accounts",
         accepts=frozenset({EntityKind.EMAIL}),
@@ -66,7 +79,7 @@ class Gravatar(SourceModule):
             relation="has_account",
             confidence=0.9,  # found by the exact address
             url=url,
-            excerpt="Profil Gravatar public rattaché à cet email.",
+            note=note("gravatar_profile"),
             attributes={
                 "site": "Gravatar",
                 **{
@@ -83,7 +96,7 @@ class Gravatar(SourceModule):
                 relation="shows_name",
                 confidence=0.7,
                 url=url,
-                excerpt="Nom affiché sur le profil Gravatar.",
+                note=note("gravatar_name"),
             )
         for account in profile.get("verified_accounts") or []:
             if account.get("is_hidden") or not account.get("url"):
@@ -95,7 +108,7 @@ class Gravatar(SourceModule):
                 relation="links_to",
                 confidence=0.8,
                 url=url,
-                excerpt=f"Compte {label} vérifié, listé sur le profil Gravatar.",
+                note=note("gravatar_account", site=label),
                 attributes={"site": label},
             )
         await ctx.progress(1, 1)

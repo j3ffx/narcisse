@@ -29,6 +29,7 @@ class Service:
     difficulty: Difficulty | None = None
     notes: str | None = None
     notes_lang: Literal["fr", "en"] = "fr"
+    notes_en: str | None = None  # the notes in English, when they exist
     email: str | None = None
     email_subject: str | None = None
     email_body: str | None = None
@@ -41,6 +42,10 @@ class Guide:
 
     title: str
     url: str
+    title_en: str | None = None
+
+    def title_in(self, lang: str) -> str:
+        return self.title_en if lang == "en" and self.title_en else self.title
 
 
 def _jdm(site: dict[str, Any]) -> Service:
@@ -54,6 +59,7 @@ def _jdm(site: dict[str, Any]) -> Service:
         difficulty=site.get("difficulty"),
         notes=notes_fr or site.get("notes"),
         notes_lang="fr" if notes_fr else "en",
+        notes_en=site.get("notes"),
         email=site.get("email"),
         email_subject=site.get("email_subject"),
         email_body=site.get("email_body"),
@@ -83,6 +89,7 @@ def _by_domain() -> dict[str, Service]:
             url=item.get("url"),
             difficulty=item.get("difficulty"),
             notes=item.get("notes"),
+            notes_en=item.get("notes_en"),
             email=item.get("email"),
         )
         for domain in service.domains:
@@ -92,7 +99,7 @@ def _by_domain() -> dict[str, Service]:
 
 def guide(key: str) -> Guide:
     item = _guides()["links"][key]
-    return Guide(title=item["title"], url=item["url"])
+    return Guide(title=item["title"], url=item["url"], title_en=item.get("title_en"))
 
 
 def host_of(url: str) -> str | None:

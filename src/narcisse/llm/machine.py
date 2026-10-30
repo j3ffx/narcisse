@@ -181,7 +181,7 @@ def detect(
 class Recommendation:
     model: str  # the Ollama name
     size_gb: float  # about what it downloads (and takes on disk)
-    speed: str  # what to expect, in French
+    speed: str  # what to expect: "fast", "processor" (a few tens of seconds), "slow"
 
 
 # From the smallest: (Ollama name, download size in GB). Gemma 3: good at French and at keeping
@@ -195,16 +195,15 @@ def recommend(machine: Machine) -> Recommendation:
     """The largest model that runs comfortably here."""
     memory = machine.memory_gb or 0
     gpu = machine.gpu_memory_gb
-    fast = "quelques secondes par question"
     if gpu >= 20 or (machine.unified and memory >= 48):
-        tier, speed = 3, fast
+        tier, speed = 3, "fast"
     elif gpu >= 10 or (machine.unified and memory >= 24):
-        tier, speed = 2, fast
+        tier, speed = 2, "fast"
     elif gpu >= 6 or (machine.unified and memory >= 16):
-        tier, speed = 1, fast
+        tier, speed = 1, "fast"
     elif memory >= 12:
-        tier, speed = 1, "sur le processeur : de 20 s à une minute par question"
+        tier, speed = 1, "processor"
     else:
-        tier, speed = 0, "sur le processeur : quelques dizaines de secondes par question"
+        tier, speed = 0, "slow"
     model, size = TIERS[tier]
     return Recommendation(model, size, speed)

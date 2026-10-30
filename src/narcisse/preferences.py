@@ -28,6 +28,8 @@ class Preferences:
     # Claude Code, run headless), "local" (a server on this machine: Ollama, LM Studio,
     # llama.cpp), "openai" (any OpenAI-compatible service), "demo" (demo mode's fake one).
     # `llm_model` is the provider's model name (Claude Code's default when None).
+    # The language Narcisse speaks: "fr", "en", or "auto" (the browser's, else the system's).
+    ui_lang: str = "auto"
     llm_provider: str = "none"
     llm_model: str | None = None
     # The address of the local server or of the service (OpenAI-compatible API), and its key if

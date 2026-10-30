@@ -5,7 +5,7 @@ from typing import Any
 from fastapi import APIRouter
 
 from narcisse import export, history
-from narcisse.api.deps import ServicesDep
+from narcisse.api.deps import LangDep, ServicesDep
 from narcisse.engine.engine import scan_out
 from narcisse.errors import not_found
 from narcisse.schemas import DiffOut, EntityOut
@@ -38,7 +38,7 @@ async def get_diff(
 
 
 @router.get("/profiles/{profile_id}/export")
-async def export_profile(profile_id: int, s: ServicesDep) -> dict[str, Any]:
+async def export_profile(profile_id: int, s: ServicesDep, lang: LangDep) -> dict[str, Any]:
     """Everything Narcisse knows of the profile (format `narcisse-export`, version 1)."""
     async with s.db.snapshot() as session:
-        return await export.profile_export(session, profile_id, s.engine.clock.now())
+        return await export.profile_export(session, profile_id, s.engine.clock.now(), lang)

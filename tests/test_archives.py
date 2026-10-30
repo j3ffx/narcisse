@@ -17,6 +17,7 @@ from narcisse.modules.searxng import SearXNG, mentions
 from narcisse.modules.wayback import CDX, Wayback, notable
 from narcisse.preferences import Preferences
 from tests.conftest import ApiFactory
+from tests.fakes import said
 from tests.module_context import FakeContext, run, target
 
 # Wayback Machine
@@ -60,7 +61,7 @@ async def test_the_archive_of_a_domain_and_its_pages_about_its_owner(
             (EntityKind.URL, overview),
         ),
     ]
-    assert findings[0].excerpt == (
+    assert said(findings[0]) == (
         "5 pages de jeanne-exemple.fr archivées par la Wayback Machine, du 2014-03-01 au "
         "2026-09-01."
     )
@@ -91,7 +92,7 @@ async def test_a_profile_kept_by_the_archive(http_client: httpx.AsyncClient) -> 
             "https://web.archive.org/web/20210505000000/https://forum.example.org/u/jeanne",
         )
     ]
-    assert "2 mois différents, du 2019-01-01 au 2021-05-05" in (findings[0].excerpt or "")
+    assert "2 mois différents, du 2019-01-01 au 2021-05-05" in said(findings[0])
 
 
 @respx.mock
@@ -182,7 +183,7 @@ async def test_searxng_keeps_the_pages_that_name_you(http_client: httpx.AsyncCli
         (EntityKind.ACCOUNT, "mentioned_on", "https://social.example.net/@jeanne"),
     ]
     assert findings[0].confidence == 0.3
-    assert findings[0].excerpt == "Jeanne Exemple, trésorière — Le bureau du club : Jeanne Exemple…"
+    assert said(findings[0]) == "Jeanne Exemple, trésorière — Le bureau du club : Jeanne Exemple…"
     assert findings[0].attributes == {"engines": ["duckduckgo", "brave"]}
     assert ctx.notes == {"results": 3, "found": 2}
 

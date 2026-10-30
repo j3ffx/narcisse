@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, ClassVar, Protocol
 
 from narcisse.domain import EntityKind
+from narcisse.i18n import Text
 
 if TYPE_CHECKING:
     from narcisse.engine.http import HttpClient
@@ -32,16 +33,16 @@ class RateLimit:
 @dataclass(frozen=True, kw_only=True)
 class ModuleMeta:
     name: str  # stable identifier, e.g. "github.profile"
-    title: str  # shown in the UI (French)
-    description: str  # what the module does and asks of the source, in one or two sentences
+    title: Text  # shown in the UI, {"fr": …, "en": …}
+    description: Text  # what the module does and asks of the source, in one or two sentences
     category: str
     accepts: frozenset[EntityKind]
     produces: frozenset[EntityKind]
     # Every host the module may contact; `*.example.org` allows one subdomain level.
     hosts: tuple[str, ...] = ()
-    # What else it contacts, known only when it runs (in French, for the Sources page): e.g. "le
-    # site du domaine fouillé". Each run still declares those hosts (`allowed_hosts`).
-    other_hosts: str = ""
+    # What else it contacts, known only when it runs (for the Sources page): e.g. "the website
+    # of the domain searched". Each run still declares those hosts (`allowed_hosts`).
+    other_hosts: Text = ""
     rate_limit: RateLimit | None = None
     max_parallel_runs: int = 2
     licence: str = ""  # licence of reused code or data, if any
@@ -68,6 +69,9 @@ class Finding:
     relation: str  # how the target relates to it, e.g. "has_account", "mentioned_on"
     confidence: float | None = None  # how sure the module is that it's the same person, 0..1
     url: str | None = None
+    # What the proof says, as a note (`notes.note(code, …)`) written in the reader's language,
+    # and the text read on the page, if any, in its own language.
+    note: dict[str, Any] | None = None
     excerpt: str | None = None
     content: str | None = None  # what was read (hashed, never stored)
     attributes: dict[str, Any] = field(default_factory=dict)

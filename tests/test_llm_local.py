@@ -185,7 +185,7 @@ def test_an_apple_silicon_mac_uses_its_unified_memory() -> None:
     assert (found.memory_gb, found.unified) == (16.0, False)
     apple = Machine("Darwin", 16.0, 8, (), unified=True)
     assert recommend(apple).model == "gemma3:4b"
-    assert "secondes" in recommend(apple).speed
+    assert recommend(apple).speed == "fast"
 
 
 def test_windows_cards_are_read_from_the_system() -> None:

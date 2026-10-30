@@ -31,6 +31,7 @@ from narcisse.engine.plugin import (
     SourceModule,
     Target,
 )
+from narcisse.notes import note
 
 DATA = Path(__file__).parent / "data" / "wmn-data.json"
 ADULT_CATEGORY = "xx NSFW xx"
@@ -141,11 +142,23 @@ SITES = load_sites()
 class WhatsMyName(SourceModule):
     meta: ClassVar[ModuleMeta] = ModuleMeta(
         name="whatsmyname",
-        title="Comptes par pseudo",
+        title={
+            "fr": "Comptes par pseudo",
+            "en": "Accounts by username",
+        },
         description=(
-            "Cherche le pseudo sur plus de 600 sites (réseaux sociaux, jeux, code, forums…) avec "
-            "la liste publique WhatsMyName : une seule page demandée par site, sans connexion. "
-            "Les sites protégés par un captcha sont ignorés."
+            {
+                "fr": (
+                    "Cherche le pseudo sur plus de 600 sites (réseaux sociaux, jeux, code, "
+                    "forums…) avec la liste publique WhatsMyName : une seule page demandée par "
+                    "site, sans connexion. Les sites protégés par un captcha sont ignorés."
+                ),
+                "en": (
+                    "Looks for the username on more than 600 websites (social networks, games, "
+                    "code, forums…) with the public WhatsMyName list: one page asked per site, "
+                    "without logging in. Sites behind a captcha are skipped."
+                ),
+            }
         ),
         category="accounts",
         accepts=frozenset({EntityKind.USERNAME}),
@@ -238,13 +251,12 @@ class WhatsMyName(SourceModule):
 
     def _finding(self, site: Site, username: str) -> Finding:
         url = site.url(site.pretty_url or site.check_url, username)
-        suffix = " (site adulte)" if site.adult else ""
         return Finding(
             kind=EntityKind.ACCOUNT,
             value=url,
             relation="has_account",
             confidence=CONFIDENCE,
             url=url,
-            excerpt=f"Un compte « {username} » existe sur {site.name}{suffix}.",
+            note=note("account_exists", username=username, site=site.name, adult=site.adult),
             attributes={"site": site.name, "category": site.category, "adult": site.adult},
         )

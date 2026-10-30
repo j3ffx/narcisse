@@ -9,8 +9,10 @@ from fastapi import Depends, Request
 from narcisse.config import Settings
 from narcisse.engine.engine import Engine
 from narcisse.engine.events import EventBus
+from narcisse.i18n import Lang, resolve
 from narcisse.llm.assistant import Assistant
 from narcisse.llm.local import Puller
+from narcisse.preferences import Preferences
 from narcisse.searxng import Launcher
 from narcisse.storage.database import Database
 
@@ -34,3 +36,13 @@ def _services(request: Request) -> Services:
 
 
 ServicesDep = Annotated[Services, Depends(_services)]
+
+
+def _lang(request: Request) -> Lang:
+    """The language of this answer: the user's choice, else the browser's."""
+    services: Services = request.app.state.services
+    preferences = Preferences.load(services.settings.preferences_path)
+    return resolve(preferences.ui_lang, request.headers.get("accept-language"))
+
+
+LangDep = Annotated[Lang, Depends(_lang)]

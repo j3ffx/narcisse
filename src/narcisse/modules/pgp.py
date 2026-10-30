@@ -22,6 +22,7 @@ from narcisse.engine.plugin import (
 )
 from narcisse.modules._text import read_on_profiles
 from narcisse.normalize import collapse
+from narcisse.notes import note
 
 SERVER = "https://keys.openpgp.org"
 
@@ -50,10 +51,21 @@ def split_identity(identity: str) -> tuple[str | None, str | None]:
 class PgpKeys(SourceModule):
     meta: ClassVar[ModuleMeta] = ModuleMeta(
         name="pgp",
-        title="Clés PGP publiques",
+        title={
+            "fr": "Clés PGP publiques",
+            "en": "Public PGP keys",
+        },
         description=(
-            "Cherche une clé PGP publiée pour un email sur keys.openpgp.org (seulement si son "
-            "titulaire l’a vérifiée), avec les noms et adresses qu’elle porte."
+            {
+                "fr": (
+                    "Cherche une clé PGP publiée pour un email sur keys.openpgp.org (seulement si"
+                    " son titulaire l’a vérifiée), avec les noms et adresses qu’elle porte."
+                ),
+                "en": (
+                    "Looks for a PGP key published for an email on keys.openpgp.org (only if its "
+                    "holder verified it), with the names and addresses it carries."
+                ),
+            }
         ),
         category="keys",
         accepts=frozenset({EntityKind.EMAIL}),
@@ -88,7 +100,7 @@ class PgpKeys(SourceModule):
             relation="publishes_key",
             confidence=0.95,  # the owner verified this address
             url=page,
-            excerpt=f"Une clé PGP publique est publiée pour {email}.",
+            note=note("pgp_key", email=email),
             attributes={"fingerprint": fingerprint} if fingerprint else {},
         )
         for identity in identities:
@@ -100,7 +112,7 @@ class PgpKeys(SourceModule):
                     relation="key_identity",
                     confidence=0.8,
                     url=page,
-                    excerpt=f"Identité portée par la clé PGP : « {identity} ».",
+                    note=note("pgp_identity", identity=identity),
                 )
             if address and address.lower() != email:
                 yield Finding(
@@ -109,6 +121,6 @@ class PgpKeys(SourceModule):
                     relation="key_identity",
                     confidence=0.8,
                     url=page,
-                    excerpt=f"Autre adresse portée par la même clé PGP : « {identity} ».",
+                    note=note("pgp_other_email", identity=identity),
                 )
         await ctx.progress(1, 1)

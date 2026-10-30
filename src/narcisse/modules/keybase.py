@@ -22,6 +22,7 @@ from narcisse.engine.plugin import (
     Target,
 )
 from narcisse.modules._text import read_on_profiles, text_findings
+from narcisse.notes import note
 
 API = "https://keybase.io/_/api/1.0/user/lookup.json"
 FIELDS = "basics,profile,proofs_summary,public_keys"
@@ -48,12 +49,25 @@ def _account_name(url: str) -> str | None:
 class Keybase(SourceModule):
     meta: ClassVar[ModuleMeta] = ModuleMeta(
         name="keybase",
-        title="Keybase",
+        title={
+            "fr": "Keybase",
+            "en": "Keybase",
+        },
         description=(
-            "Le compte Keybase d’un pseudo, ou celui qui a prouvé posséder le compte GitHub, X, "
-            "Reddit ou Hacker News de ce pseudo, ou ce domaine ; et ses preuves d’identité, qui "
-            "relient sûrement ses comptes et ses sites. Keybase n’évolue plus depuis 2020 : "
-            "ses preuves peuvent être anciennes."
+            {
+                "fr": (
+                    "Le compte Keybase d’un pseudo, ou celui qui a prouvé posséder le compte "
+                    "GitHub, X, Reddit ou Hacker News de ce pseudo, ou ce domaine ; et ses "
+                    "preuves d’identité, qui relient sûrement ses comptes et ses sites. Keybase "
+                    "n’évolue plus depuis 2020 : ses preuves peuvent être anciennes."
+                ),
+                "en": (
+                    "A username's Keybase account, or the one that proved it owns this username's"
+                    " GitHub, X, Reddit or Hacker News account, or this domain; and its identity "
+                    "proofs, which surely link its accounts and websites. Keybase hasn't changed "
+                    "since 2020: its proofs may be old."
+                ),
+            }
         ),
         category="accounts",
         accepts=frozenset({EntityKind.USERNAME, EntityKind.DOMAIN, EntityKind.ACCOUNT}),
@@ -121,15 +135,14 @@ class Keybase(SourceModule):
         found: list[Finding] = []
         if target.kind != EntityKind.ACCOUNT:
             if field == "usernames":
-                why, confidence = f"Compte Keybase « {username} ».", 0.6
+                why, confidence = note("keybase_account", username=username), 0.6
             elif field == "domain":
-                why = f"Le compte Keybase « {username} » a prouvé contrôler ce domaine."
+                why = note("keybase_proves_domain", username=username)
                 confidence = 0.9
             else:
                 service = PROVEN_SERVICES[field]
-                why = (
-                    f"Le compte Keybase « {username} » a prouvé posséder le compte {service} "
-                    f"« {value} »."
+                why = note(
+                    "keybase_proves_account", username=username, service=service, value=value
                 )
                 confidence = 0.5  # proven for that account, which may not be the user's
             found.append(
@@ -139,7 +152,7 @@ class Keybase(SourceModule):
                     relation="has_account",
                     confidence=confidence,
                     url=url,
-                    excerpt=why,
+                    note=why,
                     attributes={
                         "site": "Keybase",
                         **({k: profile[k] for k in ("location", "bio") if profile.get(k)}),
@@ -155,13 +168,13 @@ class Keybase(SourceModule):
                     relation="shows_name",
                     confidence=0.5,
                     url=url,
-                    excerpt=f"Nom affiché sur le compte Keybase « {username} ».",
+                    note=note("keybase_name", username=username),
                 )
             )
         found += text_findings(
             profile.get("bio") or "",
             url=url,
-            where=f"dans la bio du compte Keybase « {username} »",
+            where=note("in_keybase_bio", username=username),
             confidence=0.5,
         )
         for proof in (user.get("proofs_summary") or {}).get("all") or []:
@@ -184,7 +197,7 @@ class Keybase(SourceModule):
                     relation="proves",
                     confidence=0.9,
                     url=proven,
-                    excerpt=f"Domaine dont le compte Keybase « {username} » a prouvé le contrôle.",
+                    note=note("keybase_domain", username=username),
                 )
             ]
         if not proof.get("service_url"):
@@ -197,9 +210,11 @@ class Keybase(SourceModule):
                 relation="proves",
                 confidence=0.9,
                 url=proven,
-                excerpt=(
-                    f"Compte {service} « {proof.get('nametag', '?')} » relié au compte Keybase "
-                    f"« {username} » par une preuve d’identité signée."
+                note=note(
+                    "keybase_linked",
+                    service=service,
+                    nametag=proof.get("nametag", "?"),
+                    username=username,
                 ),
                 attributes={"site": service},
             )

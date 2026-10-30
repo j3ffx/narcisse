@@ -14,7 +14,7 @@ from narcisse.modules.dns_records import Dns, DomainMissing, service_of, soa_ema
 from narcisse.modules.registration import HOSTS, RDAP, WHOIS, Registration
 from narcisse.modules.website import Website, siren_valid
 from narcisse.preferences import Preferences
-from tests.fakes import FakeWhois
+from tests.fakes import FakeWhois, said
 from tests.module_context import FakeContext, run, target
 
 
@@ -66,7 +66,7 @@ async def test_a_registry_that_hides_the_holder_says_so(http_client: httpx.Async
     findings = await run(module, ctx, target(EntityKind.DOMAIN, "jeanne-exemple.fr"))
 
     assert found(findings) == [(EntityKind.ORGANIZATION, "registered_with", "Bureau Exemple SAS")]
-    assert findings[0].excerpt == (
+    assert said(findings[0]) == (
         "jeanne-exemple.fr est enregistré chez Bureau Exemple SAS le 2019-03-02, "
         "expire le 2027-03-02. Coordonnées du titulaire : masquées."
     )
@@ -133,8 +133,8 @@ async def test_the_registrar_s_record_tells_what_the_registry_doesn_t(
         (EntityKind.NAME, "technical_contact", "Hébergeur Exemple"),
     ]
     assert findings[1].confidence == 0.6
-    assert findings[1].excerpt == "Publié comme titulaire de jeanne-exemple.com par le registre."
-    assert "Coordonnées du titulaire : publiées." in (findings[0].excerpt or "")
+    assert said(findings[1]) == "Publié comme titulaire de jeanne-exemple.com par le registre."
+    assert "Coordonnées du titulaire : publiées." in said(findings[0])
 
 
 @respx.mock
@@ -158,7 +158,7 @@ async def test_a_subdomain_is_looked_up_through_its_parent(http_client: httpx.As
     assert found(findings)[1] == (EntityKind.ORGANIZATION, "registrant", "Hébergement Exemple")
     # The parent's holder is seldom the user (a hosting service, a blog platform…).
     assert findings[1].confidence == 0.2
-    assert "domaine parent de blog.jeanne-exemple.fr" in (findings[1].excerpt or "")
+    assert "domaine parent de blog.jeanne-exemple.fr" in said(findings[1])
 
 
 @respx.mock
@@ -177,7 +177,7 @@ async def test_a_subdomain_of_a_public_suffix_climbs_past_a_400(
         module, FakeContext(module, http_client), target(EntityKind.DOMAIN, "nuagerie.pages.dev")
     )
     assert found(findings) == [(EntityKind.ORGANIZATION, "registered_with", "Cloudflare")]
-    assert "domaine parent de nuagerie.pages.dev" in (findings[0].excerpt or "")
+    assert "domaine parent de nuagerie.pages.dev" in said(findings[0])
 
 
 @respx.mock
@@ -262,7 +262,7 @@ async def test_whois_in_the_common_format(http_client: httpx.AsyncClient, whois:
         (EntityKind.EMAIL, "registrant", "jeanne@example.org"),
         (EntityKind.PHONE, "registrant", "+33.639980000"),
     ]
-    assert "le 2021-05-06, expire le 2027-05-06" in (findings[0].excerpt or "")
+    assert "le 2021-05-06, expire le 2027-05-06" in said(findings[0])
     assert ctx.notes == {"published": 3, "redacted": 1}
 
 
@@ -336,10 +336,10 @@ async def test_dns_names_the_services_a_domain_relies_on(http_client: httpx.Asyn
         (EntityKind.EMAIL, "dmarc_reports", "dmarc@jeanne-exemple.fr"),
         (EntityKind.EMAIL, "dns_contact", "jeanne.exemple@gmail.com"),
     ]
-    assert findings[0].excerpt == (
+    assert said(findings[0]) == (
         "Les emails de jeanne-exemple.fr sont reçus par Google Workspace (MX aspmx.l.google.com)."
     )
-    assert findings[4].excerpt == (
+    assert said(findings[4]) == (
         "jeanne-exemple.fr a été vérifié auprès d’Apple (apple-domain-verification=def)."
     )
     assert findings[0].attributes == {"service": "mail"}
@@ -416,9 +416,7 @@ async def test_subdomains_and_addresses_from_certificate_logs(
         (EntityKind.DOMAIN, "subdomain", "cloud.jeanne-exemple.fr"),
         (EntityKind.EMAIL, "certificate_email", "jeanne@jeanne-exemple.fr"),
     ]
-    assert findings[0].excerpt == (
-        "Nom vu dans 2 certificats, du 2021-01-02 au 2024-08-04 (crt.sh)."
-    )
+    assert said(findings[0]) == ("Nom vu dans 2 certificats, du 2021-01-02 au 2024-08-04 (crt.sh).")
     assert findings[0].url == "https://crt.sh/?q=nas.jeanne-exemple.fr"
     assert ctx.notes == {"certificates": 3, "subdomains": 2}
 
@@ -449,7 +447,7 @@ async def test_cert_spotter_stands_in_when_crt_sh_is_down(http_client: httpx.Asy
 
     assert found(findings) == [(EntityKind.DOMAIN, "subdomain", "vpn.jeanne-exemple.fr")]
     assert findings[0].url is None
-    assert findings[0].excerpt == (
+    assert said(findings[0]) == (
         "Nom vu dans 1 certificat encore valide, du 2026-09-01 au 2026-11-30 (Cert Spotter)."
     )
     assert spotter.calls[0].request.url.params["include_subdomains"] == "true"
@@ -526,7 +524,7 @@ async def test_the_site_s_legal_notice_tells_who_runs_it(http_client: httpx.Asyn
     assert confidence["732829320"] == 0.3
     assert confidence["2 avenue des Serveurs, 59100 Roubaix"] == 0.3
     assert confidence["Jeanne Exemple"] == 0.7
-    assert "Madame Jeanne Exemple" in (findings[7].excerpt or "")
+    assert "Madame Jeanne Exemple" in said(findings[7])
     # robots.txt keeps the contact page out; the script's number and the registration number
     # aren't phones.
     assert not contact.called

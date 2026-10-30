@@ -22,6 +22,7 @@ from narcisse.engine.plugin import (
     Target,
 )
 from narcisse.normalize import fold
+from narcisse.notes import note
 
 SEARCH = "https://recherche-entreprises.api.gouv.fr/search"
 BODACC = (
@@ -83,12 +84,26 @@ def split_name(value: str) -> tuple[str, str] | None:
 class Companies(SourceModule):
     meta: ClassVar[ModuleMeta] = ModuleMeta(
         name="companies",
-        title="Registres d’entreprises (France)",
+        title={
+            "fr": "Registres d’entreprises (France)",
+            "en": "Company registers (France)",
+        },
         description=(
-            "Les entreprises qu’une personne dirige ou a dirigées, ou à son nom (entrepreneur "
-            "individuel) : le registre publie le mois et l’année de naissance des dirigeants et "
-            "l’adresse du siège, souvent le domicile. Pour une entreprise : ses dirigeants, son "
-            "siège et ses annonces au BODACC. Des homonymes sont possibles."
+            {
+                "fr": (
+                    "Les entreprises qu’une personne dirige ou a dirigées, ou à son nom "
+                    "(entrepreneur individuel) : le registre publie le mois et l’année de "
+                    "naissance des dirigeants et l’adresse du siège, souvent le domicile. Pour "
+                    "une entreprise : ses dirigeants, son siège et ses annonces au BODACC. Des "
+                    "homonymes sont possibles."
+                ),
+                "en": (
+                    "The companies a person runs or ran, or in their name (sole proprietor): the "
+                    "register publishes the officers' month and year of birth and the registered "
+                    "office's address, often a home. For a company: its officers, its office and "
+                    "its BODACC notices. Namesakes are possible."
+                ),
+            }
         ),
         category="registries",
         accepts=frozenset({EntityKind.NAME, EntityKind.ORGANIZATION}),
@@ -177,24 +192,27 @@ class Companies(SourceModule):
     ) -> Iterator[Finding]:
         value, siren = company(result)
         name = public(result.get("nom_complet"))
-        active = "en activité" if result.get("etat_administratif") == "A" else "fermée"
+        active = result.get("etat_administratif") == "A"
         created = public(result.get("date_creation"))
         office = public((result.get("siege") or {}).get("adresse"))
         if officer is not None:
             who = person_name(str(officer.get("nom") or ""), str(officer.get("prenoms") or ""))
             when = born(officer.get("date_de_naissance"))
             role = public(officer.get("qualite")) or "dirigeant"
-            excerpt = (
-                f"{who}, {role.lower()}{f', né·e en {when}' if when else ''}, de {name} "
-                f"({active}{f', créée le {created}' if created else ''})."
+            said = note(
+                "company_officer",
+                who=who,
+                role=public(officer.get("qualite")),
+                born=when or None,
+                name=name,
+                active=active,
+                created=created,
+                office=office,
             )
             relation = "company_officer"
             attributes = {"siren": siren, "role": role, "birth": officer.get("date_de_naissance")}
         else:
-            excerpt = (
-                f"Entreprise individuelle {name} ({active}"
-                f"{f', créée le {created}' if created else ''})."
-            )
+            said = note("sole_trader", name=name, active=active, created=created, office=office)
             relation = "sole_trader"
             attributes = {"siren": siren}
         yield Finding(
@@ -203,7 +221,7 @@ class Companies(SourceModule):
             relation=relation,
             confidence=confidence,
             url=f"{SHEET}{siren}",
-            excerpt=excerpt + (f" Siège : {office}." if office else ""),
+            note=said,
             attributes={k: v for k, v in attributes.items() if v},
         )
         if office:
@@ -214,7 +232,7 @@ class Companies(SourceModule):
                 # A sole trader's registered office is often their home.
                 confidence=confidence if officer is not None else min(0.5, confidence + 0.1),
                 url=f"{SHEET}{siren}",
-                excerpt=f"Siège de {name}, publié au registre.",
+                note=note("registered_office", name=name),
                 via=(EntityKind.ORGANIZATION, value),
             )
 
@@ -252,7 +270,7 @@ class Companies(SourceModule):
             relation="registered_as",
             confidence=0.9,
             url=f"{SHEET}{siren}",
-            excerpt=f"{name} au registre, SIREN {siren}.",
+            note=note("company_in_register", name=name, siren=siren),
         )
         via = (EntityKind.ORGANIZATION, value)
         office = public((result.get("siege") or {}).get("adresse"))
@@ -263,7 +281,7 @@ class Companies(SourceModule):
                 relation="registered_office",
                 confidence=0.9,
                 url=f"{SHEET}{siren}",
-                excerpt=f"Siège de {name}, publié au registre.",
+                note=note("registered_office", name=name),
                 via=via,
             )
         officers = 0
@@ -275,14 +293,19 @@ class Companies(SourceModule):
                 continue
             officers += 1
             when = born(officer.get("date_de_naissance"))
-            role = public(officer.get("qualite")) or "dirigeant"
             yield Finding(
                 kind=EntityKind.NAME,
                 value=who,
                 relation="officer",
                 confidence=0.5,
                 url=f"{SHEET}{siren}",
-                excerpt=f"{who}, {role.lower()} de {name}{f', né·e en {when}' if when else ''}.",
+                note=note(
+                    "officer",
+                    who=who,
+                    role=public(officer.get("qualite")),
+                    name=name,
+                    born=when or None,
+                ),
                 via=via,
             )
         await ctx.progress(1, 2)
@@ -310,7 +333,7 @@ class Companies(SourceModule):
             url = notice.get("url_complete")
             if not url:
                 continue
-            what = public(notice.get("familleavis_lib")) or "Annonce"
+            what = public(notice.get("familleavis_lib"))
             date = public(notice.get("dateparution"))
             court = public(notice.get("tribunal"))
             yield Finding(
@@ -319,9 +342,6 @@ class Companies(SourceModule):
                 relation="legal_notice",
                 confidence=0.9,
                 url=str(url),
-                excerpt=(
-                    f"Annonce au BODACC{f' du {date}' if date else ''} : {what.lower()} "
-                    f"({name}{f', {court.lower()}' if court else ''})."
-                ),
+                note=note("legal_notice", date=date, what=what, name=name, court=court),
                 via=via,
             )

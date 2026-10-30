@@ -8,8 +8,8 @@ from fastapi import APIRouter, Response
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from narcisse import demo_graph
-from narcisse.api.deps import ServicesDep
+from narcisse import demo_graph, notes
+from narcisse.api.deps import LangDep, ServicesDep
 from narcisse.domain import EntityStatus
 from narcisse.errors import not_found
 from narcisse.schemas import (
@@ -103,7 +103,7 @@ async def get_graph(profile_id: int, s: ServicesDep, false_positives: bool = Fal
 
 
 @router.get("/entities/{entity_id}")
-async def get_entity(entity_id: int, s: ServicesDep) -> EntityDetail:
+async def get_entity(entity_id: int, s: ServicesDep, lang: LangDep) -> EntityDetail:
     async with s.db.snapshot() as session:
         entity = await session.get(Entity, entity_id)
         if entity is None:
@@ -122,7 +122,13 @@ async def get_entity(entity_id: int, s: ServicesDep) -> EntityDetail:
             .order_by(Evidence.captured_at.desc(), Evidence.id.desc())
         )
         evidence = [
-            EvidenceOut.model_validate({**vars(proof), "relation": relation})
+            EvidenceOut.model_validate(
+                {
+                    **vars(proof),
+                    "relation": relation,
+                    "excerpt": notes.text(proof.note, proof.excerpt, lang),
+                }
+            )
             for proof, relation in rows
         ]
         others = {e.source_id for e in edges} | {e.target_id for e in edges}

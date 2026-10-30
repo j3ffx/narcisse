@@ -19,7 +19,7 @@ import httpx
 from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from narcisse import history
+from narcisse import history, notes
 from narcisse.clock import Clock
 from narcisse.domain import (
     FINISHED_RUN_STATUSES,
@@ -43,6 +43,7 @@ from narcisse.engine.plugin import (
 )
 from narcisse.engine.rescore import rescore
 from narcisse.errors import AppError, not_found
+from narcisse.i18n import resolve
 from narcisse.normalize import normalize
 from narcisse.preferences import Preferences
 from narcisse.remediation import follow
@@ -754,6 +755,7 @@ class Engine:
                 run_id=run.id,
                 module=meta.name,
                 url=finding.url,
+                note=finding.note,
                 excerpt=finding.excerpt,
                 content_hash=content_hash,
                 captured_at=now,
@@ -793,7 +795,9 @@ class Engine:
                     relation=finding.relation,
                     confidence=finding.confidence,
                     url=finding.url,
-                    excerpt=finding.excerpt,
+                    excerpt=notes.text(
+                        finding.note, finding.excerpt, resolve(self.preferences().ui_lang)
+                    ),
                     captured_at=now,
                 ),
                 run.scan_id,

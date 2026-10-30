@@ -119,7 +119,7 @@ class ClaudeCode:
             "--json-schema",
             json.dumps(task.schema),
             "--system-prompt",
-            task.system,
+            task.instructions,
             "--model",
             self.model or DEFAULT_MODEL,
             "--tools",

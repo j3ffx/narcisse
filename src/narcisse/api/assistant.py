@@ -10,10 +10,11 @@ from fastapi import APIRouter, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from narcisse.api.deps import ServicesDep
+from narcisse.api.deps import LangDep, ServicesDep
 from narcisse.api.entities import review
 from narcisse.domain import EntityKind, EntityStatus
 from narcisse.errors import AppError, not_found
+from narcisse.i18n import Lang
 from narcisse.llm import local, machine
 from narcisse.llm.assistant import emit
 from narcisse.llm.provider import LLMError, validated
@@ -48,8 +49,8 @@ async def assistant_status(s: ServicesDep) -> AssistantOut:
 
 
 @router.post("/assistant/try")
-async def try_assistant(s: ServicesDep) -> TryOut:
-    return await s.assistant.try_it()
+async def try_assistant(s: ServicesDep, lang: LangDep) -> TryOut:
+    return await s.assistant.try_it(lang)
 
 
 @cache
@@ -112,35 +113,43 @@ async def list_annotations(entity_id: int, s: ServicesDep) -> list[AnnotationOut
 
 
 @router.get("/entities/{entity_id}/prompt")
-async def preview_prompt(entity_id: int, task: AnnotationTask, s: ServicesDep) -> PromptOut:
+async def preview_prompt(
+    entity_id: int, task: AnnotationTask, s: ServicesDep, lang: LangDep
+) -> PromptOut:
     """What asking about this trace would send, before the user sends it."""
-    return PromptOut(text=await s.assistant.preview(entity_id, task))
+    return PromptOut(text=await s.assistant.preview(entity_id, task, lang))
 
 
 @router.post("/entities/{entity_id}/annotations", status_code=202)
-async def ask_assistant(entity_id: int, body: AnnotationIn, s: ServicesDep) -> AnnotationOut:
-    return (await s.assistant.ask([entity_id], body.task))[0]
+async def ask_assistant(
+    entity_id: int, body: AnnotationIn, s: ServicesDep, lang: LangDep
+) -> AnnotationOut:
+    return (await s.assistant.ask([entity_id], body.task, lang=lang))[0]
 
 
-def _letter_text(body: LetterIn) -> Callable[[AsyncSession, Entity], Awaitable[str]]:
+def _letter_text(body: LetterIn, lang: Lang) -> Callable[[AsyncSession, Entity], Awaitable[str]]:
     return lambda session, entity: letter_prompt(
-        session, entity, body.subject, body.body, body.context, body.tone
+        session, entity, body.subject, body.body, body.context, body.tone, lang
     )
 
 
 @router.post("/entities/{entity_id}/letter/prompt")
-async def preview_letter(entity_id: int, body: LetterIn, s: ServicesDep) -> PromptOut:
+async def preview_letter(
+    entity_id: int, body: LetterIn, s: ServicesDep, lang: LangDep
+) -> PromptOut:
     """What adapting this letter would send: the profile's identity behind markers."""
     async with s.db.snapshot() as session:
         entity = await session.get(Entity, entity_id)
         if entity is None:
             raise not_found("entity")
-        return PromptOut(text=await _letter_text(body)(session, entity))
+        return PromptOut(text=await _letter_text(body, lang)(session, entity))
 
 
 @router.post("/entities/{entity_id}/letter", status_code=202)
-async def adapt_letter(entity_id: int, body: LetterIn, s: ServicesDep) -> AnnotationOut:
-    return (await s.assistant.ask([entity_id], "letter", _letter_text(body)))[0]
+async def adapt_letter(
+    entity_id: int, body: LetterIn, s: ServicesDep, lang: LangDep
+) -> AnnotationOut:
+    return (await s.assistant.ask([entity_id], "letter", _letter_text(body, lang), lang))[0]
 
 
 @router.get("/profiles/{profile_id}/ai-leads")
@@ -223,11 +232,11 @@ async def triage_preview(profile_id: int, s: ServicesDep) -> TriageOut:
 
 
 @router.post("/profiles/{profile_id}/triage", status_code=202)
-async def triage(profile_id: int, s: ServicesDep) -> TriageOut:
+async def triage(profile_id: int, s: ServicesDep, lang: LangDep) -> TriageOut:
     await _profile_exists(s, profile_id)
     ids, capped = await s.assistant.triage_candidates(profile_id)
     if ids:
-        await s.assistant.ask(ids, "triage")
+        await s.assistant.ask(ids, "triage", lang=lang)
     return TriageOut(count=len(ids), capped=capped)
 
 

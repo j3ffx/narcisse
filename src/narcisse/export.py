@@ -10,10 +10,11 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from narcisse import __version__
+from narcisse import __version__, notes
 from narcisse.api.remediation import request_out
 from narcisse.engine.engine import scan_detail
 from narcisse.errors import not_found
+from narcisse.i18n import Lang
 from narcisse.remediation import follow
 from narcisse.schemas import (
     AnnotationOut,
@@ -38,7 +39,9 @@ FORMAT = "narcisse-export"
 VERSION = 1
 
 
-async def profile_export(session: AsyncSession, profile_id: int, now: datetime) -> dict[str, Any]:
+async def profile_export(
+    session: AsyncSession, profile_id: int, now: datetime, lang: Lang = "fr"
+) -> dict[str, Any]:
     profile = await session.get(Profile, profile_id)
     if profile is None:
         raise not_found("profile")
@@ -104,9 +107,13 @@ async def profile_export(session: AsyncSession, profile_id: int, now: datetime) 
         "links": [EdgeOut.model_validate(e).model_dump(mode="json") for e in edges],
         "evidence": [
             {
-                **EvidenceOut.model_validate({**vars(proof), "relation": None}).model_dump(
-                    mode="json", exclude={"relation"}
-                ),
+                **EvidenceOut.model_validate(
+                    {
+                        **vars(proof),
+                        "relation": None,
+                        "excerpt": notes.text(proof.note, proof.excerpt, lang),
+                    }
+                ).model_dump(mode="json", exclude={"relation"}),
                 "entity_id": proof.entity_id,
             }
             for proof in evidence

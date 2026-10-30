@@ -27,6 +27,7 @@ from narcisse.engine.plugin import (
     Target,
 )
 from narcisse.modules._text import read_on_profiles, text_findings
+from narcisse.notes import Note, note
 
 MAIN = "gitlab.com"
 INSTANCES = (MAIN, "framagit.org", "salsa.debian.org", "gitlab.gnome.org", "gitlab.freedesktop.org")
@@ -57,12 +58,25 @@ def _hidden(email: str, host: str) -> bool:
 class GitLab(SourceModule):
     meta: ClassVar[ModuleMeta] = ModuleMeta(
         name="gitlab",
-        title="GitLab",
+        title={
+            "fr": "GitLab",
+            "en": "GitLab",
+        },
         description=(
-            "Le profil d’un pseudo sur gitlab.com, framagit.org, salsa.debian.org, GNOME et "
-            "freedesktop.org (nom, email public) et les adresses email de ses commits récents. "
-            "Sans compte ; un token personnel gratuit, dans les réglages, ajoute la bio, le lieu "
-            "et le site des profils de gitlab.com."
+            {
+                "fr": (
+                    "Le profil d’un pseudo sur gitlab.com, framagit.org, salsa.debian.org, GNOME "
+                    "et freedesktop.org (nom, email public) et les adresses email de ses commits "
+                    "récents. Sans compte ; un token personnel gratuit, dans les réglages, ajoute"
+                    " la bio, le lieu et le site des profils de gitlab.com."
+                ),
+                "en": (
+                    "A username's profile on gitlab.com, framagit.org, salsa.debian.org, GNOME "
+                    "and freedesktop.org (name, public email) and the email addresses of its "
+                    "recent commits. No account needed; a free personal token, in the settings, "
+                    "adds the bio, place and website of gitlab.com profiles."
+                ),
+            }
         ),
         category="code",
         accepts=frozenset({EntityKind.USERNAME, EntityKind.ACCOUNT}),
@@ -142,7 +156,7 @@ class GitLab(SourceModule):
         # The address WhatsMyName gives too, so that both findings make one trace.
         shown = username if user["username"].casefold() == username.casefold() else user["username"]
         url = f"https://{host}/{shown}"
-        where = f"sur le profil GitLab « {user['username']} » ({host})"
+        where = note("on_gitlab_profile", username=user["username"], host=host)
         if target.kind != EntityKind.ACCOUNT:
             yield Finding(
                 kind=EntityKind.ACCOUNT,
@@ -150,7 +164,7 @@ class GitLab(SourceModule):
                 relation="has_account",
                 confidence=0.6,
                 url=url,
-                excerpt=f"Profil GitLab « {user['username']} » sur {host}.",
+                note=note("gitlab_profile", username=user["username"], host=host),
                 attributes={
                     "site": "GitLab" if host == MAIN else f"GitLab ({host})",
                     **{
@@ -167,7 +181,7 @@ class GitLab(SourceModule):
                 relation="shows_name",
                 confidence=0.5,
                 url=url,
-                excerpt=f"Nom affiché {where}.",
+                note=note("name_shown", where=where),
             )
         email = user.get("public_email") or details.get("public_email")
         if email:
@@ -177,14 +191,14 @@ class GitLab(SourceModule):
                 relation="shows_email",
                 confidence=0.7,
                 url=url,
-                excerpt=f"Email public {where}.",
+                note=note("public_email", where=where),
             )
         for finding in self._details(details, url, where):
             yield finding
         async for finding in self._commits(ctx, host, user):
             yield finding
 
-    def _details(self, details: dict[str, Any], url: str, where: str) -> list[Finding]:
+    def _details(self, details: dict[str, Any], url: str, where: Note) -> list[Finding]:
         found: list[Finding] = []
         if details.get("website_url"):
             site = details["website_url"]
@@ -196,7 +210,7 @@ class GitLab(SourceModule):
                     relation="links_to",
                     confidence=0.6,
                     url=url,
-                    excerpt=f"Site indiqué {where}.",
+                    note=note("site_given", where=where),
                 )
             )
         for key, address, label in (
@@ -215,7 +229,7 @@ class GitLab(SourceModule):
                     relation="links_to",
                     confidence=0.6,
                     url=url,
-                    excerpt=f"Compte {label} indiqué {where}.",
+                    note=note("account_given", site=label, where=where),
                     attributes={"site": label},
                 )
             )
@@ -260,8 +274,10 @@ class GitLab(SourceModule):
                 relation="commits_as",
                 confidence=0.7,
                 url=commit.get("web_url"),
-                excerpt=(
-                    f"Adresse d’auteur d’un commit poussé par « {user['username']} » sur {host} "
-                    f"(signé « {commit.get('author_name')} »)."
+                note=note(
+                    "gitlab_commit_email",
+                    username=user["username"],
+                    host=host,
+                    author=commit.get("author_name"),
                 ),
             )

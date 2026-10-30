@@ -6,6 +6,7 @@ import httpx
 import pytest
 import respx
 
+from narcisse import notes
 from narcisse.domain import EntityKind
 from narcisse.engine.plugin import InputRejected, RateLimited
 from narcisse.modules.companies import BODACC, SEARCH, Companies, born, person_name
@@ -13,22 +14,24 @@ from narcisse.modules.phone import Phone, describe
 from narcisse.modules.xposedornot import API, XposedOrNot
 from narcisse.normalize import normalize
 from tests.conftest import ApiFactory
+from tests.fakes import said
 from tests.module_context import FakeContext, run, target
 
 # Phone
 
 
 def test_a_number_described_without_asking_anyone() -> None:
-    sentence, attributes = describe("+33612345678")
-    assert sentence.startswith("Mobile, France. Opérateur d’origine : ")
+    said, attributes = describe("+33612345678")
+    assert (notes.render(said, "fr") or "").startswith("Mobile, France. Opérateur d’origine : ")
+    assert (notes.render(said, "en") or "").startswith("Mobile, France. Original carrier: ")
     assert attributes["type"] == "mobile"
     assert attributes["international"] == "+33 6 12 34 56 78"
     assert Phone.meta.hosts == ()  # nothing leaves the machine
 
     # The numbers kept for fiction belong to no one.
-    sentence, attributes = describe("+33639980000")
+    said, attributes = describe("+33639980000")
     assert attributes["valid"] == "no"
-    assert "attribué à personne" in sentence
+    assert "attribué à personne" in (notes.render(said, "fr") or "")
 
     with pytest.raises(InputRejected):
         describe("12")
@@ -100,13 +103,13 @@ async def test_the_breaches_an_address_appears_in(http_client: httpx.AsyncClient
         (EntityKind.LEAK, "exposed_in", "Exemple-Forum"),
         (EntityKind.LEAK, "exposed_in", "Exemple-Shop"),
     ]
-    assert findings[0].excerpt == (
+    assert said(findings[0]) == (
         "Fuite de forum.example.org en 2019 : adresses email, noms, mots de passe, Something New "
         "; mots de passe faciles à retrouver. Données : XposedOrNot."
     )
     assert findings[0].url == "https://xposedornot.com/breach/Exemple-Forum"
     assert findings[0].attributes["records"] == 120000
-    assert findings[1].excerpt == "Fuite : adresses email. Données : XposedOrNot."
+    assert said(findings[1]) == "Fuite : adresses email. Données : XposedOrNot."
     assert ctx.notes == {"breaches": 2}
 
 
@@ -201,7 +204,7 @@ async def test_the_companies_a_person_runs_or_that_bear_their_name(
         (EntityKind.ORGANIZATION, "sole_trader", "JEANNE EXEMPLE (EXEMPLE) (123456782)"),
         (EntityKind.ADDRESS, "registered_office", "1 RUE DE L'EXEMPLE 75000 PARIS"),
     ]
-    assert findings[0].excerpt == (
+    assert said(findings[0]) == (
         "Jeanne Marie Exemple, gérant, né·e en avril 1990, de EXEMPLE CONSEIL (en activité, "
         "créée le 2015-06-01). Siège : 1 RUE DE L'EXEMPLE 75000 PARIS."
     )
@@ -241,7 +244,7 @@ async def test_a_company_s_officers_office_and_notices(http_client: httpx.AsyncC
         (EntityKind.URL, "legal_notice", "https://www.bodacc.fr/annonce/exemple-1"),
     ]
     assert bodacc.calls.last.request.url.params["where"] == 'registre like "552100554"'
-    assert findings[3].excerpt == (
+    assert said(findings[3]) == (
         "Annonce au BODACC du 2015-06-10 : créations (EXEMPLE CONSEIL, greffe du tribunal de "
         "commerce de paris)."
     )

@@ -15,6 +15,7 @@ from narcisse.domain import EntityKind, EntityStatus, ProfileKind, RunStatus, Sc
 from narcisse.engine.engine import IDENTITY_KEY
 from narcisse.engine.rescore import rescore
 from narcisse.normalize import normalize
+from narcisse.notes import note
 from narcisse.storage.models import Edge, Entity, Evidence, ModuleRun, Profile, Scan, Seed
 
 MODULE = "demo.fake"
@@ -27,7 +28,7 @@ WORDS = (
 FIRST = ("jeanne", "paul", "lea", "hugo", "nina", "louis", "chloe", "arthur", "emma", "jules")
 LAST = ("exemple", "fictif", "modele", "essai", "specimen")
 TLDS = ("org", "com", "net")
-EXCERPT = "Trace fictive, générée pour la démonstration du graphe."
+NOTE = note("demo_graph")
 
 
 def _platforms(rng: random.Random) -> list[str]:
@@ -293,7 +294,7 @@ async def generate(session: AsyncSession, *, size: int, now: datetime) -> Profil
             url=shown[edge.source_id].display
             if shown[edge.source_id].kind == EntityKind.ACCOUNT
             else None,
-            excerpt=EXCERPT,
+            note=NOTE,
             content_hash=None,
             captured_at=edge.first_seen,
         )

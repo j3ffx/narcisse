@@ -17,6 +17,7 @@ from narcisse.modules.whatsmyname import (
     judge,
 )
 from narcisse.preferences import Preferences
+from tests.fakes import said
 from tests.module_context import FakeContext, run, target
 
 
@@ -126,7 +127,7 @@ async def test_adult_sites_are_checked_and_labelled_unless_excluded(
     respx.get("https://adult.example.com/jeanne").respond(200, text="profile-of")
     [finding] = await run(m, FakeContext(m, http_client), target(EntityKind.USERNAME, "jeanne"))
     assert finding.attributes["adult"] is True
-    assert "(site adulte)" in (finding.excerpt or "")
+    assert "(site adulte)" in said(finding)
 
 
 @respx.mock

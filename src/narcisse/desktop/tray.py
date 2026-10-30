@@ -8,6 +8,7 @@ same API as the UI, over loopback, every two seconds.
 import json
 import logging
 import threading
+from collections.abc import Callable
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -20,7 +21,9 @@ from narcisse.app import create_app
 from narcisse.config import HOST, Settings
 from narcisse.desktop import mode, system
 from narcisse.desktop.art import TrayState, tray_icon
-from narcisse.desktop.state import Summary, notifications, reminder_notice, summarize
+from narcisse.desktop.state import MENU, Summary, notifications, reminder_notice, summarize
+from narcisse.i18n import Lang, resolve
+from narcisse.preferences import Preferences as UserPreferences
 from narcisse.server import Server
 
 log = logging.getLogger(__name__)
@@ -54,7 +57,7 @@ class Tray:
         self.api = f"http://{HOST}:{settings.port}/api"
         self.open_on_start = open_on_start
         self.prefs = Preferences(settings.data_dir / "desktop.json")
-        self.summary = summarize(None)
+        self.summary = summarize(None, self.lang())
         self.activity: dict[str, Any] | None = None
         self.stopping = threading.Event()
         self.server = Server(
@@ -74,6 +77,14 @@ class Tray:
         self._shown_state = TrayState.IDLE
         self._checked_on: str | None = None
 
+    def lang(self) -> Lang:
+        """The language chosen in the settings, else the system's (read each time: the user may
+        change it while the tray runs)."""
+        return resolve(UserPreferences.load(self.settings.preferences_path).ui_lang)
+
+    def _say(self, key: str) -> Callable[[object], str]:
+        return lambda _: MENU[self.lang()][key]
+
     # What a restart runs again: this side. (The start with Windows opens the side chosen last.)
     @property
     def tray_args(self) -> list[str]:
@@ -82,33 +93,39 @@ class Tray:
     def _menu(self) -> pystray.Menu:
         item = pystray.MenuItem
         return pystray.Menu(
-            item("Ouvrir Narcisse", self.open, default=True),
-            item(lambda _: self.summary.tooltip.removeprefix("Narcisse : "), None, enabled=False),
+            item(self._say("open"), self.open, default=True),
+            item(
+                lambda _: self.summary.tooltip.removeprefix("Narcisse : ").removeprefix(
+                    "Narcisse: "
+                ),
+                None,
+                enabled=False,
+            ),
             pystray.Menu.SEPARATOR,
             item(
-                "Mettre en pause les scans en cours",
+                self._say("pause"),
                 self.pause_all,
                 enabled=lambda _: bool(self.summary.running_scans),
             ),
             item(
-                "Notifications",
+                self._say("notifications"),
                 self.toggle_notifications,
                 checked=lambda _: self.prefs.notifications,
             ),
             item(
-                "Mode démo",
+                self._say("demo"),
                 self.toggle_demo,
                 checked=lambda _: self.settings.demo,
             ),
             item(
-                "Démarrer avec Windows",
+                self._say("autostart"),
                 self.toggle_autostart,
                 checked=lambda _: system.autostart_enabled(),
                 visible=system.AUTOSTART_SUPPORTED,
             ),
             pystray.Menu.SEPARATOR,
-            item("Redémarrer", self.restart),
-            item("Quitter", self.quit),
+            item(self._say("restart"), self.restart),
+            item(self._say("quit"), self.quit),
         )
 
     def run(self) -> None:
@@ -148,16 +165,16 @@ class Tray:
             if self.open_on_start:
                 self.open()
         else:
-            self.icon.notify("Narcisse s’est arrêté. Le détail est dans son journal.")
+            self.icon.notify(MENU[self.lang()]["stopped"])
             self.stopping.wait(5)
         self.icon.stop()
 
     def _show(self, activity: dict[str, Any]) -> None:
         if self.prefs.notifications:
-            for note in notifications(self.activity, activity):
+            for note in notifications(self.activity, activity, self.lang()):
                 self.icon.notify(note.message, note.title)
         self.activity = activity
-        summary: Summary = summarize(activity)
+        summary: Summary = summarize(activity, self.lang())
         if summary.state != self._shown_state:
             self.icon.icon = tray_icon(summary.state)
             self._shown_state = summary.state
@@ -179,7 +196,7 @@ class Tray:
             count = int(client.get(f"{self.api}/requests/due").json()["count"])
         except (httpx.HTTPError, ValueError, KeyError, TypeError):
             return
-        if message := reminder_notice(count):
+        if message := reminder_notice(count, self.lang()):
             self.icon.notify(message, "Narcisse")
             self.prefs.reminded_on = today
             self.prefs.save()

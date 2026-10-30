@@ -26,7 +26,7 @@ from narcisse.engine.plugin import (
     Target,
     TransientError,
 )
-from narcisse.modules._text import of
+from narcisse.notes import note
 
 DATA: dict[str, Any] = json.loads(
     (Path(__file__).parent / "data" / "dns-services.json").read_text("utf-8")
@@ -92,16 +92,31 @@ def personal_enough(email: str, domain: str) -> bool:
 class Dns(SourceModule):
     meta: ClassVar[ModuleMeta] = ModuleMeta(
         name="dns",
-        title="DNS du domaine",
+        title={
+            "fr": "DNS du domaine",
+            "en": "The domain’s DNS",
+        },
         description=(
-            "Ce que les enregistrements DNS d’un domaine révèlent : qui reçoit ses emails, qui "
-            "l’héberge, les services auprès desquels il a été vérifié (Google, Microsoft, "
-            "Facebook…), et les adresses email qu’ils citent."
+            {
+                "fr": (
+                    "Ce que les enregistrements DNS d’un domaine révèlent : qui reçoit ses "
+                    "emails, qui l’héberge, les services auprès desquels il a été vérifié "
+                    "(Google, Microsoft, Facebook…), et les adresses email qu’ils citent."
+                ),
+                "en": (
+                    "What a domain's DNS records reveal: who receives its mail, who hosts it, the"
+                    " services it was verified with (Google, Microsoft, Facebook…), and the email"
+                    " addresses they name."
+                ),
+            }
         ),
         category="domains",
         accepts=frozenset({EntityKind.DOMAIN}),
         produces=frozenset({EntityKind.ORGANIZATION, EntityKind.EMAIL}),
-        other_hosts="le résolveur DNS de ta machine, comme pour toute connexion",
+        other_hosts={
+            "fr": "le résolveur DNS de ta machine, comme pour toute connexion",
+            "en": "your machine’s DNS resolver, as for any connection",
+        },
         max_parallel_runs=2,
         data_source="https://www.dnspython.org/",
         licence="dnspython : ISC",
@@ -182,10 +197,7 @@ class Dns(SourceModule):
                 value=service,
                 relation="uses_service",
                 confidence=0.9,
-                excerpt=EXCERPTS[role].format(
-                    domain=domain, service=service, of_domain=of(domain), of_service=of(service)
-                )
-                + f" ({record}).",
+                note=note("dns_service", role=role, domain=domain, service=service, record=record),
                 attributes={"service": role},
             )
 
@@ -206,21 +218,8 @@ class Dns(SourceModule):
                 value=address,
                 relation=relation,
                 confidence=0.5,
-                excerpt=(
-                    f"Adresse qui reçoit les rapports DMARC {of(domain)}."
-                    if relation == "dmarc_reports"
-                    else f"Adresse du responsable de la zone DNS {of(domain)} (SOA)."
-                ),
+                note=note(relation, domain=domain),
             )
         await ctx.progress(
             7, 7, {"records": len(mx) + len(txt) + len(addresses), "services": len(services)}
         )
-
-
-EXCERPTS = {
-    "mail": "Les emails {of_domain} sont reçus par {service}",
-    "dns": "Le DNS {of_domain} est servi par {service}",
-    "sending": "{service} peut envoyer des emails au nom {of_domain}",
-    "verified": "{domain} a été vérifié auprès {of_service}",
-    "hosting": "Le site {of_domain} est hébergé chez {service}",
-}

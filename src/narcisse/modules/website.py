@@ -24,7 +24,8 @@ from narcisse.engine.plugin import (
     Target,
     TransientError,
 )
-from narcisse.modules._text import emails, is_profile, of
+from narcisse.modules._text import emails, is_profile
+from narcisse.notes import Note, note
 
 if TYPE_CHECKING:
     from narcisse.preferences import Preferences
@@ -155,8 +156,9 @@ class Detail:
     kind: EntityKind
     value: str
     relation: str
-    excerpt: str
+    excerpt: str | None
     confidence: float = CONFIDENCE
+    note: Note | None = None
 
 
 def _detail(kind: EntityKind, value: str, relation: str, text: str, start: int, end: int) -> Detail:
@@ -180,7 +182,7 @@ def details(text: str, html: str, links: list[tuple[str, str]]) -> Iterator[Deta
         if at >= 0:
             yield _detail(EntityKind.EMAIL, email, "shows_email", text, at, at + len(email))
         else:
-            yield Detail(EntityKind.EMAIL, email, "shows_email", "Lien mailto: de la page.")
+            yield Detail(EntityKind.EMAIL, email, "shows_email", None, note=note("mailto_link"))
     seen: set[str] = set()
     for match in _PHONE.finditer(text):
         key = re.sub(r"\D", "", match.group())[-9:]
@@ -192,7 +194,7 @@ def details(text: str, html: str, links: list[tuple[str, str]]) -> Iterator[Deta
         phone = href[4:].split("?")[0] if href.lower().startswith("tel:") else ""
         if phone and (key := re.sub(r"\D", "", phone)[-9:]) not in seen:
             seen.add(key)
-            yield Detail(EntityKind.PHONE, phone, "shows_phone", "Lien tel: de la page.")
+            yield Detail(EntityKind.PHONE, phone, "shows_phone", None, note=note("tel_link"))
     for match in _SIREN.finditer(text):
         digits = re.sub(r"\D", "", match.group(1))
         if siren_valid(digits):
@@ -208,11 +210,24 @@ def details(text: str, html: str, links: list[tuple[str, str]]) -> Iterator[Deta
 class Website(SourceModule):
     meta: ClassVar[ModuleMeta] = ModuleMeta(
         name="website",
-        title="Site du domaine",
+        title={
+            "fr": "Site du domaine",
+            "en": "The domain’s website",
+        },
         description=(
-            "La page d’accueil du site d’un domaine et ses pages sur son éditeur (mentions "
-            "légales, contact, à propos, CV) : nom, adresse, téléphone, email, SIREN, liens vers "
-            "des profils. Seulement sur le domaine lui-même, comme robots.txt le permet."
+            {
+                "fr": (
+                    "La page d’accueil du site d’un domaine et ses pages sur son éditeur "
+                    "(mentions légales, contact, à propos, CV) : nom, adresse, téléphone, email, "
+                    "SIREN, liens vers des profils. Seulement sur le domaine lui-même, comme "
+                    "robots.txt le permet."
+                ),
+                "en": (
+                    "The home page of a domain's website and its pages about its publisher (legal"
+                    " notice, contact, about, CV): name, address, phone, email, SIREN, links to "
+                    "profiles. Only on the domain itself, as robots.txt allows."
+                ),
+            }
         ),
         category="domains",
         accepts=frozenset({EntityKind.DOMAIN}),
@@ -227,7 +242,10 @@ class Website(SourceModule):
                 EntityKind.ORGANIZATION,
             }
         ),
-        other_hosts="le site du domaine fouillé (et son www.)",
+        other_hosts={
+            "fr": "le site du domaine fouillé (et son www.)",
+            "en": "the website of the domain searched (and its www.)",
+        },
         rate_limit=RateLimit(requests=1, per_seconds=2),
         max_parallel_runs=2,
     )
@@ -260,7 +278,7 @@ class Website(SourceModule):
                 relation="redirects_to",
                 confidence=CONFIDENCE,
                 url=url,
-                excerpt=f"Le site {of(domain)} renvoie vers cette adresse.",
+                note=note("site_redirects", domain=domain),
             )
             await ctx.progress(1, 1, {"pages": 0})
             return
@@ -317,7 +335,7 @@ class Website(SourceModule):
                     relation="has_page",
                     confidence=CONFIDENCE,
                     url=page_url,
-                    excerpt=f"Page du site {of(domain)} sur son éditeur.",
+                    note=note("site_on_publisher", domain=domain),
                 )
                 via = (EntityKind.URL, page_url)
             for key, detail in found.items():
@@ -328,6 +346,7 @@ class Website(SourceModule):
                     relation=detail.relation,
                     confidence=detail.confidence,
                     url=page_url,
+                    note=detail.note,
                     excerpt=detail.excerpt,
                     content=page_html,
                     via=via,
@@ -340,7 +359,7 @@ class Website(SourceModule):
                     relation="links_to",
                     confidence=CONFIDENCE,
                     url=page_url,
-                    excerpt=f"Lien vers un profil, sur le site {of(domain)}.",
+                    note=note("site_profile_link", domain=domain),
                     via=via,
                 )
         notes = {"pages": len(pages)}

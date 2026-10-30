@@ -60,7 +60,7 @@ async def test_a_question_runs_claude_without_tools_settings_or_session() -> Non
         assert flag in args
     assert args[args.index("--model") + 1] == "haiku"
     assert json.loads(args[args.index("--json-schema") + 1]) == TRIAGE.schema
-    assert args[args.index("--system-prompt") + 1] == TRIAGE.system
+    assert args[args.index("--system-prompt") + 1] == TRIAGE.instructions
 
 
 async def test_the_model_chosen_is_passed_on() -> None:

@@ -20,6 +20,7 @@ from narcisse.engine.plugin import (
     Target,
 )
 from narcisse.modules._text import read_on_profiles, text_findings
+from narcisse.notes import note
 
 API = "https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile"
 DEFAULT_DOMAIN = "bsky.social"
@@ -51,11 +52,25 @@ def handle_for(target: Target) -> str | None:
 class Bluesky(SourceModule):
     meta: ClassVar[ModuleMeta] = ModuleMeta(
         name="bluesky",
-        title="Bluesky",
+        title={
+            "fr": "Bluesky",
+            "en": "Bluesky",
+        },
         description=(
-            "Le profil Bluesky d’un pseudo (pseudo.bsky.social) ou d’un domaine utilisé comme "
-            "pseudo : nom affiché, description et les liens qu’elle contient. Un domaine servant "
-            "de pseudo est vérifié par Bluesky : le compte et le domaine ont le même titulaire."
+            {
+                "fr": (
+                    "Le profil Bluesky d’un pseudo (pseudo.bsky.social) ou d’un domaine utilisé "
+                    "comme pseudo : nom affiché, description et les liens qu’elle contient. Un "
+                    "domaine servant de pseudo est vérifié par Bluesky : le compte et le domaine "
+                    "ont le même titulaire."
+                ),
+                "en": (
+                    "The Bluesky profile of a username (username.bsky.social) or of a domain used"
+                    " as a handle: display name, description and the links in it. A domain used "
+                    "as a handle is checked by Bluesky: the account and the domain have the same "
+                    "holder."
+                ),
+            }
         ),
         category="social",
         accepts=frozenset({EntityKind.USERNAME, EntityKind.DOMAIN, EntityKind.ACCOUNT}),
@@ -108,9 +123,7 @@ class Bluesky(SourceModule):
                 # A domain handle is proven; a username on bsky.social is only the same name.
                 confidence=0.9 if target.kind == EntityKind.DOMAIN else 0.6,
                 url=url,
-                excerpt=(
-                    f"Compte Bluesky « {handle} » ({profile.get('postsCount', 0)} publications)."
-                ),
+                note=note("bluesky_account", handle=handle, posts=profile.get("postsCount", 0)),
                 attributes={
                     "site": "Bluesky",
                     **({"created": profile["createdAt"][:10]} if profile.get("createdAt") else {}),
@@ -129,10 +142,7 @@ class Bluesky(SourceModule):
                 relation="handle_domain",
                 confidence=0.9,
                 url=url,
-                excerpt=(
-                    f"Le compte Bluesky utilise le domaine « {handle} » comme pseudo : "
-                    "Bluesky a vérifié que son titulaire contrôle ce domaine."
-                ),
+                note=note("bluesky_domain_handle", handle=handle),
             )
         if profile.get("displayName"):
             yield Finding(
@@ -141,12 +151,12 @@ class Bluesky(SourceModule):
                 relation="shows_name",
                 confidence=0.5,
                 url=url,
-                excerpt=f"Nom affiché sur le compte Bluesky « {handle} ».",
+                note=note("bluesky_name", handle=handle),
             )
         for finding in text_findings(
             profile.get("description") or "",
             url=url,
-            where=f"dans la description du compte Bluesky « {handle} »",
+            where=note("in_bluesky_description", handle=handle),
             confidence=0.6,
         ):
             yield finding

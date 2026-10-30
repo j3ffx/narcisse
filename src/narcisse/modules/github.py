@@ -25,6 +25,7 @@ from narcisse.engine.plugin import (
     Target,
 )
 from narcisse.modules._text import read_on_profiles, text_findings
+from narcisse.notes import note
 
 API = "https://api.github.com"
 REPOS_TO_READ = 5  # the most recently pushed ones
@@ -66,12 +67,25 @@ def _commit_email(email: str | None) -> str | None:
 class GitHub(SourceModule):
     meta: ClassVar[ModuleMeta] = ModuleMeta(
         name="github",
-        title="GitHub",
+        title={
+            "fr": "GitHub",
+            "en": "GitHub",
+        },
         description=(
-            "Le profil public d’un pseudo GitHub et les adresses email visibles dans ses commits ; "
-            "pour un email, les comptes dont les commits le portent. Sans compte ; un token "
-            "personnel gratuit, dans les réglages, relève la limite de 60 à 5 000 requêtes "
-            "par heure."
+            {
+                "fr": (
+                    "Le profil public d’un pseudo GitHub et les adresses email visibles dans ses "
+                    "commits ; pour un email, les comptes dont les commits le portent. Sans "
+                    "compte ; un token personnel gratuit, dans les réglages, relève la limite de "
+                    "60 à 5 000 requêtes par heure."
+                ),
+                "en": (
+                    "The public profile of a GitHub username and the email addresses visible in "
+                    "its commits; for an email, the accounts whose commits bear it. No account "
+                    "needed; a free personal token, in the settings, raises the limit from 60 to "
+                    "5,000 requests an hour."
+                ),
+            }
         ),
         category="code",
         accepts=frozenset({EntityKind.USERNAME, EntityKind.EMAIL}),
@@ -108,7 +122,7 @@ class GitHub(SourceModule):
             relation="has_account",
             confidence=0.6,
             url=profile,
-            excerpt=f"Profil GitHub « {login} » ({user.get('public_repos', 0)} dépôts publics).",
+            note=note("github_profile", login=login, repos=user.get("public_repos", 0)),
             attributes={
                 "site": "GitHub",
                 **{k: user[k] for k in ("location", "company", "bio") if user.get(k)},
@@ -121,7 +135,7 @@ class GitHub(SourceModule):
                 relation="shows_name",
                 confidence=0.5,
                 url=profile,
-                excerpt=f"Nom affiché sur le profil GitHub « {login} ».",
+                note=note("github_name", login=login),
             )
         if _commit_email(user.get("email")):
             yield Finding(
@@ -130,7 +144,7 @@ class GitHub(SourceModule):
                 relation="shows_email",
                 confidence=0.7,
                 url=profile,
-                excerpt=f"Email public du profil GitHub « {login} ».",
+                note=note("github_email", login=login),
             )
         if user.get("blog"):
             blog = user["blog"] if "://" in user["blog"] else f"https://{user['blog']}"
@@ -140,7 +154,7 @@ class GitHub(SourceModule):
                 relation="links_to",
                 confidence=0.6,
                 url=profile,
-                excerpt=f"Site indiqué sur le profil GitHub « {login} ».",
+                note=note("github_site", login=login),
             )
         if user.get("twitter_username"):
             yield Finding(
@@ -149,12 +163,12 @@ class GitHub(SourceModule):
                 relation="links_to",
                 confidence=0.6,
                 url=profile,
-                excerpt=f"Compte X indiqué sur le profil GitHub « {login} ».",
+                note=note("github_x", login=login),
             )
         for finding in text_findings(
             user.get("bio") or "",
             url=profile,
-            where=f"dans la bio du profil GitHub « {login} »",
+            where=note("in_github_bio", login=login),
             confidence=0.6,
         ):
             yield finding
@@ -182,9 +196,11 @@ class GitHub(SourceModule):
                     relation="commits_as",
                     confidence=0.7,
                     url=commit.get("html_url"),
-                    excerpt=(
-                        f"Adresse d’auteur des commits de « {login} » dans {repo['full_name']} "
-                        f"(signés « {author.get('name', '?')} »)."
+                    note=note(
+                        "github_commit_email",
+                        login=login,
+                        repo=repo["full_name"],
+                        author=author.get("name", "?"),
                     ),
                 )
         await ctx.progress(1, 1)
@@ -204,10 +220,10 @@ class GitHub(SourceModule):
                 relation="commits_as",
                 confidence=0.8,
                 url=item.get("html_url"),
-                excerpt=(
-                    f"Des commits portant cette adresse sont rattachés au compte GitHub "
-                    f"« {login} » (par exemple dans "
-                    f"{item.get('repository', {}).get('full_name', '?')})."
+                note=note(
+                    "github_commits_by",
+                    login=login,
+                    repo=item.get("repository", {}).get("full_name", "?"),
                 ),
                 attributes={"site": "GitHub"},
             )

@@ -22,7 +22,7 @@ from narcisse.engine.plugin import (
     SourceUnavailable,
     Target,
 )
-from narcisse.modules._text import of
+from narcisse.notes import note
 
 CDX = "https://web.archive.org/cdx/search/cdx"
 WEB = "https://web.archive.org/web"
@@ -69,11 +69,23 @@ def notable(original: str, mimetype: str) -> bool:
 class Wayback(SourceModule):
     meta: ClassVar[ModuleMeta] = ModuleMeta(
         name="wayback",
-        title="Archives du web (Wayback Machine)",
+        title={
+            "fr": "Archives du web (Wayback Machine)",
+            "en": "Web archives (Wayback Machine)",
+        },
         description=(
-            "Ce que la Wayback Machine d’Internet Archive garde d’un domaine ou d’un profil : "
-            "combien de pages, depuis quand, et celles qui parlent de toi (CV, contact, à propos, "
-            "documents), même supprimées depuis."
+            {
+                "fr": (
+                    "Ce que la Wayback Machine d’Internet Archive garde d’un domaine ou d’un "
+                    "profil : combien de pages, depuis quand, et celles qui parlent de toi (CV, "
+                    "contact, à propos, documents), même supprimées depuis."
+                ),
+                "en": (
+                    "What the Internet Archive's Wayback Machine keeps of a domain or a profile: "
+                    "how many pages, since when, and the ones about you (CV, contact, about, "
+                    "documents), even deleted since."
+                ),
+            }
         ),
         category="archives",
         accepts=frozenset({EntityKind.DOMAIN, EntityKind.ACCOUNT}),
@@ -130,18 +142,19 @@ class Wayback(SourceModule):
         first = min(row.get("timestamp", "") for row in rows)
         last = max([row.get("timestamp", "") for row in rows + (latest or [])])
         overview = f"{WEB}/*/{domain}*"
-        pages = (
-            f"{len(rows)}{'+' if len(rows) >= MAX_URLS else ''} page{'s' if len(rows) > 1 else ''}"
-        )
         yield Finding(
             kind=EntityKind.URL,
             value=overview,
             relation="archived_at",
             confidence=0.9,
             url=overview,
-            excerpt=(
-                f"{pages} {of(domain)} archivée{'s' if len(rows) > 1 else ''} par la Wayback "
-                f"Machine, du {_day(first)} au {_day(last)}."
+            note=note(
+                "wayback_domain",
+                count=len(rows),
+                more=len(rows) >= MAX_URLS,
+                domain=domain,
+                first=_day(first),
+                last=_day(last),
             ),
             attributes={
                 "pages": len(rows),
@@ -164,7 +177,7 @@ class Wayback(SourceModule):
                 relation="archived_page",
                 confidence=0.8,
                 url=capture,
-                excerpt=f"Page archivée le {_day(row['timestamp'])} : {row['original']}",
+                note=note("wayback_page", date=_day(row["timestamp"]), url=row["original"]),
                 via=(EntityKind.URL, overview),
             )
         await ctx.progress(2, 2, {"archived": len(rows), "notable": len(found)})
@@ -188,10 +201,7 @@ class Wayback(SourceModule):
             relation="archived_at",
             confidence=0.9,
             url=capture,
-            excerpt=(
-                f"Archivé par la Wayback Machine, {len(kept)} mois différents, du {_day(first)} au "
-                f"{_day(last)} : la page reste lisible là-bas même si elle disparaît."
-            ),
+            note=note("wayback_archived", months=len(kept), first=_day(first), last=_day(last)),
             attributes={"first_capture": _day(first), "last_capture": _day(last)},
         )
         await ctx.progress(1, 1, {"archived": len(kept)})

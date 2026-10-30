@@ -12,6 +12,7 @@ from urllib.parse import urlsplit
 
 from narcisse.domain import EntityKind
 from narcisse.engine.plugin import Finding
+from narcisse.notes import Note, note
 
 _URL = re.compile(r"https?://[^\s<>\"'()\[\]{}]+", re.IGNORECASE)
 # Not a Fediverse handle (`@name@instance`).
@@ -102,11 +103,6 @@ def html_text(html: str) -> str:
     return re.sub(r"\n\s*\n+", "\n", "".join(parser.text)).strip()
 
 
-def of(name: str) -> str:
-    """« de » before a name, elided before a vowel: « d’Adobe », « de Google »."""
-    return f"d’{name}" if name[:1].lower() in "aeiouyéè" else f"de {name}"
-
-
 def _clean(url: str) -> str:
     return url.rstrip(_TRAILING)
 
@@ -150,10 +146,10 @@ def is_profile(url: str) -> bool:
 
 
 def text_findings(
-    text: str, *, html: bool = False, url: str, where: str, confidence: float
+    text: str, *, html: bool = False, url: str, where: Note, confidence: float
 ) -> Iterator[Finding]:
-    """A finding for each link and address in a profile's text. `where` completes « Lien indiqué
-    … » (e.g. « dans la bio Bluesky de « jeanne » »); `url` is the profile, the proof."""
+    """A finding for each link and address in a profile's text. `where` (a note) says where it
+    was read (« dans la bio Bluesky de « jeanne » »); `url` is the profile, the proof."""
     for link in links(text, html=html):
         if urlsplit(link).hostname is None:
             continue
@@ -163,7 +159,7 @@ def text_findings(
             relation="links_to",
             confidence=confidence,
             url=url,
-            excerpt=f"Lien indiqué {where}.",
+            note=note("link_given", where=where),
         )
     for email in emails(text, html=html):
         yield Finding(
@@ -172,5 +168,5 @@ def text_findings(
             relation="shows_email",
             confidence=confidence,
             url=url,
-            excerpt=f"Adresse indiquée {where}.",
+            note=note("email_given", where=where),
         )

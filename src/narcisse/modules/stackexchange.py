@@ -24,6 +24,7 @@ from narcisse.engine.plugin import (
 )
 from narcisse.modules._text import read_on_profiles, text_findings
 from narcisse.normalize import fold
+from narcisse.notes import note
 
 API = "https://api.stackexchange.com/2.3"
 # The default fields of a user, plus `about_me` (made once with /filters/create; filters don't
@@ -41,12 +42,26 @@ def _seconds_to_midnight_utc() -> float:
 class StackExchange(SourceModule):
     meta: ClassVar[ModuleMeta] = ModuleMeta(
         name="stackexchange",
-        title="Stack Exchange",
+        title={
+            "fr": "Stack Exchange",
+            "en": "Stack Exchange",
+        },
         description=(
-            "Les utilisateurs de Stack Overflow qui affichent exactement ce nom ou ce pseudo "
-            "(lieu, site, présentation) et, s’il n’y en a qu’un, ses comptes sur les autres sites "
-            "du réseau Stack Exchange. Les noms affichés ne sont pas uniques : des homonymes sont "
-            "possibles. 300 requêtes par jour sans compte, une ou deux par recherche."
+            {
+                "fr": (
+                    "Les utilisateurs de Stack Overflow qui affichent exactement ce nom ou ce "
+                    "pseudo (lieu, site, présentation) et, s’il n’y en a qu’un, ses comptes sur "
+                    "les autres sites du réseau Stack Exchange. Les noms affichés ne sont pas "
+                    "uniques : des homonymes sont possibles. 300 requêtes par jour sans compte, "
+                    "une ou deux par recherche."
+                ),
+                "en": (
+                    "The Stack Overflow users showing exactly this name or username (place, "
+                    "website, about) and, if there is only one, their accounts on the other Stack"
+                    " Exchange sites. Display names aren't unique: namesakes are possible. 300 "
+                    "requests a day without an account, one or two per search."
+                ),
+            }
         ),
         category="forums",
         accepts=frozenset({EntityKind.USERNAME, EntityKind.NAME}),
@@ -115,10 +130,7 @@ class StackExchange(SourceModule):
                     relation="has_account",
                     confidence=CONFIDENCE,
                     url=url,
-                    excerpt=(
-                        f"Compte du même titulaire sur {other.get('site_name', '?')} "
-                        "(réseau Stack Exchange), relié à un compte Stack Overflow homonyme."
-                    ),
+                    note=note("stackexchange_same_holder", site=other.get("site_name", "?")),
                     attributes={"site": other.get("site_name", "Stack Exchange")},
                     via=(EntityKind.ACCOUNT, origin),
                 )
@@ -128,7 +140,7 @@ class StackExchange(SourceModule):
         name = unescape(user.get("display_name", ""))
         # Without the name in the address, as the network's other accounts are given.
         url = f"https://stackoverflow.com/users/{user['user_id']}"
-        where = f"sur le profil Stack Overflow « {name} »"
+        where = note("on_stackoverflow_profile", name=name)
         created = user.get("creation_date")
         found = [
             Finding(
@@ -137,10 +149,7 @@ class StackExchange(SourceModule):
                 relation="has_account",
                 confidence=CONFIDENCE,
                 url=url,
-                excerpt=(
-                    f"Utilisateur Stack Overflow « {name} » "
-                    f"({user.get('reputation', 0)} points de réputation)."
-                ),
+                note=note("stackoverflow_user", name=name, reputation=user.get("reputation", 0)),
                 attributes={
                     "site": "Stack Overflow",
                     **({"location": unescape(user["location"])} if user.get("location") else {}),
@@ -160,7 +169,7 @@ class StackExchange(SourceModule):
                     relation="links_to",
                     confidence=CONFIDENCE,
                     url=url,
-                    excerpt=f"Site indiqué {where}.",
+                    note=note("site_given", where=where),
                 )
             )
         found += text_findings(

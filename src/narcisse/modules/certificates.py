@@ -21,6 +21,7 @@ from narcisse.engine.plugin import (
     Target,
     TransientError,
 )
+from narcisse.notes import Note, note
 
 CRT_SH = "https://crt.sh/"
 CERT_SPOTTER = "https://api.certspotter.com/v1/issuances"
@@ -61,11 +62,23 @@ def names_in(
 class Certificates(SourceModule):
     meta: ClassVar[ModuleMeta] = ModuleMeta(
         name="certificates",
-        title="Certificats (sous-domaines)",
+        title={
+            "fr": "Certificats (sous-domaines)",
+            "en": "Certificates (subdomains)",
+        },
         description=(
-            "Les sous-domaines d’un domaine que révèlent les journaux publics de certificats "
-            "(crt.sh, ou Cert Spotter quand crt.sh ne répond pas), et les adresses email "
-            "inscrites dans des certificats."
+            {
+                "fr": (
+                    "Les sous-domaines d’un domaine que révèlent les journaux publics de "
+                    "certificats (crt.sh, ou Cert Spotter quand crt.sh ne répond pas), et les "
+                    "adresses email inscrites dans des certificats."
+                ),
+                "en": (
+                    "The subdomains of a domain revealed by the public certificate logs (crt.sh, "
+                    "or Cert Spotter when crt.sh doesn't answer), and the email addresses written"
+                    " in certificates."
+                ),
+            }
         ),
         category="domains",
         accepts=frozenset({EntityKind.DOMAIN}),
@@ -95,7 +108,7 @@ class Certificates(SourceModule):
                 relation="subdomain",
                 confidence=0.9,
                 url=f"{CRT_SH}?q={name}" if source == "crt.sh" else None,
-                excerpt=self._excerpt("Nom vu", seen, source),
+                note=self._note("name", seen, source),
                 attributes={"first_certificate": seen.first, "last_certificate": seen.last},
             )
         for email, seen in emails.items():
@@ -105,7 +118,7 @@ class Certificates(SourceModule):
                 relation="certificate_email",
                 confidence=0.6,
                 url=f"{CRT_SH}?q={email}" if source == "crt.sh" else None,
-                excerpt=self._excerpt("Adresse inscrite", seen, source),
+                note=self._note("email", seen, source),
             )
         notes = {"certificates": len(entries), "subdomains": len(subdomains)}
         if len(subdomains) > MAX_NAMES:
@@ -113,11 +126,15 @@ class Certificates(SourceModule):
         await ctx.progress(1, 1, notes)
 
     @staticmethod
-    def _excerpt(what: str, seen: Seen, source: str) -> str:
-        count = f"{seen.certificates} certificat{'s' if seen.certificates > 1 else ''}"
-        valid = " encore valide" + ("s" if seen.certificates > 1 else "")
-        span = f", du {seen.first} au {seen.last}" if seen.first and seen.last else ""
-        return f"{what} dans {count}{valid if source != 'crt.sh' else ''}{span} ({source})."
+    def _note(what: str, seen: Seen, source: str) -> Note:
+        return note(
+            "certificates",
+            what=what,
+            count=seen.certificates,
+            first=seen.first,
+            last=seen.last,
+            source=source,
+        )
 
     async def _crt_sh(self, ctx: ModuleContext, domain: str) -> list[tuple[list[str], str, str]]:
         response = await ctx.http.get(

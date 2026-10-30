@@ -9,10 +9,12 @@ from fastapi.sse import EventSourceResponse, ServerSentEvent
 from pydantic import BaseModel
 from sqlalchemy import func, or_, select
 
-from narcisse.api.deps import ServicesDep
+from narcisse import notes
+from narcisse.api.deps import LangDep, ServicesDep
 from narcisse.domain import EntityKind, EntityStatus, ScanStatus
 from narcisse.engine.engine import scan_detail, scan_out
 from narcisse.errors import not_found
+from narcisse.i18n import pick
 from narcisse.schemas import (
     ActivityOut,
     EdgeOut,
@@ -38,12 +40,15 @@ class ScanIn(BaseModel):
 
 
 @router.get("/modules")
-async def list_modules(s: ServicesDep) -> list[ModuleOut]:
+async def list_modules(s: ServicesDep, lang: LangDep) -> list[ModuleOut]:
     preferences = s.engine.preferences()
     return [
         ModuleOut.model_validate(
             {
                 **vars(m.meta),
+                "title": pick(m.meta.title, lang),
+                "description": pick(m.meta.description, lang),
+                "other_hosts": pick(m.meta.other_hosts, lang),
                 "accepts": sorted(m.meta.accepts),
                 "produces": sorted(m.meta.produces),
                 "hosts": list(m.allowed_hosts(preferences)),
@@ -114,6 +119,7 @@ async def retry_run(run_id: int, s: ServicesDep) -> Response:
 async def list_results(
     scan_id: int,
     s: ServicesDep,
+    lang: LangDep,
     offset: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1, le=500)] = 200,
     kind: EntityKind | None = None,
@@ -149,7 +155,7 @@ async def list_results(
                 relation=edge.relation if edge else None,
                 confidence=edge.confidence if edge else None,
                 url=evidence.url,
-                excerpt=evidence.excerpt,
+                excerpt=notes.text(evidence.note, evidence.excerpt, lang),
                 captured_at=evidence.captured_at,
             )
             for evidence, entity, edge in rows
