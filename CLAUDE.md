@@ -100,8 +100,15 @@ fixtures, docs, commit messages or commit metadata.
   data), the declared names and user names, never tokens or other traces. Answers are JSON of a
   fixed shape, stored as annotations labelled as such; a verdict changes a trace's status only
   when the user accepts it. A provider whose data leaves the machine (Claude Code) needs the
-  user's agreement first (`llm_remote_ok`), and the UI shows the text before it is sent. Claude
-  Code runs headless with no tools, no session, `--safe-mode`, no MCP, in an empty folder.
+  user's agreement first (`llm_remote_ok`; only loopback addresses count as local, the home
+  network doesn't), and the UI shows the text before it is sent. Claude Code runs headless with
+  no tools, no session, `--safe-mode`, no MCP, in an empty folder. An OpenAI-compatible provider
+  contacts the one address in the settings (its key is a secret, like the tokens). A letter
+  leaves with the profile's names, e-mails, addresses and phones behind markers (`[NOM 1]`), put
+  back on return, and is refused if it lost the original's articles of law. Leads the assistant
+  reads are kept only if written as such in the trace's proofs, and are never traces: the pivot
+  never follows them. Narcisse installs no model server; it probes loopback ports for them and
+  has Ollama download a model only on the user's confirmed click.
 - **User data lives outside the repository**, in the OS data directory (`platformdirs`), overridable
   with `NARCISSE_DATA_DIR`. Demo mode and `npm run dev` use their own directories (`narcisse-demo`,
   `narcisse-dev`), so fictitious profiles never mix with real ones.
@@ -147,7 +154,8 @@ fixtures, docs, commit messages or commit metadata.
   `schedule.py`),
   `modules/` (one file per source; `_text.py` reads profiles' bios and relates findings to the
   profile they were read on), `api/`, `storage/` (models, Alembic migrations: `scripts/new-migration.py`),
-  `llm/` (the optional assistant: providers, the tasks and the text they send, the queue),
+  `llm/` (the optional assistant: providers, the tasks and the text they send, the queue, this
+  machine's resources and the model that suits them, local servers and model downloads),
   `history.py` (what changed between two scans), `export.py` (a profile's complete export,
   which the UI turns into CSV and HTML in `web/src/lib/report.ts`), `storage/backup.py`
   (backups, plain or sealed with a passphrase, and restoring them in place),

@@ -275,7 +275,8 @@ chaque scan les a laissées.
 Le bouton **Exporter** d’un profil enregistre un rapport HTML à lire ou imprimer (sans script ni
 ressource extérieure), ses traces en CSV pour un tableur, ou tout en JSON. Dans les **Réglages**,
 « Télécharger une sauvegarde » met tous tes profils, demandes et réglages dans un fichier
-`.narcisse`, chiffré si tu donnes une phrase de passe (il garde alors aussi tes tokens) ;
+`.narcisse`, chiffré si tu donnes une phrase de passe (il garde alors aussi tes tokens et la clé
+de ton assistant IA) ;
 « Restaurer » le remet en place, après avoir gardé tes données du moment dans une sauvegarde de
 sécurité. En ligne de commande, `narcisse backup [--chiffrer]` et `narcisse restore FICHIER` font
 de même (le second, Narcisse arrêté).
@@ -283,9 +284,18 @@ de même (le second, Narcisse arrêté).
 ### Un assistant IA, si tu veux
 
 Narcisse marche sans IA, et n’en utilise aucune tant que tu n’en choisis pas une dans les
-**Réglages**. Aujourd’hui, l’assistant possible est ton **Claude Code** (avec ton abonnement :
-installe-le et connecte-toi une fois, Narcisse ne fait que le lancer). Il sert à deux choses,
-depuis le détail d’une trace :
+**Réglages** :
+
+- **Claude Code**, avec ton abonnement : installe-le et connecte-toi une fois, Narcisse ne fait
+  que le lancer. Il tourne sans outils, sans tes réglages ni tes serveurs MCP, dans un dossier
+  vide : il ne peut que lire le texte qu’on lui donne et répondre.
+- **Un modèle sur ta machine** (Ollama, LM Studio, llama.cpp) : rien ne quitte ton ordinateur.
+  Narcisse lit ta mémoire et ta carte graphique, te conseille un modèle à ta mesure (avec le
+  temps de réponse à attendre) et, avec Ollama, le télécharge sur ton clic (taille annoncée, suivi
+  dans « Activité »). Il n’installe pas Ollama lui-même.
+- **Un autre service compatible OpenAI** : son adresse, son modèle, sa clé s’il en demande une.
+
+Depuis le détail d’une trace :
 
 - **« Est-ce bien moi ? »** : il compare la trace et ses preuves aux noms et pseudos que tu as
   déclarés, et dit si c’est sans doute toi, sans doute pas, ou impossible à dire. Le bouton
@@ -293,13 +303,21 @@ depuis le détail d’une trace :
   fois, le nombre est annoncé avant).
 - **Expliquer une trace** : ce que c’est, et ce qu’un inconnu pourrait en tirer. Tu peux réécrire
   ou masquer l’explication.
+- **Chercher des pistes** : il relève dans les preuves des emails, pseudos, domaines… qui
+  pourraient mener à d’autres traces. Seuls ceux écrits tels quels dans les preuves sont gardés ;
+  ils attendent dans Éléments → Pistes que tu les ajoutes, et aucun scan ne les suit tout seul.
+
+Et dans « Préparer la demande », **Adapter avec l’IA** réécrit la lettre avec ce que tu veux y
+ajouter et le ton choisi. Ton nom, ton email, ton adresse et ton téléphone y sont remplacés par
+des repères avant l’envoi, et remis à leur place au retour ; une proposition qui perd les
+articles de loi est écartée. Le texte ne remplace le tien que si tu cliques « Reprendre ce
+texte ».
 
 Chaque réponse est marquée « Avis de l’IA » et ne change rien d’elle-même : un verdict n’est
-appliqué au statut de la trace que si tu cliques « Appliquer ». Avec Claude Code, ce que tu
-demandes part chez Anthropic : il faut l’accepter une fois dans les Réglages, et « Voir ce qui
-part » montre le texte exact avant l’envoi (la trace, ses preuves, tes noms et pseudos déclarés,
-rien d’autre de ton profil). Claude Code tourne sans outils, sans tes réglages ni tes serveurs MCP,
-dans un dossier vide : il ne peut que lire ce texte et répondre.
+appliqué au statut de la trace que si tu cliques « Appliquer ». « Voir ce qui part » montre le
+texte exact avant l’envoi (la trace, ses preuves, tes noms et pseudos déclarés, rien d’autre de ton
+profil). Un assistant hors de ta machine (Claude Code, un service, ou un serveur de ton réseau
+local) ne reçoit rien tant que tu ne l’as pas accepté une fois dans les Réglages.
 
 ## Ajouter une source
 

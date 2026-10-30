@@ -11,6 +11,13 @@ encore beaucoup.
   trace » ; « Trier avec l’IA » pose la première question pour les traces pas encore triées.
   Chaque réponse est marquée « Avis de l’IA », rien n’est appliqué sans ton clic, et tu vois le
   texte exact envoyé avant l’envoi.
+- L’assistant peut aussi être un modèle sur ta machine (Ollama, LM Studio, llama.cpp) : Narcisse
+  te conseille un modèle selon ta mémoire et ta carte graphique, et le fait télécharger par Ollama
+  sur ton clic. Ou n’importe quel service compatible OpenAI, avec sa clé.
+- « Chercher des pistes » dans une trace : les emails, pseudos ou domaines écrits dans ses
+  preuves, proposés dans Éléments → Pistes, jamais suivis sans toi.
+- « Adapter avec l’IA » dans une lettre : ton contexte et ton ton, ton identité remplacée par des
+  repères avant l’envoi, les articles de loi gardés.
 
 ## 0.2.0 (2026-10-28)
 
