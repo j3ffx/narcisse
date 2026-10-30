@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -34,11 +35,11 @@ export function ActivityCenter() {
       <SheetTrigger asChild>
         <Button variant="outline" size="sm" className="relative">
           <ActivityIcon aria-hidden />
-          Activité
+          {t().activity.title}
           {active > 0 && (
             <span
               className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs tabular-nums text-primary-foreground"
-              aria-label={`${active} tâche${active > 1 ? 's' : ''} en cours`}
+              aria-label={t().activity.running(active)}
             >
               {active}
             </span>
@@ -47,18 +48,16 @@ export function ActivityCenter() {
       </SheetTrigger>
       <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
         <SheetHeader>
-          <SheetTitle>Activité</SheetTitle>
-          <SheetDescription>Les scans en cours et ceux des dernières 24 heures.</SheetDescription>
+          <SheetTitle>{t().activity.title}</SheetTitle>
+          <SheetDescription>{t().activity.intro}</SheetDescription>
         </SheetHeader>
         <div className="grid gap-4 px-4 pb-6">
           {activity.data === undefined && (
-            <p className="text-sm text-muted-foreground">Connexion à Narcisse…</p>
+            <p className="text-sm text-muted-foreground">{t().activity.connecting}</p>
           )}
           {pull.data && pull.data.status !== 'idle' && <ModelDownload />}
           {activity.data !== undefined && scans.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              Aucun scan en cours. Lance-en un depuis un profil.
-            </p>
+            <p className="text-sm text-muted-foreground">{t().activity.none}</p>
           )}
           {scans.map((scan) => (
             <ScanCard key={scan.id} scan={scan} onNavigate={() => setOpen(false)} />
@@ -78,26 +77,26 @@ function ModelDownload() {
   const text = {
     idle: '',
     pulling: pullProgress(data.completed, data.total),
-    done: 'Téléchargé : c’est le modèle de ton assistant.',
+    done: t().activity.pullDone,
     failed: messageFor(data.error_code ?? 'pull_failed'),
-    cancelled: 'Annulé.',
+    cancelled: t().activity.pullCancelled,
   }[data.status];
   return (
     <section
       className="grid gap-2 rounded-lg border p-3"
-      aria-label={`Téléchargement de ${data.model ?? 'un modèle'}`}
+      aria-label={t().activity.pullOf(data.model)}
       data-testid="activity-pull"
     >
       <p className="flex items-center gap-2 font-medium">
         <DownloadIcon aria-hidden className="size-4" />
-        Modèle {data.model} pour l’assistant
+        {t().activity.pullTitle(String(data.model))}
       </p>
       {data.status === 'pulling' && data.total > 0 && (
         <progress
           className="h-2 w-full accent-primary"
           max={data.total}
           value={data.completed}
-          aria-label="Progression du téléchargement"
+          aria-label={t().activity.pullProgress}
         />
       )}
       <p className="text-sm" role={data.status === 'failed' ? 'alert' : 'status'}>
@@ -111,7 +110,7 @@ function ModelDownload() {
             disabled={cancel.isPending}
             onClick={() => cancel.mutate()}
           >
-            Annuler le téléchargement
+            {t().activity.pullCancel}
           </Button>
         </div>
       )}
@@ -124,7 +123,7 @@ function ScanCard({ scan, onNavigate }: { scan: ScanDetail; onNavigate: () => vo
   return (
     <section
       className="rounded-lg border p-3"
-      aria-label={`Scan de ${scan.profile_name}`}
+      aria-label={t().activity.scanOf(scan.profile_name)}
       data-testid="activity-scan"
       data-status={scan.status}
     >
@@ -138,8 +137,7 @@ function ScanCard({ scan, onNavigate }: { scan: ScanDetail; onNavigate: () => vo
             {scan.profile_name}
           </Link>
           <p className="text-xs text-muted-foreground">
-            {formatDate(scan.created_at)} · {scan.results_count} résultat
-            {scan.results_count > 1 ? 's' : ''}
+            {formatDate(scan.created_at)} · {t().scan.results(scan.results_count)}
           </p>
         </div>
         <ScanStatusBadge status={scan.status} />

@@ -1,3 +1,4 @@
+import { locale } from '@/i18n';
 import { useEffect, useState } from 'react';
 import type { Run } from './types';
 
@@ -45,8 +46,8 @@ export function secondsUntil(iso: string, now: number): number {
   return Math.max(0, (Date.parse(iso) - now) / 1000);
 }
 
-const DATE = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
-
 export function formatDate(iso: string): string {
-  return DATE.format(new Date(iso));
+  return new Intl.DateTimeFormat(locale(), { dateStyle: 'medium', timeStyle: 'short' }).format(
+    new Date(iso),
+  );
 }

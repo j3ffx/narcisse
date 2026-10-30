@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { Pending } from '@/components/Pending';
 import { Label } from '@/components/ui/label';
 import { errorMessage } from '@/lib/errors';
@@ -8,20 +9,7 @@ import type { Entity, Scan } from '@/lib/types';
 import { useId, useState } from 'react';
 import { Link } from 'wouter';
 
-const GROUPS: { key: 'new' | 'gone' | 'modified' | 'unchecked'; title: string; what: string }[] = [
-  { key: 'new', title: 'Nouvelles', what: 'Vues pour la première fois.' },
-  {
-    key: 'gone',
-    title: 'Disparues',
-    what: 'Les recherches qui les avaient trouvées sont repassées sans erreur, sans les revoir.',
-  },
-  { key: 'modified', title: 'Modifiées', what: 'La page ou le profil a changé de contenu.' },
-  {
-    key: 'unchecked',
-    title: 'Non revérifiées',
-    what: 'Pas revues, mais leurs recherches ne sont pas toutes repassées : rien à en conclure.',
-  },
-];
+const GROUPS = ['new', 'gone', 'modified', 'unchecked'] as const;
 
 /** What changed between two of the profile's finished scans (the checks of one trace left
  * out). */
@@ -40,7 +28,7 @@ export function ScanDiff({ profileId, scans }: { profileId: number; scans: Scan[
   const options = (pick: (s: Scan) => boolean) =>
     comparable.filter(pick).map((s) => (
       <option key={s.id} value={s.id}>
-        {formatDate(s.created_at)} · {s.results_count} résultat{s.results_count > 1 ? 's' : ''}
+        {formatDate(s.created_at)} · {t().scan.results(s.results_count)}
       </option>
     ));
 
@@ -48,15 +36,13 @@ export function ScanDiff({ profileId, scans }: { profileId: number; scans: Scan[
     <section aria-labelledby={`${id}-title`} className="grid gap-3" data-testid="scan-diff">
       <div>
         <h2 id={`${id}-title`} className="font-heading text-lg font-semibold">
-          Ce qui a changé
+          {t().diff.title}
         </h2>
-        <p className="text-sm text-muted-foreground">
-          Entre deux scans terminés (les vérifications d’une seule trace ne comptent pas).
-        </p>
+        <p className="text-sm text-muted-foreground">{t().diff.intro}</p>
       </div>
       <div className="flex flex-wrap gap-3">
         <div className="grid gap-1">
-          <Label htmlFor={`${id}-before`}>Du scan</Label>
+          <Label htmlFor={`${id}-before`}>{t().diff.from}</Label>
           <select
             id={`${id}-before`}
             className="h-8 rounded-lg border bg-background px-2 text-sm"
@@ -67,7 +53,7 @@ export function ScanDiff({ profileId, scans }: { profileId: number; scans: Scan[
           </select>
         </div>
         <div className="grid gap-1">
-          <Label htmlFor={`${id}-after`}>au scan</Label>
+          <Label htmlFor={`${id}-after`}>{t().diff.to}</Label>
           <select
             id={`${id}-after`}
             className="h-8 rounded-lg border bg-background px-2 text-sm"
@@ -81,16 +67,16 @@ export function ScanDiff({ profileId, scans }: { profileId: number; scans: Scan[
           </select>
         </div>
       </div>
-      {diff.isPending && <Pending label="Comparaison…" />}
+      {diff.isPending && <Pending label={t().diff.comparing} />}
       {diff.isError && <p role="alert">{errorMessage(diff.error)}</p>}
       {diff.data && (
         <div className="grid gap-4 sm:grid-cols-2">
-          {GROUPS.map(({ key, title, what }) => (
+          {GROUPS.map((key) => (
             <DiffGroup
               key={key}
               profileId={profileId}
-              title={title}
-              what={what}
+              title={t().diff.groups[key].title}
+              what={t().diff.groups[key].what}
               traces={diff.data[key]}
               testId={`diff-${key}`}
             />
@@ -148,7 +134,7 @@ function DiffGroup({
           className="w-fit text-xs underline underline-offset-2"
           onClick={() => setAll(true)}
         >
-          Tout afficher ({traces.length})
+          {t().diff.showAll(traces.length)}
         </button>
       )}
     </div>

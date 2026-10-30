@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -32,15 +33,13 @@ export function SeedsEditor({ profileId, seeds }: { profileId: number; seeds: Se
     <section aria-labelledby="seeds-title" className="grid gap-3">
       <div>
         <h2 id="seeds-title" className="font-heading text-lg font-semibold">
-          Ce qui t’identifie
+          {t().seeds.title}
         </h2>
-        <p className="text-sm text-muted-foreground">
-          Les scans partent de ces éléments. Un élément ignoré reste noté mais n’est pas cherché.
-        </p>
+        <p className="text-sm text-muted-foreground">{t().seeds.intro}</p>
       </div>
       <form onSubmit={submit} className="flex flex-wrap items-end gap-2">
         <div className="grid gap-1.5">
-          <Label htmlFor="seed-kind">Type</Label>
+          <Label htmlFor="seed-kind">{t().profiles.kind}</Label>
           <Select value={kind} onValueChange={(v) => setKind(v as SeedKind)}>
             <SelectTrigger id="seed-kind" className="w-44">
               <SelectValue />
@@ -55,7 +54,7 @@ export function SeedsEditor({ profileId, seeds }: { profileId: number; seeds: Se
           </Select>
         </div>
         <div className="grid min-w-56 flex-1 gap-1.5">
-          <Label htmlFor="seed-value">Valeur</Label>
+          <Label htmlFor="seed-value">{t().seeds.value}</Label>
           <Input
             id="seed-value"
             value={value}
@@ -72,7 +71,7 @@ export function SeedsEditor({ profileId, seeds }: { profileId: number; seeds: Se
         </div>
         <Button type="submit" disabled={add.isPending || !value.trim()}>
           <PlusIcon aria-hidden />
-          Ajouter
+          {t().seeds.add}
         </Button>
       </form>
       {add.isError && (
@@ -82,7 +81,7 @@ export function SeedsEditor({ profileId, seeds }: { profileId: number; seeds: Se
       )}
       {seeds.length === 0 ? (
         <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-          Rien encore. Commence par ton nom, un pseudo ou un email.
+          {t().seeds.none}
         </p>
       ) : (
         <ul className="divide-y rounded-lg border">
@@ -111,12 +110,12 @@ export function SeedsEditor({ profileId, seeds }: { profileId: number; seeds: Se
                   }
                 >
                   {ignored ? <EyeOffIcon aria-hidden /> : <EyeIcon aria-hidden />}
-                  {ignored ? 'Ignoré' : 'Surveillé'}
+                  {ignored ? t().seeds.ignored : t().seeds.watched}
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  aria-label={`Retirer ${seed.value}`}
+                  aria-label={t().seeds.remove(seed.value)}
                   onClick={() => remove.mutate(seed.id)}
                 >
                   <Trash2Icon aria-hidden />

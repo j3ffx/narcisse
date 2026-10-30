@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { Pending } from '@/components/Pending';
 import { ReviewButtons } from '@/components/ReviewButtons';
 import { Button } from '@/components/ui/button';
@@ -20,11 +21,7 @@ import { useHidden, useSelectedTrace, useSourceTitle, type TraceView } from './u
 const ROW_HEIGHT = 68;
 
 type Order = 'recent' | 'risk' | 'confidence';
-const ORDERS: [Order, string][] = [
-  ['recent', 'les plus récentes'],
-  ['risk', 'les plus exposantes'],
-  ['confidence', 'les plus sûres'],
-];
+const ORDERS: Order[] = ['recent', 'risk', 'confidence'];
 const byOrder: Record<Order, (a: GraphNode, b: GraphNode) => number> = {
   recent: (a, b) => b.last_seen.localeCompare(a.last_seen),
   risk: (a, b) => (b.risk ?? 0) - (a.risk ?? 0),
@@ -58,7 +55,7 @@ export function TraceList({ profileId, view }: { profileId: number; view: TraceV
     overscan: 10,
   });
 
-  if (graph.isPending) return <Pending label="Chargement des traces…" />;
+  if (graph.isPending) return <Pending label={t().list.loading} />;
   if (graph.isError) return <p role="alert">{errorMessage(graph.error)}</p>;
   const pick = (id: number) => {
     select(id);
@@ -76,16 +73,16 @@ export function TraceList({ profileId, view }: { profileId: number; view: TraceV
         onPick={pick}
       />
       <label className="flex w-fit items-center gap-2 text-sm">
-        Afficher d’abord
+        {t().list.order}
         <select
           className="h-8 rounded-lg border bg-background px-2 text-sm"
           value={order}
           onChange={(e) => setOrder(e.target.value as Order)}
           data-testid="trace-order"
         >
-          {ORDERS.map(([value, title]) => (
+          {ORDERS.map((value) => (
             <option key={value} value={value}>
-              {title}
+              {t().list.orders[value]}
             </option>
           ))}
         </select>
@@ -100,7 +97,7 @@ export function TraceList({ profileId, view }: { profileId: number; view: TraceV
           ref={parent}
           className="min-h-[24rem] overflow-y-auto rounded-lg border"
           tabIndex={0}
-          aria-label="Liste des traces"
+          aria-label={t().list.label}
         >
           <ul className="relative" style={{ height: virtualizer.getTotalSize() }}>
             {virtualizer.getVirtualItems().map((row) => {
@@ -133,14 +130,14 @@ export function TraceList({ profileId, view }: { profileId: number; view: TraceV
                     <span className="truncate text-xs text-muted-foreground">
                       {KIND_LABELS[node.kind]} ·{' '}
                       {node.modules
-                        .map((m) => (m === 'seed' ? 'déclaré par toi' : sourceTitle(m)))
+                        .map((m) => (m === 'seed' ? t().panel.declared : sourceTitle(m)))
                         .join(', ')}{' '}
                       · {ENTITY_STATUS_LABELS[node.status]}
-                      {node.gone_at ? ` · disparue le ${formatDate(node.gone_at)}` : ''}
+                      {node.gone_at ? ` · ${t().list.goneOn(formatDate(node.gone_at))}` : ''}
                       {node.risk !== null && node.kind !== 'identity'
-                        ? ` · risque ${RISK_LEVEL_LABELS[riskLevel(node.risk)]} (${points(node.risk)})`
+                        ? ` · ${t().list.risk(RISK_LEVEL_LABELS[riskLevel(node.risk)], points(node.risk))}`
                         : ''}{' '}
-                      · vue le {formatDate(node.last_seen)}
+                      · {t().list.seenOn(formatDate(node.last_seen))}
                     </span>
                   </button>
                   {node.kind !== 'identity' && <ReviewButtons entity={node} />}
@@ -149,7 +146,7 @@ export function TraceList({ profileId, view }: { profileId: number; view: TraceV
             })}
           </ul>
           {rows.length === 0 && (
-            <p className="p-6 text-sm text-muted-foreground">Aucune trace avec ces filtres.</p>
+            <p className="p-6 text-sm text-muted-foreground">{t().list.none}</p>
           )}
         </div>
         {selected !== null && (
@@ -164,7 +161,7 @@ export function TraceList({ profileId, view }: { profileId: number; view: TraceV
               <Button variant="outline" size="sm" asChild className="w-fit">
                 <Link href={`/profils/${profileId}?trace=${selected}`}>
                   <WaypointsIcon aria-hidden />
-                  Voir dans le graphe
+                  {t().list.seeInGraph}
                 </Link>
               </Button>
             }

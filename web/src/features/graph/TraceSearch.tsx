@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { Input } from '@/components/ui/input';
 import { search } from '@/lib/graph';
 import { KIND_LABELS } from '@/lib/labels';
@@ -10,8 +11,8 @@ import { KIND_ICONS } from './kinds';
 export function TraceSearch({
   nodes,
   onPick,
-  label = 'Chercher une trace (raccourci : /)',
-  placeholder = 'Chercher une trace…  /',
+  label = t().search.label,
+  placeholder = t().search.placeholder,
   shortcut = true,
   className = 'relative min-w-56 flex-1 sm:max-w-sm',
 }: {
@@ -94,12 +95,12 @@ export function TraceSearch({
         <ul
           id={listId}
           role="listbox"
-          aria-label="Traces trouvées"
+          aria-label={t().search.found}
           className="absolute inset-x-0 top-full z-40 mt-1 max-h-80 overflow-y-auto rounded-lg bg-popover p-1 text-sm shadow-md ring-1 ring-foreground/10"
         >
           {found.length === 0 && (
             <li className="px-2 py-1.5 text-muted-foreground" role="presentation">
-              Aucune trace ne correspond.
+              {t().search.none}
             </li>
           )}
           {found.map((node, i) => {

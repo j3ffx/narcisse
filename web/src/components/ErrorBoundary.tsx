@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { post } from '@/lib/api';
 import { Component, type ErrorInfo, type ReactNode } from 'react';
@@ -28,12 +29,10 @@ export class ErrorBoundary extends Component<
     if (!this.state.failed) return this.props.children;
     return (
       <div role="alert" className="grid justify-items-start gap-3 rounded-lg border p-6">
-        <p className="font-medium">{this.props.label} a rencontré un problème.</p>
-        <p className="text-sm text-muted-foreground">
-          Le détail est dans le journal de Narcisse. Tes données ne sont pas touchées.
-        </p>
+        <p className="font-medium">{t().errorBoundary.failed(this.props.label)}</p>
+        <p className="text-sm text-muted-foreground">{t().errorBoundary.details}</p>
         <Button variant="outline" onClick={() => this.setState({ failed: false })}>
-          Réessayer
+          {t().common.retry}
         </Button>
       </div>
     );

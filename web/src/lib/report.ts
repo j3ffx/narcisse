@@ -1,3 +1,4 @@
+import { lang, num, t } from '@/i18n';
 // A profile's exports as the user keeps them: the CSV of its traces and a self-contained HTML
 // report (no script, no outside resource, printable as PDF), both made from the API's complete
 // export (`narcisse-export`, version 1) with the UI's own French texts. Pure functions, tested in
@@ -50,7 +51,7 @@ const kept = (data: ProfileExport) =>
   data.traces.filter((t) => t.kind !== 'identity' && t.status !== 'false_positive');
 
 const sources = (trace: GraphNode, title: SourceTitle) =>
-  trace.modules.map((m) => (m === 'seed' ? 'déclaré par toi' : title(m))).join(', ');
+  trace.modules.map((m) => (m === 'seed' ? t().panel.declared : title(m))).join(', ');
 
 function firstUrls(data: ProfileExport): Map<number, string> {
   const urls = new Map<number, string>();
@@ -75,36 +76,22 @@ function cell(value: string | number): string {
 export function toCsv(data: ProfileExport, title: SourceTitle): string {
   const urls = firstUrls(data);
   const requests = requestsByTrace(data);
-  const header = [
-    'Type',
-    'Trace',
-    'Statut',
-    'Confiance',
-    'Risque',
-    'Niveau',
-    'Sources',
-    'Vue d’abord',
-    'Vue en dernier',
-    'Disparue depuis',
-    'Preuves',
-    'Première preuve',
-    'Demande suivie',
-  ];
-  const lines = kept(data).map((t) => {
-    const request = requests.get(t.id);
+  const header = t().report.csvHeader;
+  const lines = kept(data).map((trace) => {
+    const request = requests.get(trace.id);
     return [
-      KIND_LABELS[t.kind],
-      t.display,
-      ENTITY_STATUS_LABELS[t.status],
-      t.confidence === null ? '' : points(t.confidence),
-      t.risk === null ? '' : points(t.risk),
-      t.risk === null ? '' : RISK_LEVEL_LABELS[riskLevel(t.risk)],
-      sources(t, title),
-      t.first_seen.slice(0, 10),
-      t.last_seen.slice(0, 10),
-      t.gone_at ? t.gone_at.slice(0, 10) : '',
-      t.evidence_count ?? '',
-      urls.get(t.id) ?? '',
+      KIND_LABELS[trace.kind],
+      trace.display,
+      ENTITY_STATUS_LABELS[trace.status],
+      trace.confidence === null ? '' : points(trace.confidence),
+      trace.risk === null ? '' : points(trace.risk),
+      trace.risk === null ? '' : RISK_LEVEL_LABELS[riskLevel(trace.risk)],
+      sources(trace, title),
+      trace.first_seen.slice(0, 10),
+      trace.last_seen.slice(0, 10),
+      trace.gone_at ? trace.gone_at.slice(0, 10) : '',
+      trace.evidence_count ?? '',
+      urls.get(trace.id) ?? '',
       request ? REQUEST_STATUS_LABELS[request.status] : '',
     ];
   });
@@ -140,6 +127,7 @@ ul{margin:.25rem 0;padding-left:1.25rem}@media print{body{margin:0}h2{break-afte
 /** A self-contained report of the profile: no script, no outside resource. */
 export function toReport(data: ProfileExport, title: SourceTitle): string {
   const e = escapeHtml;
+  const say = t().report;
   const traces = kept(data);
   const requests = requestsByTrace(data);
   const date = formatDay(data.exported_at);
@@ -155,64 +143,67 @@ export function toReport(data: ProfileExport, title: SourceTitle): string {
   ).join('');
 
   const history = data.history.length
-    ? `<table><thead><tr><th>Scan du</th><th>Exposition</th>${LEVELS.map((l) => `<th>${RISK_LEVEL_LABELS[l]}</th>`).join('')}</tr></thead><tbody>${data.history
+    ? `<table><thead><tr><th>${say.scanOf}</th><th>${say.exposure}</th>${LEVELS.map((l) => `<th>${RISK_LEVEL_LABELS[l]}</th>`).join('')}</tr></thead><tbody>${data.history
         .map(
           (p) =>
-            `<tr><td>${e(formatDate(p.taken_at))}</td><td>${p.exposure.toLocaleString('fr-FR')}</td>${LEVELS.map((l) => `<td>${p.levels[l] ?? 0}</td>`).join('')}</tr>`,
+            `<tr><td>${e(formatDate(p.taken_at))}</td><td>${num(p.exposure)}</td>${LEVELS.map((l) => `<td>${p.levels[l] ?? 0}</td>`).join('')}</tr>`,
         )
         .join('')}</tbody></table>`
-    : '<p class="muted">Pas encore d’historique : il commence au premier scan terminé.</p>';
+    : `<p class="muted">${say.noHistory}</p>`;
 
   const topHtml = top.length
     ? top
-        .map((t) => {
-          const request = requests.get(t.id);
-          const reasons = t.reasons.risk
+        .map((trace) => {
+          const request = requests.get(trace.id);
+          const reasons = trace.reasons.risk
             .map((r) => {
               const effect = reasonEffect(r);
               return `<li>${e(reasonText(r))}${effect ? ` <span class="muted">(${e(effect)})</span>` : ''}</li>`;
             })
             .join('');
-          return `<h3>${e(t.display)}</h3><p class="muted">${e(KIND_LABELS[t.kind])} · risque ${points(t.risk ?? 0)} / 100 (${RISK_LEVEL_LABELS[riskLevel(t.risk ?? 0)]}) · confiance ${points(t.confidence ?? 0)} / 100 · ${e(sources(t, title))}</p>${reasons ? `<ul>${reasons}</ul>` : ''}${request ? `<p>Suivie : ${e(actionText(request.action).title)} · ${REQUEST_STATUS_LABELS[request.status]}</p>` : ''}`;
+          const risk = points(trace.risk ?? 0);
+          const level = RISK_LEVEL_LABELS[riskLevel(trace.risk ?? 0)];
+          const scores = say.scores(risk, level, points(trace.confidence ?? 0));
+          return `<h3>${e(trace.display)}</h3><p class="muted">${e(KIND_LABELS[trace.kind])} · ${e(scores)} · ${e(sources(trace, title))}</p>${reasons ? `<ul>${reasons}</ul>` : ''}${request ? `<p>${say.followed} ${e(actionText(request.action).title)} · ${REQUEST_STATUS_LABELS[request.status]}</p>` : ''}`;
         })
         .join('')
-    : '<p class="muted">Aucune trace exposante.</p>';
+    : `<p class="muted">${say.noTop}</p>`;
 
   const requestRows = data.requests.length
-    ? `<table><thead><tr><th>Trace</th><th>Action</th><th>Site</th><th>Statut</th><th>Envoyée le</th><th>Dernier contrôle</th></tr></thead><tbody>${data.requests
+    ? `<table><thead><tr>${say.requestHeader.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${data.requests
         .map(
           (r) =>
-            `<tr><td class="value">${e(r.entity.display)}</td><td>${e(actionText(r.action).title)}</td><td>${e(r.service)}</td><td>${REQUEST_STATUS_LABELS[r.status]}</td><td>${r.sent_at ? e(formatDay(r.sent_at)) : ''}</td><td>${r.check === 'gone' ? 'disparue' : r.check === 'still_there' ? 'toujours là' : ''}</td></tr>`,
+            `<tr><td class="value">${e(r.entity.display)}</td><td>${e(actionText(r.action).title)}</td><td>${e(r.service)}</td><td>${REQUEST_STATUS_LABELS[r.status]}</td><td>${r.sent_at ? e(formatDay(r.sent_at)) : ''}</td><td>${r.check === 'gone' ? say.gone : r.check === 'still_there' ? say.stillThere : ''}</td></tr>`,
         )
         .join('')}</tbody></table>`
-    : '<p class="muted">Aucune demande suivie.</p>';
+    : `<p class="muted">${say.noRequest}</p>`;
 
-  const all = `<table><thead><tr><th>Type</th><th>Trace</th><th>Statut</th><th>Risque</th><th>Confiance</th><th>Vue en dernier</th></tr></thead><tbody>${[
+  const all = `<table><thead><tr>${say.allHeader.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${[
     ...traces,
   ]
     .sort((a, b) => (b.risk ?? 0) - (a.risk ?? 0))
     .map(
-      (t) =>
-        `<tr><td>${e(KIND_LABELS[t.kind])}</td><td class="value">${e(t.display)}${t.gone_at ? ' <span class="muted">(disparue)</span>' : ''}</td><td>${ENTITY_STATUS_LABELS[t.status]}</td><td>${t.risk === null ? '' : points(t.risk)}</td><td>${t.confidence === null ? '' : points(t.confidence)}</td><td>${e(t.last_seen.slice(0, 10))}</td></tr>`,
+      (trace) =>
+        `<tr><td>${e(KIND_LABELS[trace.kind])}</td><td class="value">${e(trace.display)}${trace.gone_at ? ` <span class="muted">(${say.gone})</span>` : ''}</td><td>${ENTITY_STATUS_LABELS[trace.status]}</td><td>${trace.risk === null ? '' : points(trace.risk)}</td><td>${trace.confidence === null ? '' : points(trace.confidence)}</td><td>${e(trace.last_seen.slice(0, 10))}</td></tr>`,
     )
     .join('')}</tbody></table>`;
 
   return `<!doctype html>
-<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<html lang="${lang()}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Narcisse — ${e(data.profile.name)} — ${e(date)}</title><style>${STYLE}</style></head>
 <body>
-<h1>Ce qu’Internet sait de ${e(data.profile.name)}</h1>
-<p class="muted">Rapport Narcisse ${e(data.narcisse)} du ${e(date)} · profil ${e(PROFILE_KIND_LABELS[data.profile.kind])} · ${traces.length} trace${traces.length > 1 ? 's' : ''}.</p>
-<p class="warn">Ce fichier contient des données personnelles : garde-le pour toi.</p>
-<h2>Ton exposition</h2>
+<h1>${e(say.title(data.profile.name))}</h1>
+<p class="muted">${e(say.subtitle(data.narcisse, date, PROFILE_KIND_LABELS[data.profile.kind], traces.length))}</p>
+<p class="warn">${say.warning}</p>
+<h2>${t().requests.exposure}</h2>
 <div class="levels">${levels}</div>
-<p class="muted">Les traces qui sont à toi (ou pas encore triées) et que l’on trouve encore en public, par niveau de risque.</p>
+<p class="muted">${say.exposureIntro}</p>
 ${history}
-<h2>Les traces les plus exposantes</h2>
+<h2>${say.top}</h2>
 ${topHtml}
-<h2>Tes demandes</h2>
+<h2>${t().requests.yours}</h2>
 ${requestRows}
-<h2>Toutes les traces</h2>
+<h2>${say.all}</h2>
 ${all}
 </body></html>
 `;

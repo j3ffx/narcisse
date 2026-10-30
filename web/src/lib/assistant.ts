@@ -1,51 +1,25 @@
+import { lazy, num, t } from '@/i18n';
 // The assistant's words and how its answers sit in the cache. Pure functions, tested in
 // assistant.test.ts.
 import type { Annotation, AnnotationTask, AssistantProvider, Verdict } from './types';
 
-export const PROVIDER_LABELS: Record<AssistantProvider, string> = {
-  none: 'Aucun',
-  claude_code: 'Claude Code',
-  local: 'Un modèle sur ta machine',
-  openai: 'Un autre service compatible OpenAI',
-  demo: 'Assistant de démonstration',
-};
+export const PROVIDER_LABELS: Record<AssistantProvider, string> = lazy(
+  () => t().assistant.providers,
+);
 
 /** The provider's short name, as answers name it. */
-export const PROVIDER_NAMES: Record<AssistantProvider, string> = {
-  ...PROVIDER_LABELS,
-  local: 'Le modèle local',
-  openai: 'Le service',
-};
+export const PROVIDER_NAMES: Record<AssistantProvider, string> = lazy(() => t().assistant.names);
 
-export const MODEL_LABELS: Record<string, string> = {
-  haiku: 'Haiku (rapide, économe)',
-  sonnet: 'Sonnet (plus fin, plus lent)',
-  opus: 'Opus (le plus fin, le plus lent)',
-};
+export const MODEL_LABELS: Record<string, string> = lazy(() => t().assistant.models);
 
-export const VERDICT_LABELS: Record<Verdict, string> = {
-  me: 'C’est sans doute toi',
-  not_me: 'Ce n’est sans doute pas toi',
-  unsure: 'Impossible à dire',
-};
+export const VERDICT_LABELS: Record<Verdict, string> = lazy(() => t().assistant.verdicts);
 
-export const TASK_LABELS: Record<AnnotationTask, string> = {
-  triage: 'Est-ce bien moi ?',
-  explain: 'Expliquer cette trace',
-  leads: 'Chercher des pistes',
-  letter: 'Adapter la lettre',
-};
+export const TASK_LABELS: Record<AnnotationTask, string> = lazy(() => t().assistant.tasks);
 
 /** What a question waiting or under way is doing. */
 export function stateText(annotation: Annotation, provider: string): string {
-  if (annotation.state === 'queued') return 'En attente de son tour…';
-  if (annotation.state === 'running')
-    return {
-      triage: `${provider} compare la trace à ce que tu as déclaré…`,
-      explain: `${provider} lit la trace et ses preuves…`,
-      leads: `${provider} cherche des pistes dans les preuves…`,
-      letter: `${provider} réécrit la lettre…`,
-    }[annotation.task];
+  if (annotation.state === 'queued') return t().assistant.queued;
+  if (annotation.state === 'running') return t().assistant.running[annotation.task](provider);
   return '';
 }
 
@@ -94,11 +68,8 @@ export const leadsOf = (annotation: Annotation): LeadItem[] => {
 
 /** A download's progress, « 1,2 / 3,4 Go (35 %) », or what it waits for. */
 export function pullProgress(completed: number, total: number): string {
-  if (!total) return 'Préparation du téléchargement…';
+  if (!total) return t().assistant.preparingDownload;
   const gb = (bytes: number) =>
-    (bytes / 2 ** 30).toLocaleString('fr-FR', {
-      minimumFractionDigits: 1,
-      maximumFractionDigits: 1,
-    });
-  return `${gb(completed)} / ${gb(total)} Go (${Math.floor((completed / total) * 100)} %)`;
+    num(bytes / 2 ** 30, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  return t().assistant.progress(gb(completed), gb(total), Math.floor((completed / total) * 100));
 }

@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { useSearxng, useStartSearxng } from '@/lib/queries';
 import { launchState } from '@/lib/searxng';
@@ -16,13 +17,13 @@ export function SearxngDown() {
   if (data.running) {
     return (
       <p className="text-sm" role="status">
-        SearXNG répond de nouveau.
+        {t().searxng.backUp}
       </p>
     );
   }
   return (
     <div className="grid gap-1.5 text-sm" data-testid="searxng-down">
-      <p>Ton instance SearXNG ne répond pas : elle s’est sans doute arrêtée avec l’ordinateur.</p>
+      <p>{t().searxng.down}</p>
       <div className="flex flex-wrap items-center gap-2">
         <Button
           type="button"
@@ -37,7 +38,7 @@ export function SearxngDown() {
           ) : (
             <PlayIcon aria-hidden />
           )}
-          Relancer SearXNG
+          {t().searxng.restart}
         </Button>
         <span id={`${id}-state`} className="text-muted-foreground" role="status">
           {launchState(data)}

@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { Pending } from '@/components/Pending';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -51,31 +52,30 @@ export function LetterAssistant({
     >
       <summary className="flex w-fit cursor-pointer items-center gap-1.5 font-medium">
         <SparklesIcon aria-hidden className="size-4" />
-        Adapter avec l’IA
+        {t().letterAi.title}
       </summary>
       {blocked ? (
         <p className="mt-2 text-muted-foreground">
-          {PROVIDER_NAMES[status.data.provider]} envoie la lettre hors de ta machine : autorise-le
-          d’abord dans les Réglages.
+          {t().letterAi.blocked(PROVIDER_NAMES[status.data.provider])}
         </p>
       ) : (
         <div className="mt-2 grid gap-2">
           <div className="grid gap-1">
-            <Label htmlFor={`${id}-context`}>Ce que tu veux ajouter (facultatif)</Label>
+            <Label htmlFor={`${id}-context`}>{t().letterAi.context}</Label>
             <Input
               id={`${id}-context`}
               value={context}
               maxLength={500}
-              placeholder="compte ouvert en 2012, plus utilisé depuis"
+              placeholder={t().letterAi.contextHint}
               onChange={(e) => setContext(e.target.value)}
             />
           </div>
           <fieldset className="flex flex-wrap gap-3">
-            <legend className="sr-only">Ton de la lettre</legend>
+            <legend className="sr-only">{t().letterAi.tone}</legend>
             {(
               [
-                ['courteous', 'Courtois'],
-                ['firm', 'Ferme'],
+                ['courteous', t().letterAi.courteous],
+                ['firm', t().letterAi.firm],
               ] as const
             ).map(([value, label]) => (
               <Label key={value} className="flex items-center gap-1.5 font-normal">
@@ -96,7 +96,7 @@ export function LetterAssistant({
               disabled={adapt.isPending || isBusy(proposal) || !body.trim()}
               onClick={() => adapt.mutate(request)}
             >
-              Adapter
+              {t().letterAi.adapt}
             </Button>
             <Button
               size="sm"
@@ -104,13 +104,13 @@ export function LetterAssistant({
               disabled={preview.isPending}
               onClick={() => preview.mutate(request)}
             >
-              Voir ce qui part
+              {t().letterAi.seeSent}
             </Button>
           </div>
           {preview.data && (
             <pre
               tabIndex={0}
-              aria-label="Texte envoyé à l’assistant"
+              aria-label={t().aiPanel.sentText}
               className="max-h-48 overflow-auto rounded-md border bg-muted/40 p-2 text-xs whitespace-pre-wrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               data-testid="letter-prompt"
             >
@@ -122,8 +122,8 @@ export function LetterAssistant({
       {proposal && proposal.decision !== 'dismissed' && (
         <div className="mt-2 grid gap-1.5" data-testid="letter-proposal">
           <p className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-            <Badge variant="secondary">Avis de l’IA</Badge>
-            Proposition · {answeredBy(proposal)}
+            <Badge variant="secondary">{t().aiPanel.badge}</Badge>
+            {t().letterAi.proposal} · {answeredBy(proposal)}
           </p>
           {isBusy(proposal) && (
             <p role="status" className="text-muted-foreground">
@@ -139,7 +139,7 @@ export function LetterAssistant({
             <>
               <pre
                 tabIndex={0}
-                aria-label="Lettre proposée"
+                aria-label={t().letterAi.proposed}
                 className="max-h-64 overflow-auto rounded-md border p-2 text-xs whitespace-pre-wrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
                 {textOf(proposal, 'subject')}
@@ -155,17 +155,17 @@ export function LetterAssistant({
                     update.mutate({ id: proposal.id, decision: 'accepted' });
                   }}
                 >
-                  Reprendre ce texte
+                  {t().letterAi.take}
                 </Button>
                 <Button size="sm" variant="ghost" onClick={onRestore}>
-                  Revenir au modèle
+                  {t().letterAi.restore}
                 </Button>
               </div>
             </>
           )}
         </div>
       )}
-      {annotations.isPending && <Pending label="Chargement…" />}
+      {annotations.isPending && <Pending label={t().common.loading} />}
     </details>
   );
 }

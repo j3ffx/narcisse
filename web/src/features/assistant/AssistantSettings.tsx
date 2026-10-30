@@ -1,3 +1,4 @@
+import { lazy, num, t } from '@/i18n';
 import { Pending } from '@/components/Pending';
 import {
   AlertDialog,
@@ -29,21 +30,12 @@ import { DownloadIcon, RefreshCwIcon } from 'lucide-react';
 import { useId, useState, type FormEvent } from 'react';
 import { toast } from 'sonner';
 
-const DESCRIPTIONS: Record<AssistantProvider, string> = {
-  none: 'Rien n’est jamais envoyé à une IA.',
-  claude_code: 'Ton Claude Code, avec ton abonnement. Ce que tu lui demandes part chez Anthropic.',
-  local:
-    'Ollama, LM Studio ou llama.cpp, sur cet ordinateur : rien ne quitte ta machine, mais c’est plus lent.',
-  openai:
-    'N’importe quelle adresse qui parle l’API d’OpenAI, avec sa clé si elle en demande une. Ce que tu lui demandes part chez elle.',
-  demo: 'Des réponses fictives, pour essayer : rien n’est envoyé.',
-};
+const DESCRIPTIONS: Record<AssistantProvider, string> = lazy(() => t().aiSettings.descriptions);
 
 const SELECT =
   'h-8 rounded-lg border border-input bg-transparent px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30';
 
-const gb = (value: number) =>
-  value.toLocaleString('fr-FR', { maximumFractionDigits: value < 10 ? 1 : 0 });
+const gb = (value: number) => num(value, { maximumFractionDigits: value < 10 ? 1 : 0 });
 
 /** The optional assistant: which one, which model, the agreement a remote one needs, and a
  * neutral question to see it answers. */
@@ -66,17 +58,12 @@ export function AssistantSettings({ preferences }: { preferences: Preferences })
     <section aria-labelledby="assistant-title" className="grid gap-3">
       <div>
         <h2 id="assistant-title" className="font-heading text-lg font-semibold">
-          Assistant IA (facultatif)
+          {t().aiSettings.title}
         </h2>
-        <p className="text-sm text-muted-foreground">
-          Narcisse marche sans IA. Un assistant peut t’aider à trier les traces (« est-ce bien moi ?
-          »), à les comprendre, à adapter tes lettres et à trouver des pistes. Il ne lit une trace
-          que quand tu lui poses la question, ses réponses sont marquées « Avis de l’IA », et rien
-          n’est appliqué sans ton clic.
-        </p>
+        <p className="text-sm text-muted-foreground">{t().aiSettings.intro}</p>
       </div>
       <fieldset className="grid gap-2">
-        <legend className="mb-1 text-sm font-medium">Assistant</legend>
+        <legend className="mb-1 text-sm font-medium">{t().aiSettings.assistant}</legend>
         {providers.map((provider) => (
           <Label key={provider} className="flex items-start gap-2 font-normal">
             <input
@@ -109,11 +96,11 @@ export function AssistantSettings({ preferences }: { preferences: Preferences })
             onClick={() =>
               tryIt.mutate(undefined, {
                 onSuccess: ({ model }) =>
-                  toast.success(`${PROVIDER_NAMES[chosen]} répond${model ? ` (${model})` : ''}.`),
+                  toast.success(t().aiSettings.answers(PROVIDER_NAMES[chosen], model)),
               })
             }
           >
-            Essayer
+            {t().aiSettings.try}
           </Button>
           <AssistantState />
         </div>
@@ -128,7 +115,7 @@ function ClaudeCodeModel({ preferences }: { preferences: Preferences }) {
   const id = useId();
   return (
     <div className="grid max-w-xs gap-1.5">
-      <Label htmlFor={id}>Modèle</Label>
+      <Label htmlFor={id}>{t().aiSettings.model}</Label>
       <select
         id={id}
         value={preferences.llm_model ?? 'haiku'}
@@ -156,41 +143,38 @@ function RemoteConsent({
   const update = useUpdatePreferences();
   const where =
     provider === 'claude_code'
-      ? 'à Anthropic'
-      : `à ${preferences.llm_url ? new URL(preferences.llm_url).host : 'ce service'}`;
+      ? t().aiSettings.toAnthropic
+      : t().aiSettings.toHost(preferences.llm_url ? new URL(preferences.llm_url).host : null);
   return (
     <div
       role="note"
       className="grid gap-2 rounded-md border border-amber-600/40 bg-amber-500/10 p-3 text-sm"
     >
-      <p>
-        Chaque question envoie {where} la trace, ses preuves, et les noms et pseudos que tu as
-        déclarés, rien d’autre (une lettre part avec ton nom, ton email et ton adresse remplacés par
-        des repères). Le texte exact est visible avant chaque envoi (« Voir ce qui part »).
-      </p>
+      <p>{t().aiSettings.consentText(where)}</p>
       <Label className="flex items-start gap-2 font-normal">
         <Checkbox
           checked={preferences.llm_remote_ok}
           onCheckedChange={(checked) => update.mutate({ llm_remote_ok: checked === true })}
         />
-        <span>J’accepte que ces données partent {where} quand je pose une question.</span>
+        <span>{t().aiSettings.consent(where)}</span>
       </Label>
     </div>
   );
 }
 
 function machineText(machine: MachineInfo): string {
+  const say = t().aiSettings;
   const parts = [];
-  if (machine.memory_gb) parts.push(`${gb(machine.memory_gb)} Go de mémoire`);
-  if (machine.cores) parts.push(`${machine.cores} cœurs`);
+  if (machine.memory_gb) parts.push(say.memory(gb(machine.memory_gb)));
+  if (machine.cores) parts.push(say.cores(machine.cores));
   for (const gpu of machine.gpus)
     parts.push(
       gpu.dedicated
-        ? `${gpu.name}${gpu.memory_gb ? ` (${gb(gpu.memory_gb)} Go)` : ''}`
-        : `${gpu.name} (partagée)`,
+        ? `${gpu.name}${gpu.memory_gb ? ` (${say.gigabytes(gb(gpu.memory_gb))})` : ''}`
+        : `${gpu.name} (${say.shared})`,
     );
-  if (machine.unified) parts.push('mémoire unifiée (Apple)');
-  return parts.join(', ') || 'inconnue';
+  if (machine.unified) parts.push(say.unified);
+  return parts.join(', ') || say.unknown;
 }
 
 /** A model server on this machine: what the machine can run, the servers found, the model. */
@@ -206,24 +190,24 @@ function LocalModel({ preferences }: { preferences: Preferences }) {
   const ollama = machine.data?.servers.find((s) => s.name === 'Ollama');
   return (
     <div className="grid gap-3 rounded-md border p-3 text-sm" data-testid="local-model">
-      {machine.isPending && <Pending label="Lecture de ta machine…" />}
+      {machine.isPending && <Pending label={t().aiSettings.readingMachine} />}
       {machine.data && recommended && (
         <>
           <p>
-            Ta machine : {machineText(machine.data)}. Modèle conseillé :{' '}
-            <strong>{recommended.model}</strong> (environ {gb(recommended.size_gb)} Go à
-            télécharger), {recommended.speed}.
+            {t().aiSettings.yourMachine(machineText(machine.data))}{' '}
+            <strong>{recommended.model}</strong>{' '}
+            {t().aiSettings.toDownload(
+              gb(recommended.size_gb),
+              t().aiSettings.speeds[recommended.speed],
+            )}
           </p>
           {machine.data.servers.length ? (
             <ul className="grid gap-1">
               {machine.data.servers.map((found) => (
                 <li key={found.url} className="flex flex-wrap items-center gap-2">
                   <span>
-                    {found.name} répond sur <code>{found.url}</code> (
-                    {found.models.length
-                      ? `${found.models.length} modèle${found.models.length > 1 ? 's' : ''}`
-                      : 'aucun modèle'}
-                    )
+                    {t().aiSettings.answersOn(found.name)} <code>{found.url}</code> (
+                    {t().aiSettings.models(found.models.length)})
                   </span>
                   {found.url !== current && (
                     <Button
@@ -231,7 +215,7 @@ function LocalModel({ preferences }: { preferences: Preferences }) {
                       variant="outline"
                       onClick={() => update.mutate({ llm_url: found.url, llm_model: null })}
                     >
-                      Utiliser {found.name}
+                      {t().aiSettings.use(found.name)}
                     </Button>
                   )}
                 </li>
@@ -239,7 +223,7 @@ function LocalModel({ preferences }: { preferences: Preferences }) {
             </ul>
           ) : (
             <p>
-              Aucun serveur de modèles ne répond sur cette machine. Installe{' '}
+              {t().aiSettings.noServer}{' '}
               <a
                 href="https://ollama.com/download"
                 target="_blank"
@@ -248,7 +232,7 @@ function LocalModel({ preferences }: { preferences: Preferences }) {
               >
                 Ollama
               </a>{' '}
-              (gratuit), lance-le, puis cherche à nouveau.
+              {t().aiSettings.noServerAfter}
             </p>
           )}
           <div>
@@ -259,7 +243,7 @@ function LocalModel({ preferences }: { preferences: Preferences }) {
               onClick={() => void machine.refetch()}
             >
               <RefreshCwIcon aria-hidden />
-              Chercher à nouveau
+              {t().aiSettings.searchAgain}
             </Button>
           </div>
           {ollama && !ollama.models.includes(recommended.model) && (
@@ -269,7 +253,7 @@ function LocalModel({ preferences }: { preferences: Preferences }) {
       )}
       {models.length > 0 && (
         <div className="grid max-w-xs gap-1.5">
-          <Label htmlFor={modelId}>Modèle</Label>
+          <Label htmlFor={modelId}>{t().aiSettings.model}</Label>
           <select
             id={modelId}
             value={preferences.llm_model ?? ''}
@@ -277,12 +261,12 @@ function LocalModel({ preferences }: { preferences: Preferences }) {
             className={SELECT}
           >
             <option value="" disabled>
-              Choisis un modèle
+              {t().aiSettings.chooseModel}
             </option>
             {models.map((model) => (
               <option key={model} value={model}>
                 {model}
-                {model === recommended?.model ? ' (conseillé)' : ''}
+                {model === recommended?.model ? ` (${t().aiSettings.recommended})` : ''}
               </option>
             ))}
           </select>
@@ -300,8 +284,10 @@ function DownloadModel({ model, size }: { model: string; size: number }) {
   if (pull.data?.status === 'pulling')
     return (
       <p role="status">
-        Téléchargement de {pull.data.model} : {pullProgress(pull.data.completed, pull.data.total)}{' '}
-        (suivi dans « Activité »).
+        {t().aiSettings.downloading(
+          String(pull.data.model),
+          pullProgress(pull.data.completed, pull.data.total),
+        )}
       </p>
     );
   return (
@@ -313,21 +299,19 @@ function DownloadModel({ model, size }: { model: string; size: number }) {
         <AlertDialogTrigger asChild>
           <Button size="sm" className="w-fit">
             <DownloadIcon aria-hidden />
-            Télécharger {model} (environ {gb(size)} Go)
+            {t().aiSettings.download(model, gb(size))}
           </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Télécharger {model} ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Ollama télécharge environ {gb(size)} Go depuis sa bibliothèque et les garde sur ton
-              disque. Rien d’autre n’est installé. Tu peux suivre ou annuler le téléchargement dans
-              « Activité » ; le modèle est choisi une fois arrivé.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t().aiSettings.downloadTitle(model)}</AlertDialogTitle>
+            <AlertDialogDescription>{t().aiSettings.downloadText(gb(size))}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={() => start.mutate(model)}>Télécharger</AlertDialogAction>
+            <AlertDialogCancel>{t().common.cancel}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => start.mutate(model)}>
+              {t().aiSettings.downloadGo}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -349,7 +333,7 @@ function Address({ preferences, placeholder }: { preferences: Preferences; place
   return (
     <form onSubmit={save} className="flex flex-wrap items-end gap-2">
       <div className="grid min-w-64 flex-1 gap-1.5">
-        <Label htmlFor={id}>Adresse</Label>
+        <Label htmlFor={id}>{t().aiSettings.address}</Label>
         <Input
           id={id}
           type="url"
@@ -364,7 +348,7 @@ function Address({ preferences, placeholder }: { preferences: Preferences; place
         variant="outline"
         disabled={update.isPending || value.trim() === (preferences.llm_url ?? '')}
       >
-        Enregistrer
+        {t().common.save}
       </Button>
     </form>
   );
@@ -388,13 +372,13 @@ function Service({ preferences }: { preferences: Preferences }) {
         }}
       >
         <div className="grid min-w-64 flex-1 gap-1.5">
-          <Label htmlFor={modelId}>Modèle</Label>
+          <Label htmlFor={modelId}>{t().aiSettings.model}</Label>
           <Input
             id={modelId}
             spellCheck={false}
             value={model}
             onChange={(e) => setModel(e.target.value)}
-            placeholder="le nom que le service donne au modèle"
+            placeholder={t().aiSettings.modelHint}
           />
         </div>
         <Button
@@ -402,7 +386,7 @@ function Service({ preferences }: { preferences: Preferences }) {
           variant="outline"
           disabled={update.isPending || model.trim() === (preferences.llm_model ?? '')}
         >
-          Enregistrer
+          {t().common.save}
         </Button>
       </form>
       <form
@@ -414,7 +398,7 @@ function Service({ preferences }: { preferences: Preferences }) {
       >
         <div className="grid min-w-64 flex-1 gap-1.5">
           <Label htmlFor={keyId}>
-            {preferences.llm_key_set ? 'Remplacer la clé' : 'Clé (si le service en demande une)'}
+            {preferences.llm_key_set ? t().aiSettings.replaceKey : t().aiSettings.key}
           </Label>
           <Input
             id={keyId}
@@ -426,11 +410,11 @@ function Service({ preferences }: { preferences: Preferences }) {
           />
         </div>
         <Button type="submit" variant="outline" disabled={!key.trim() || update.isPending}>
-          Enregistrer
+          {t().common.save}
         </Button>
         {preferences.llm_key_set && (
           <Button type="button" variant="ghost" onClick={() => update.mutate({ llm_key: null })}>
-            Retirer la clé
+            {t().aiSettings.removeKey}
           </Button>
         )}
       </form>
@@ -440,13 +424,13 @@ function Service({ preferences }: { preferences: Preferences }) {
 
 function AssistantState() {
   const status = useAssistant();
-  if (status.isPending) return <Pending label="Vérification de l’assistant…" />;
+  if (status.isPending) return <Pending label={t().aiSettings.checking} />;
   if (!status.data) return null;
   const name = PROVIDER_NAMES[status.data.provider];
   return (
     <p className="text-sm" role="status" data-testid="assistant-state">
       {status.data.available ? (
-        `${name} est prêt.`
+        t().aiSettings.ready(name)
       ) : (
         <>
           {messageFor(status.data.reason ?? 'llm_failed')}
@@ -459,7 +443,7 @@ function AssistantState() {
                 rel="noreferrer noopener"
                 className="underline underline-offset-2"
               >
-                Installer Claude Code
+                {t().aiSettings.installClaude}
               </a>
             </>
           )}

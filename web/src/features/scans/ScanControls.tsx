@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,32 +27,30 @@ export function ScanControls({ scan, size = 'sm' }: { scan: Scan; size?: 'sm' | 
       {scan.status === 'running' ? (
         <Button size={size} variant="outline" onClick={() => pause.mutate(scan.id)}>
           <PauseIcon aria-hidden />
-          Pause
+          {t().scanPage.pause}
         </Button>
       ) : (
         <Button size={size} variant="outline" onClick={() => resume.mutate(scan.id)}>
           <PlayIcon aria-hidden />
-          Reprendre
+          {t().scanPage.resume}
         </Button>
       )}
       <AlertDialog>
         <AlertDialogTrigger asChild>
           <Button size={size} variant="ghost">
             <SquareIcon aria-hidden />
-            Annuler
+            {t().common.cancel}
           </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Annuler ce scan ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Les recherches en cours s’arrêtent. Les résultats déjà trouvés restent.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t().scanPage.cancelTitle}</AlertDialogTitle>
+            <AlertDialogDescription>{t().scanPage.cancelText}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Continuer le scan</AlertDialogCancel>
+            <AlertDialogCancel>{t().scanPage.goOn}</AlertDialogCancel>
             <AlertDialogAction onClick={() => cancel.mutate(scan.id)}>
-              Annuler le scan
+              {t().scanPage.cancelScan}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

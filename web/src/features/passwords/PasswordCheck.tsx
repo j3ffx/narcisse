@@ -1,3 +1,4 @@
+import { num, t } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -39,18 +40,12 @@ export function PasswordCheck() {
   return (
     <div className="grid max-w-2xl gap-6">
       <div className="grid gap-2">
-        <h1 className="font-heading text-2xl font-semibold">Un mot de passe a-t-il fuité ?</h1>
-        <p className="text-muted-foreground">
-          Narcisse cherche ton mot de passe parmi les centaines de millions qu’ont révélés des
-          fuites de données, sans jamais le faire sortir de cette page : elle calcule son empreinte
-          (SHA-1), n’en envoie que les 5 premiers caractères à Pwned Passwords, qui répond avec
-          toutes les empreintes qui commencent pareil, et la comparaison se fait ici. Rien n’est
-          gardé.
-        </p>
+        <h1 className="font-heading text-2xl font-semibold">{t().password.title}</h1>
+        <p className="text-muted-foreground">{t().password.intro}</p>
       </div>
       <form onSubmit={submit} className="flex flex-wrap items-end gap-2">
         <div className="grid min-w-64 flex-1 gap-1.5">
-          <Label htmlFor="password">Mot de passe à vérifier</Label>
+          <Label htmlFor="password">{t().password.label}</Label>
           <Input
             id="password"
             type="password"
@@ -63,7 +58,7 @@ export function PasswordCheck() {
           />
         </div>
         <Button type="submit" disabled={!password || check.state === 'pending'}>
-          {check.state === 'pending' ? 'Vérification…' : 'Vérifier'}
+          {check.state === 'pending' ? t().password.checking : t().password.check}
         </Button>
       </form>
       <div aria-live="polite">
@@ -77,24 +72,18 @@ export function PasswordCheck() {
             <p className="flex gap-2 rounded-lg border border-red-300 p-3 dark:border-red-800">
               <ShieldAlertIcon aria-hidden className="mt-0.5 size-5 shrink-0" />
               <span>
-                Ce mot de passe apparaît <strong>{check.times.toLocaleString('fr-FR')} fois</strong>{' '}
-                dans des fuites connues : ne l’utilise plus nulle part, et change-le là où tu t’en
-                sers encore.
+                {t().password.appearsBefore} <strong>{t().password.times(num(check.times))}</strong>{' '}
+                {t().password.appearsAfter}
               </span>
             </p>
           ) : (
             <p className="flex gap-2 rounded-lg border p-3">
               <ShieldCheckIcon aria-hidden className="mt-0.5 size-5 shrink-0" />
-              <span>
-                Ce mot de passe n’apparaît dans aucune fuite connue. Ça ne veut pas dire qu’il est
-                solide : long et unique pour chaque site reste la règle.
-              </span>
+              <span>{t().password.clean}</span>
             </p>
           ))}
       </div>
-      <p className="text-xs text-muted-foreground">
-        Données : Pwned Passwords, de Have I Been Pwned (Troy Hunt), licence CC BY 4.0.
-      </p>
+      <p className="text-xs text-muted-foreground">{t().password.credit}</p>
     </div>
   );
 }

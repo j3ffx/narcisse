@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { AddAsSeed } from '@/components/AddAsSeed';
 import { Pending } from '@/components/Pending';
 import { ReviewButtons } from '@/components/ReviewButtons';
@@ -39,17 +40,17 @@ export function TracePanel({
   const detail = useEntityDetail(id);
   return (
     <aside
-      aria-label="Détail de la trace"
+      aria-label={t().panel.label}
       className="flex max-h-full flex-col gap-4 overflow-y-auto rounded-lg border bg-card p-4"
       data-testid="trace-panel"
     >
       <div className="flex items-start justify-between gap-2">
-        <h2 className="font-heading text-lg font-semibold">Trace</h2>
-        <Button variant="ghost" size="icon-sm" aria-label="Fermer le détail" onClick={onClose}>
+        <h2 className="font-heading text-lg font-semibold">{t().panel.title}</h2>
+        <Button variant="ghost" size="icon-sm" aria-label={t().panel.close} onClick={onClose}>
           <XIcon aria-hidden />
         </Button>
       </div>
-      {detail.isPending && <Pending label="Chargement de la trace…" />}
+      {detail.isPending && <Pending label={t().panel.loading} />}
       {detail.isError && <p role="alert">{errorMessage(detail.error)}</p>}
       {detail.data && (
         <Detail
@@ -110,36 +111,36 @@ function Detail({
         {actions}
       </div>
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
-        <dt className="text-muted-foreground">Statut</dt>
+        <dt className="text-muted-foreground">{t().requests.status}</dt>
         <dd>{ENTITY_STATUS_LABELS[entity.status]}</dd>
         {entity.confidence !== null && entity.kind !== 'identity' && (
           <>
-            <dt className="text-muted-foreground">Confiance</dt>
+            <dt className="text-muted-foreground">{t().panel.confidence}</dt>
             <dd data-testid="trace-confidence">{points(entity.confidence)} / 100</dd>
           </>
         )}
         {entity.risk !== null && entity.kind !== 'identity' && (
           <>
-            <dt className="text-muted-foreground">Risque</dt>
+            <dt className="text-muted-foreground">{t().panel.risk}</dt>
             <dd data-testid="trace-risk">
               <RiskValue risk={entity.risk} />
             </dd>
           </>
         )}
-        <dt className="text-muted-foreground">Sources</dt>
+        <dt className="text-muted-foreground">{t().shell.sources}</dt>
         <dd>
           {entity.modules
-            .map((m) => (m === 'seed' ? 'déclaré par toi' : sourceTitle(m)))
+            .map((m) => (m === 'seed' ? t().panel.declared : sourceTitle(m)))
             .join(', ') || '—'}
         </dd>
-        <dt className="text-muted-foreground">Vue d’abord</dt>
+        <dt className="text-muted-foreground">{t().panel.firstSeen}</dt>
         <dd>{formatDate(entity.first_seen)}</dd>
-        <dt className="text-muted-foreground">Vue en dernier</dt>
+        <dt className="text-muted-foreground">{t().panel.lastSeen}</dt>
         <dd>{formatDate(entity.last_seen)}</dd>
         {entity.gone_at && (
           <>
-            <dt className="text-muted-foreground">Disparue</dt>
-            <dd data-testid="trace-gone">plus trouvée depuis le {formatDate(entity.gone_at)}</dd>
+            <dt className="text-muted-foreground">{t().panel.gone}</dt>
+            <dd data-testid="trace-gone">{t().panel.goneSince(formatDate(entity.gone_at))}</dd>
           </>
         )}
       </dl>
@@ -147,7 +148,7 @@ function Detail({
       {entity.kind !== 'identity' && <TraceAssistant profileId={profileId} entity={entity} />}
       {entity.kind !== 'identity' && <Remediation entityId={entity.id} />}
       {extra}
-      <Section title={`Relations (${data.edges.length})`}>
+      <Section title={t().panel.relations(data.edges.length)}>
         <ul className="grid gap-1 text-sm">
           {data.edges.map((edge) => (
             <Relation
@@ -160,9 +161,9 @@ function Detail({
           ))}
         </ul>
       </Section>
-      <Section title={`Preuves (${data.evidence.length})`}>
+      <Section title={t().panel.proofs(data.evidence.length)}>
         {data.evidence.length === 0 && (
-          <p className="text-sm text-muted-foreground">Déclaré par toi : rien à prouver.</p>
+          <p className="text-sm text-muted-foreground">{t().panel.nothingToProve}</p>
         )}
         <ul className="grid gap-3 text-sm">
           {data.evidence.map((proof) => (
@@ -184,7 +185,7 @@ function Detail({
               {proof.excerpt && <p>{proof.excerpt}</p>}
               {proof.content_hash && (
                 <p className="font-mono text-xs text-muted-foreground" title={proof.content_hash}>
-                  empreinte {proof.content_hash.slice(0, 12)}…
+                  {t().panel.hash(proof.content_hash.slice(0, 12))}
                 </p>
               )}
             </li>
@@ -212,7 +213,7 @@ function Relation({
   if (!other) return null;
   return (
     <li className="flex items-center gap-1.5">
-      <Arrow aria-label={outgoing ? 'vers' : 'depuis'} className="size-3.5 shrink-0" />
+      <Arrow aria-label={outgoing ? t().panel.to : t().panel.from} className="size-3.5 shrink-0" />
       <span className="shrink-0 text-muted-foreground">{relation}</span>
       <button
         type="button"

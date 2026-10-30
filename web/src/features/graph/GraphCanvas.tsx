@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { layerImage } from '@sigma/node-image';
 import { use, useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react';
 import Sigma from 'sigma';
@@ -589,7 +590,7 @@ export function GraphCanvas({
           role="status"
           className="absolute top-3 left-3 rounded-md bg-background/90 px-2 py-1 text-xs text-muted-foreground shadow-sm"
         >
-          Mise en place du graphe…
+          {t().graph.settling}
         </p>
       )}
     </div>

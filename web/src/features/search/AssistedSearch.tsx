@@ -1,3 +1,4 @@
+import { lang, t } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,23 +26,19 @@ export function AssistedSearch({ profileId, seeds }: { profileId: number; seeds:
       <section className="grid gap-4" aria-labelledby="assisted-title">
         <div className="grid gap-1">
           <h2 id="assisted-title" className="font-heading text-lg font-semibold">
-            Recherche assistée
+            {t().assisted.title}
           </h2>
-          <p className="max-w-prose text-sm text-muted-foreground">
-            Narcisse n’interroge pas les moteurs de recherche : il te prépare les recherches qui
-            valent la peine, tu les ouvres dans ton navigateur. Quand une page parle de toi, colle
-            son adresse dans le cadre « Ajouter une page » : elle rejoint tes traces.
-          </p>
+          <p className="max-w-prose text-sm text-muted-foreground">{t().assisted.intro}</p>
         </div>
         {groups.length === 0 && (
-          <p className="text-sm text-muted-foreground">
-            Ajoute d’abord des éléments à surveiller (un nom, un pseudo, un email…).
-          </p>
+          <p className="text-sm text-muted-foreground">{t().assisted.noSeed}</p>
         )}
         {groups.map(({ seed, queries }) => (
           <section key={seed.id} className="grid gap-2" data-testid="assisted-seed">
             <h3 className="text-sm font-semibold">
-              {KIND_LABELS[seed.kind]} : <span className="font-normal">{seed.value}</span>
+              {KIND_LABELS[seed.kind]}
+              {lang() === 'fr' ? ' : ' : ': '}
+              <span className="font-normal">{seed.value}</span>
             </h3>
             <ul className="grid gap-2">
               {queries.map(({ query, why }) => (
@@ -56,7 +53,7 @@ export function AssistedSearch({ profileId, seeds }: { profileId: number; seeds:
                         target="_blank"
                         rel="noreferrer noopener"
                         className="inline-flex items-center gap-1 text-primary underline-offset-2 visited:text-muted-foreground hover:underline"
-                        aria-label={`Chercher ${query} sur ${engine.name} (nouvel onglet)`}
+                        aria-label={t().assisted.searchOn(query, engine.name)}
                       >
                         {engine.name}
                         <ExternalLinkIcon aria-hidden className="size-3" />
@@ -88,7 +85,7 @@ function AddTrace({ profileId }: { profileId: number }) {
           setAdded(entity.id);
           setUrl('');
           setNote('');
-          toast.success('Page ajoutée à tes traces.');
+          toast.success(t().assisted.added);
         },
       },
     );
@@ -100,10 +97,10 @@ function AddTrace({ profileId }: { profileId: number }) {
       aria-labelledby="add-trace-title"
     >
       <h2 id="add-trace-title" className="font-heading text-lg font-semibold">
-        Ajouter une page
+        {t().assisted.addPage}
       </h2>
       <div className="grid gap-1.5">
-        <Label htmlFor="trace-url">Adresse d’une page qui parle de toi</Label>
+        <Label htmlFor="trace-url">{t().assisted.url}</Label>
         <Input
           id="trace-url"
           type="url"
@@ -115,11 +112,11 @@ function AddTrace({ profileId }: { profileId: number }) {
         />
       </div>
       <div className="grid gap-1.5">
-        <Label htmlFor="trace-note">Ce qu’elle dit de toi (facultatif)</Label>
+        <Label htmlFor="trace-note">{t().assisted.note}</Label>
         <Input
           id="trace-note"
           maxLength={500}
-          placeholder="Mon nom dans un compte rendu…"
+          placeholder={t().assisted.notePlaceholder}
           value={note}
           onChange={(e) => setNote(e.target.value)}
         />
@@ -131,16 +128,16 @@ function AddTrace({ profileId }: { profileId: number }) {
       )}
       <Button type="submit" className="w-fit" disabled={add.isPending || !url.trim()}>
         <PlusIcon aria-hidden />
-        {add.isPending ? 'Ajout…' : 'Ajouter à mes traces'}
+        {add.isPending ? t().assisted.adding : t().assisted.addToTraces}
       </Button>
       {added !== null && (
         <p className="text-sm" role="status">
-          Ajoutée :{' '}
+          {t().assisted.addedShort}{' '}
           <Link
             href={`/profils/${profileId}?trace=${added}`}
             className="break-all underline underline-offset-2"
           >
-            la voir dans le graphe
+            {t().assisted.seeInGraph}
           </Link>
           .
         </p>

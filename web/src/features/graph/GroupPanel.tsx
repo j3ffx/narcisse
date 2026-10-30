@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import type { GraphGroup } from '@/lib/graph';
 import { KIND_LABELS } from '@/lib/labels';
@@ -24,19 +25,19 @@ export function GroupPanel({
   const members = [...group.members].sort((a, b) => a.display.localeCompare(b.display));
   return (
     <aside
-      aria-label="Détail du groupe"
+      aria-label={t().groupPanel.label}
       className="flex max-h-full flex-col gap-4 overflow-y-auto rounded-lg border bg-card p-4"
       data-testid="group-panel"
     >
       <div className="flex items-start justify-between gap-2">
-        <h2 className="font-heading text-lg font-semibold">Groupe</h2>
-        <Button variant="ghost" size="icon-sm" aria-label="Fermer le détail" onClick={onClose}>
+        <h2 className="font-heading text-lg font-semibold">{t().groupPanel.title}</h2>
+        <Button variant="ghost" size="icon-sm" aria-label={t().panel.close} onClick={onClose}>
           <XIcon aria-hidden />
         </Button>
       </div>
       <p className="font-medium break-all">{title}</p>
       <Button className="w-fit" onClick={onOpen}>
-        Déplier les {group.members.length} traces
+        {t().groupPanel.open(group.members.length)}
       </Button>
       <ul className="grid gap-1 text-sm">
         {members.slice(0, SHOWN).map((member) => {
@@ -58,7 +59,7 @@ export function GroupPanel({
       </ul>
       {members.length > SHOWN && (
         <p className="text-sm text-muted-foreground">
-          … et {members.length - SHOWN} autres : déplie le groupe pour les voir.
+          {t().groupPanel.more(members.length - SHOWN)}
         </p>
       )}
     </aside>

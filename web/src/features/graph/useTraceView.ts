@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { NO_FILTER, passes, type TraceFilter } from '@/lib/graph';
 import { useModules } from '@/lib/queries';
 import type { GraphData } from '@/lib/types';
@@ -48,7 +49,7 @@ export function useSourceTitle(): (name: string) => string {
   return useCallback(
     (name: string) =>
       name === 'manual'
-        ? 'ajoutée par toi'
+        ? t().sourcesPage.byHand
         : (modules.data?.find((m) => m.name === name)?.title ?? name),
     [modules.data],
   );

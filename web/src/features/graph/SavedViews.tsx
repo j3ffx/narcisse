@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,7 +34,7 @@ export function SavedViews({
       {
         onSuccess: (view) => {
           setName('');
-          toast.success(`Vue « ${view.name} » enregistrée.`);
+          toast.success(t().views.savedToast(view.name));
         },
       },
     );
@@ -44,12 +45,12 @@ export function SavedViews({
       <PopoverTrigger asChild>
         <Button variant="ghost">
           <BookmarkIcon aria-hidden />
-          Vues
+          {t().views.title}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="grid w-80 gap-3">
         {views.data && views.data.length > 0 ? (
-          <ul className="grid gap-1" aria-label="Vues enregistrées">
+          <ul className="grid gap-1" aria-label={t().views.saved}>
             {views.data.map((view) => (
               <li key={view.id} className="flex items-center gap-1">
                 <Button
@@ -65,7 +66,7 @@ export function SavedViews({
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  aria-label={`Supprimer la vue ${view.name}`}
+                  aria-label={t().views.delete(view.name)}
                   onClick={() => remove.mutate(view.id)}
                 >
                   <Trash2Icon aria-hidden />
@@ -74,23 +75,20 @@ export function SavedViews({
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-muted-foreground">
-            Aucune vue enregistrée. Une vue garde les filtres, les groupes, les replis, la trace
-            choisie et le cadrage.
-          </p>
+          <p className="text-sm text-muted-foreground">{t().views.none}</p>
         )}
         <form onSubmit={submit} className="grid gap-1.5">
-          <Label htmlFor="view-name">Enregistrer la vue actuelle</Label>
+          <Label htmlFor="view-name">{t().views.saveCurrent}</Label>
           <div className="flex gap-2">
             <Input
               id="view-name"
               value={name}
               maxLength={100}
-              placeholder="Nom de la vue"
+              placeholder={t().views.name}
               onChange={(e) => setName(e.target.value)}
             />
             <Button type="submit" disabled={!name.trim() || save.isPending}>
-              Enregistrer
+              {t().common.save}
             </Button>
           </div>
         </form>

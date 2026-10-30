@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { useScans } from '@/lib/queries';
 import { formatDate } from '@/lib/time';
 import type { GraphNode } from '@/lib/types';
@@ -36,7 +37,7 @@ export function TimeSlider({
   return (
     <div className="flex items-center gap-2 text-sm" data-testid="time-slider">
       <label htmlFor={id} className="shrink-0">
-        {asOf === null ? 'Maintenant' : `Au scan du ${formatDate(asOf)}`}
+        {asOf === null ? t().slider.now : t().slider.atScan(formatDate(asOf))}
       </label>
       <input
         id={id}
@@ -45,7 +46,7 @@ export function TimeSlider({
         max={steps.length}
         step={1}
         value={index}
-        aria-valuetext={asOf === null ? 'Maintenant' : `Scan du ${formatDate(asOf)}`}
+        aria-valuetext={asOf === null ? t().slider.now : t().slider.scanOf(formatDate(asOf))}
         onChange={(e) => {
           const next = Number(e.target.value);
           onChange(next >= steps.length ? null : steps[next]!);
@@ -54,7 +55,7 @@ export function TimeSlider({
       />
       {asOf !== null && (
         <span className="text-muted-foreground" role="status">
-          {appeared} apparue{appeared > 1 ? 's' : ''} à ce scan
+          {t().slider.appeared(appeared)}
         </span>
       )}
     </div>

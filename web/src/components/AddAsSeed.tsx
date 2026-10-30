@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { errorMessage } from '@/lib/errors';
 import { SEED_KINDS } from '@/lib/labels';
@@ -18,12 +19,7 @@ export function AddAsSeed({ profileId, entity }: { profileId: number; entity: Gr
   const added = profile.data?.seeds.some(
     (seed) => seed.kind === kind && seed.normalized === entity.normalized,
   );
-  if (added)
-    return (
-      <p className="text-sm text-muted-foreground">
-        Élément du profil : les prochains scans partiront aussi de lui.
-      </p>
-    );
+  if (added) return <p className="text-sm text-muted-foreground">{t().seeds.isElement}</p>;
   return (
     <Button
       size="sm"
@@ -34,17 +30,14 @@ export function AddAsSeed({ profileId, entity }: { profileId: number; entity: Gr
         add.mutate(
           { kind, value: entity.display },
           {
-            onSuccess: () =>
-              toast.success(
-                'Ajouté aux éléments du profil : lance un scan pour fouiller à partir de lui.',
-              ),
+            onSuccess: () => toast.success(t().seeds.added),
             onError: (error) => toast.error(errorMessage(error)),
           },
         )
       }
     >
       <PlusIcon aria-hidden />
-      Ajouter comme élément
+      {t().seeds.addAsElement}
     </Button>
   );
 }

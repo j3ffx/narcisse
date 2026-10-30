@@ -375,6 +375,8 @@ export interface RunProgress {
 }
 
 export interface Preferences {
+  /** The language of the UI: the browser's ("auto"), or the one chosen. */
+  ui_lang: 'auto' | 'fr' | 'en';
   github_token_set: boolean;
   gitlab_token_set: boolean;
   exclude_adult: boolean;
@@ -402,6 +404,7 @@ export interface SearxngStatus {
 }
 
 export interface PreferencesChanges {
+  ui_lang?: 'auto' | 'fr' | 'en';
   github_token?: string | null;
   gitlab_token?: string | null;
   exclude_adult?: boolean;
@@ -460,7 +463,7 @@ export interface MachineInfo {
   cores: number | null;
   gpus: { name: string; memory_gb: number | null; dedicated: boolean }[];
   unified: boolean;
-  recommended: { model: string; size_gb: number; speed: string };
+  recommended: { model: string; size_gb: number; speed: 'fast' | 'processor' | 'slow' };
   servers: { name: string; url: string; models: string[] }[];
 }
 

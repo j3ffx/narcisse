@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { Pending } from '@/components/Pending';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -69,24 +70,19 @@ export function TraceToolbar({
           checked={view.falsePositives}
           onCheckedChange={(c) => view.setFalsePositives(c === true)}
         />
-        Afficher les « pas moi »
+        {t().scanPage.showNotMe}
       </Label>
       {children}
       <p className="ml-auto text-sm text-muted-foreground" role="status" data-testid="trace-count">
         {isFiltering(view.filter)
-          ? `${shown} trace${shown > 1 ? 's' : ''} sur ${data.nodes.length}`
-          : `${data.nodes.length} trace${data.nodes.length > 1 ? 's' : ''}`}
+          ? t().graph.shownOf(shown, data.nodes.length)
+          : t().graph.traces(data.nodes.length)}
       </p>
     </div>
   );
 }
 
-const GROUPINGS: [Grouping, string][] = [
-  ['none', 'Aucun'],
-  ['kind', 'Par type'],
-  ['source', 'Par source'],
-  ['site', 'Par site'],
-];
+const GROUPINGS: Grouping[] = ['none', 'kind', 'source', 'site'];
 
 export function GraphView({ profileId, view }: { profileId: number; view: TraceView }) {
   const graph = useGraph(profileId, view.falsePositives);
@@ -166,7 +162,7 @@ export function GraphView({ profileId, view }: { profileId: number; view: TraceV
     return () => window.removeEventListener('keydown', onKey);
   }, [select]);
 
-  if (graph.isPending) return <Pending label="Chargement du graphe…" />;
+  if (graph.isPending) return <Pending label={t().graph.loading} />;
   if (graph.isError || !drawn.data) return <p role="alert">{errorMessage(graph.error)}</p>;
   const all = graph.data;
   const data = drawn.data;
@@ -222,7 +218,7 @@ export function GraphView({ profileId, view }: { profileId: number; view: TraceV
     <div className="grid gap-3">
       <TraceToolbar profileId={profileId} data={all} view={view} hidden={hidden} onPick={show}>
         <Label className="flex items-center gap-2 font-normal">
-          Regrouper
+          {t().graph.group}
           <select
             className="h-8 rounded-lg border bg-background px-2 text-sm"
             value={grouping}
@@ -232,9 +228,9 @@ export function GraphView({ profileId, view }: { profileId: number; view: TraceV
               select(null);
             }}
           >
-            {GROUPINGS.map(([value, title]) => (
+            {GROUPINGS.map((value) => (
               <option key={value} value={value}>
-                {title}
+                {t().graph.groupings[value]}
               </option>
             ))}
           </select>
@@ -248,19 +244,15 @@ export function GraphView({ profileId, view }: { profileId: number; view: TraceV
           }}
         >
           <ShrinkIcon aria-hidden />
-          Replier les feuilles
+          {t().graph.foldLeaves}
         </Button>
         <Button variant="ghost" onClick={() => canvas.current?.fit()}>
           <MaximizeIcon aria-hidden />
-          Tout voir
+          {t().graph.fit}
         </Button>
         <SavedViews profileId={profileId} current={viewState} onApply={applyView} />
       </TraceToolbar>
-      {all.truncated && (
-        <p className="text-sm text-muted-foreground">
-          Trop de traces pour toutes les dessiner : les plus récemment vues sont affichées.
-        </p>
-      )}
+      {all.truncated && <p className="text-sm text-muted-foreground">{t().graph.truncated}</p>}
       <div
         className={cn(
           'grid h-[calc(100dvh-14rem)] min-h-[28rem] gap-3',
@@ -269,10 +261,7 @@ export function GraphView({ profileId, view }: { profileId: number; view: TraceV
       >
         <div className="relative min-h-[24rem] overflow-hidden rounded-lg border bg-card">
           {all.nodes.length <= 1 ? (
-            <p className="p-6 text-sm text-muted-foreground">
-              Rien à relier pour l’instant : lance un scan, les traces apparaîtront ici au fil de
-              l’eau.
-            </p>
+            <p className="p-6 text-sm text-muted-foreground">{t().graph.empty}</p>
           ) : (
             <GraphCanvas
               ref={canvas}
@@ -286,7 +275,7 @@ export function GraphView({ profileId, view }: { profileId: number; view: TraceV
               onFold={(id) => {
                 if (!openGroup(id)) toggleFold(id);
               }}
-              label={`Graphe de ${all.nodes.length} traces. La vue Liste en donne le même contenu.`}
+              label={t().graph.label(all.nodes.length)}
             />
           )}
           <Legend nodes={all.nodes.map((n) => n.kind)} />
@@ -319,9 +308,7 @@ export function GraphView({ profileId, view }: { profileId: number; view: TraceV
                     aria-pressed={isFolded(selected)}
                     onClick={() => toggleFold(selected)}
                   >
-                    {isFolded(selected) ? 'Déplier' : 'Replier'} ses {leaves.get(selected)} trace
-                    {(leaves.get(selected) ?? 0) > 1 ? 's' : ''} isolée
-                    {(leaves.get(selected) ?? 0) > 1 ? 's' : ''}
+                    {t().graph.foldThese(isFolded(selected), leaves.get(selected) ?? 0)}
                   </Button>
                 )}
                 <PathFinder
@@ -351,7 +338,7 @@ function Legend({ nodes }: { nodes: EntityKind[] }) {
   const kinds = useMemo(() => [...new Set(nodes)], [nodes]);
   return (
     <ul
-      aria-label="Légende"
+      aria-label={t().graph.legend}
       className="absolute bottom-2 left-2 flex max-w-[calc(100%-1rem)] sm:max-w-[calc(100%-12rem)] flex-wrap gap-x-3 gap-y-1 rounded-md bg-background/85 px-2 py-1 text-xs"
     >
       {kinds.map((kind) => {

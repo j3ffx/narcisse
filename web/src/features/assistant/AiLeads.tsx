@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { errorMessage } from '@/lib/errors';
@@ -18,12 +19,9 @@ export function AiLeads({ profileId }: { profileId: number }) {
   return (
     <section aria-labelledby={`${id}-title`} className="grid gap-2">
       <h3 id={`${id}-title`} className="flex items-center gap-2 font-semibold">
-        Suggérées par l’IA <Badge variant="secondary">Avis de l’IA</Badge>
+        {t().aiLeads.title} <Badge variant="secondary">{t().aiPanel.badge}</Badge>
       </h3>
-      <p className="text-sm text-muted-foreground">
-        Relevées par l’assistant dans les preuves d’une trace, telles qu’elles y sont écrites. Rien
-        ne part d’elles tant que tu ne les ajoutes pas comme éléments.
-      </p>
+      <p className="text-sm text-muted-foreground">{t().aiLeads.intro}</p>
       <ul className="grid gap-2">
         {leads.data.map((lead) => (
           <AiLeadRow
@@ -51,7 +49,7 @@ function AiLeadRow({ profileId, lead }: { profileId: number; lead: AiLead }) {
           <span className="truncate font-medium">{lead.value}</span>
         </p>
         <p className="text-xs text-muted-foreground">
-          {lead.reason} Vue dans{' '}
+          {lead.reason} {t().aiLeads.seenIn}{' '}
           <Link
             href={`/profils/${profileId}?trace=${lead.source.id}`}
             className="underline underline-offset-2"
@@ -70,27 +68,24 @@ function AiLeadRow({ profileId, lead }: { profileId: number; lead: AiLead }) {
             add.mutate(
               { kind: lead.kind, value: lead.value },
               {
-                onSuccess: () =>
-                  toast.success(
-                    'Ajouté aux éléments du profil : lance un scan pour fouiller à partir de lui.',
-                  ),
+                onSuccess: () => toast.success(t().seeds.added),
                 onError: (error) => toast.error(errorMessage(error)),
               },
             )
           }
         >
           <PlusIcon aria-hidden />
-          Ajouter comme élément
+          {t().seeds.addAsElement}
         </Button>
         <Button
           size="sm"
           variant="ghost"
           disabled={dismiss.isPending}
-          aria-label={`Écarter la piste ${lead.value}`}
+          aria-label={t().leads.dismissLead(lead.value)}
           onClick={() => dismiss.mutate(lead)}
         >
           <XIcon aria-hidden />
-          Écarter
+          {t().leads.dismiss}
         </Button>
       </div>
     </li>

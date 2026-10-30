@@ -17,5 +17,6 @@ export default defineConfig({
     // Served from the user's own disk, never over a network: one bundle loads fastest.
     chunkSizeWarningLimit: 1000,
   },
-  test: { include: ['src/**/*.test.ts'] },
+  // The tests read French, whatever the language of the machine they run on.
+  test: { include: ['src/**/*.test.ts'], setupFiles: ['src/i18n/test-setup.ts'] },
 });

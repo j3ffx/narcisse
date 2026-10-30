@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { cn } from 'cn';
 import {
   RISK_LEVEL_LABELS,
@@ -39,11 +40,11 @@ export function ScoreReasonsDetails({ reasons }: { reasons: ScoreReasons }) {
   return (
     <details className="grid gap-2 text-sm" data-testid="score-reasons">
       <summary className="w-fit cursor-pointer rounded font-medium underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
-        Pourquoi ces scores ?
+        {t().scores.why}
       </summary>
       <div className="mt-2 grid gap-3">
-        <Rules title="Confiance (est-ce toi ?)" reasons={reasons.confidence} />
-        <Rules title="Risque (à quel point ça t’expose ?)" reasons={reasons.risk} />
+        <Rules title={t().scores.confidence} reasons={reasons.confidence} />
+        <Rules title={t().scores.risk} reasons={reasons.risk} />
       </div>
     </details>
   );

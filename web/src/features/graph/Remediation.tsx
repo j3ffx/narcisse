@@ -1,3 +1,4 @@
+import { lang, t } from '@/i18n';
 import { Pending } from '@/components/Pending';
 import { LetterAssistant } from '@/features/assistant/LetterAssistant';
 import { Button } from '@/components/ui/button';
@@ -40,7 +41,7 @@ import { toast } from 'sonner';
 export function Remediation({ entityId }: { entityId: number }) {
   const sheet = useRemediation(entityId);
   const id = useId();
-  if (sheet.isPending) return <Pending label="Recherche de ce que tu peux faire…" />;
+  if (sheet.isPending) return <Pending label={t().remediation.loading} />;
   if (sheet.isError) return <p role="alert">{errorMessage(sheet.error)}</p>;
   const { actions, complaint } = sheet.data;
   if (actions.length === 0) return null;
@@ -48,11 +49,9 @@ export function Remediation({ entityId }: { entityId: number }) {
     <section aria-labelledby={`${id}-title`} className="grid gap-2" data-testid="remediation">
       <div>
         <h3 id={`${id}-title`} className="text-sm font-semibold">
-          Que faire ?
+          {t().remediation.title}
         </h3>
-        <p className="text-xs text-muted-foreground">
-          Narcisse prépare, tu envoies : rien ne part tout seul.
-        </p>
+        <p className="text-xs text-muted-foreground">{t().remediation.intro}</p>
       </div>
       <ol className="grid gap-2">
         {actions.map((action, index) => (
@@ -64,14 +63,14 @@ export function Remediation({ entityId }: { entityId: number }) {
         ))}
       </ol>
       <p className="text-xs text-muted-foreground">
-        Pas de réponse sous un mois à une demande RGPD ?{' '}
+        {t().remediation.noAnswer}{' '}
         <a
           href={complaint.url}
           target="_blank"
           rel="noreferrer noopener"
           className="underline underline-offset-2"
         >
-          Plainte à la CNIL
+          {t().remediation.complaint}
         </a>
       </p>
     </section>
@@ -101,7 +100,8 @@ function ActionItem({ action, entityId }: { action: Action; entityId: number }) 
           {service.source === 'jdm' && (
             <span className="text-muted-foreground">
               {' '}
-              (JustDeleteMe{service.notes_lang === 'en' ? ', en anglais' : ''})
+              (JustDeleteMe
+              {service.notes_lang === 'en' && lang() === 'fr' ? ', en anglais' : ''})
             </span>
           )}
         </p>
@@ -111,7 +111,7 @@ function ActionItem({ action, entityId }: { action: Action; entityId: number }) 
           <Button asChild size="sm" variant="outline">
             <a href={action.url} target="_blank" rel="noreferrer noopener">
               <ExternalLinkIcon aria-hidden />
-              Ouvrir la page
+              {t().remediation.openPage}
             </a>
           </Button>
         )}
@@ -124,24 +124,26 @@ function ActionItem({ action, entityId }: { action: Action; entityId: number }) 
             onClick={() =>
               follow.mutate(
                 { action: action.code, service: service?.name ?? '', letter: action.letter },
-                { onSuccess: () => toast.success('Ajoutée à « À faire ».') },
+                { onSuccess: () => toast.success(t().remediation.added) },
               )
             }
           >
             <ListPlusIcon aria-hidden />
-            Ajouter à « À faire »
+            {t().remediation.addToDo}
           </Button>
         )}
       </div>
       {request && (
         <p className="text-xs" data-testid="followed">
-          <span className="font-medium">Suivie</span> : {requestSummary(request)}
+          <span className="font-medium">{t().remediation.followed}</span>
+          {lang() === 'fr' ? ' : ' : ': '}
+          {requestSummary(request)}
           {checkText(request) ? ` · ${checkText(request)}` : '.'}{' '}
           <Link
             href={`/profils/${request.profile_id}/a-faire`}
             className="underline underline-offset-2"
           >
-            Voir dans « À faire »
+            {t().remediation.seeToDo}
           </Link>
         </p>
       )}
@@ -165,6 +167,7 @@ function ActionItem({ action, entityId }: { action: Action; entityId: number }) 
   );
 }
 
+// Each language in its own words.
 const LANG_LABELS: Record<Lang, string> = { fr: 'Français', en: 'English' };
 
 /** The prepared request: the user reads it, completes it, then copies it or opens it in their
@@ -179,7 +182,7 @@ function LetterDialog({ action, entityId }: { action: Action; entityId: number }
   const [body, setBody] = useState(action.letters[action.lang]?.body ?? '');
   // The text goes into a search engine's form, not into an e-mail.
   const byMail = action.letter !== 'dereference';
-  const label = LETTER_LABELS[action.letter ?? ''] ?? 'Demande';
+  const label = LETTER_LABELS[action.letter ?? ''] ?? t().remediation.request;
 
   const switchTo = (next: Lang) => {
     const letter = action.letters[next];
@@ -191,10 +194,10 @@ function LetterDialog({ action, entityId }: { action: Action; entityId: number }
 
   const copy = async (done: string) => {
     try {
-      await navigator.clipboard.writeText(byMail ? letterText(subject, body) : body);
+      await navigator.clipboard.writeText(byMail ? letterText(subject, body, lang) : body);
       toast.success(done);
     } catch {
-      toast.error('Copie impossible : sélectionne le texte et copie-le à la main.');
+      toast.error(t().letters.copyFailed);
     }
   };
 
@@ -212,19 +215,16 @@ function LetterDialog({ action, entityId }: { action: Action; entityId: number }
       <DialogTrigger asChild>
         <Button size="sm" variant="outline">
           <PenLineIcon aria-hidden />
-          Préparer la demande
+          {t().remediation.prepare}
         </Button>
       </DialogTrigger>
       <DialogContent className="grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{label}</DialogTitle>
-          <DialogDescription>
-            Relis-la et complète les « [à compléter] ». Narcisse n’envoie rien : c’est toi qui
-            l’envoies{byMail ? ', depuis ta messagerie' : ', dans le formulaire du moteur'}.
-          </DialogDescription>
+          <DialogDescription>{t().remediation.dialogIntro(byMail)}</DialogDescription>
         </DialogHeader>
         <div className="-mx-4 grid content-start gap-3 overflow-y-auto px-4">
-          <div role="group" aria-label="Langue de la demande" className="flex gap-2">
+          <div role="group" aria-label={t().remediation.letterLang} className="flex gap-2">
             {(['fr', 'en'] as const).map((option) => (
               <Button
                 key={option}
@@ -240,17 +240,17 @@ function LetterDialog({ action, entityId }: { action: Action; entityId: number }
           {byMail && (
             <>
               <div className="grid gap-1">
-                <Label htmlFor={`${id}-to`}>Destinataire</Label>
+                <Label htmlFor={`${id}-to`}>{t().remediation.recipient}</Label>
                 <Input
                   id={`${id}-to`}
                   type="email"
                   value={to}
-                  placeholder="l’adresse du site (mentions légales, page « données personnelles »)"
+                  placeholder={t().remediation.recipientHint}
                   onChange={(e) => setTo(e.target.value)}
                 />
               </div>
               <div className="grid gap-1">
-                <Label htmlFor={`${id}-subject`}>Objet</Label>
+                <Label htmlFor={`${id}-subject`}>{t().remediation.subject}</Label>
                 <Input
                   id={`${id}-subject`}
                   value={subject}
@@ -270,7 +270,7 @@ function LetterDialog({ action, entityId }: { action: Action; entityId: number }
             onRestore={() => switchTo(lang)}
           />
           <div className="grid gap-1">
-            <Label htmlFor={`${id}-body`}>Texte</Label>
+            <Label htmlFor={`${id}-body`}>{t().remediation.text}</Label>
             <textarea
               id={`${id}-body`}
               value={body}
@@ -281,20 +281,20 @@ function LetterDialog({ action, entityId }: { action: Action; entityId: number }
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => void copy('Texte copié.')}>
+          <Button variant="outline" onClick={() => void copy(t().letters.copied)}>
             <CopyIcon aria-hidden />
-            Copier le texte
+            {t().letters.copy}
           </Button>
           {byMail && (
             <Button asChild>
               <a
                 href={href}
                 onClick={() => {
-                  if (cut) void copy('Texte copié : colle-le dans le message.');
+                  if (cut) void copy(t().letters.copiedPaste);
                 }}
               >
                 <MailIcon aria-hidden />
-                Ouvrir dans ma messagerie
+                {t().letters.openMail}
               </a>
             </Button>
           )}
@@ -315,16 +315,14 @@ function LetterDialog({ action, entityId }: { action: Action; entityId: number }
                 {
                   onSuccess: () => {
                     setOpen(false);
-                    toast.success(
-                      'Suivie dans « À faire » : une relance te sera proposée dans un mois.',
-                    );
+                    toast.success(t().remediation.followedToast);
                   },
                 },
               )
             }
           >
             <CheckIcon aria-hidden />
-            Je l’ai envoyée
+            {t().remediation.sent}
           </Button>
         </DialogFooter>
       </DialogContent>

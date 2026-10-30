@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { Pending } from '@/components/Pending';
 import { SearxngDown } from '@/components/SearxngDown';
@@ -49,7 +50,7 @@ import { TriageButton } from '@/features/assistant/TriageButton';
 import { Requests } from './Requests';
 import { ScanDiff } from '@/features/scans/ScanDiff';
 import { SeedsEditor } from './SeedsEditor';
-import { TABS, type ProfileTab } from './tabs';
+import { tabs, type ProfileTab } from './tabs';
 
 // The graph's code (WebGL, layout) loads only when a profile's traces are shown.
 const GraphView = lazy(() =>
@@ -63,7 +64,7 @@ export function ProfilePage({ id, tab }: { id: number; tab: ProfileTab }) {
   const profile = useProfile(id);
   const view = useTraceViewState();
   const due = useExposure(id).data?.due;
-  if (profile.isPending) return <Pending label="Chargement du profil…" />;
+  if (profile.isPending) return <Pending label={t().profile.loading} />;
   if (profile.isError) return <p role="alert">{errorMessage(profile.error)}</p>;
   const data = profile.data;
 
@@ -73,7 +74,7 @@ export function ProfilePage({ id, tab }: { id: number; tab: ProfileTab }) {
         <div>
           <p className="text-sm text-muted-foreground">
             <Link href="/" className="hover:underline">
-              Profils
+              {t().shell.profiles}
             </Link>{' '}
             · {PROFILE_KIND_LABELS[data.kind]}
           </p>
@@ -86,8 +87,8 @@ export function ProfilePage({ id, tab }: { id: number; tab: ProfileTab }) {
           <DeleteProfile id={id} name={data.name} />
         </div>
       </div>
-      <nav aria-label="Vues du profil" className="flex gap-1 border-b">
-        {TABS.map(([key, title]) => (
+      <nav aria-label={t().profile.views} className="flex gap-1 border-b">
+        {tabs().map(([key, title]) => (
           <Link
             key={key}
             href={key === 'graphe' ? `/profils/${id}` : `/profils/${id}/${key}`}
@@ -103,14 +104,17 @@ export function ProfilePage({ id, tab }: { id: number; tab: ProfileTab }) {
             {key === 'a-faire' && !!due && (
               <span className="ml-1.5 rounded-full bg-primary px-1.5 text-xs text-primary-foreground">
                 {due}
-                <span className="sr-only"> à relancer</span>
+                <span className="sr-only"> {t().profile.toRemind}</span>
               </span>
             )}
           </Link>
         ))}
       </nav>
-      <ErrorBoundary key={tab} label={tab === 'graphe' ? 'Le graphe' : 'Cette vue'}>
-        <Suspense fallback={<Pending label="Chargement de la vue…" />}>
+      <ErrorBoundary
+        key={tab}
+        label={tab === 'graphe' ? t().profile.theGraph : t().profile.thisView}
+      >
+        <Suspense fallback={<Pending label={t().profile.loadingView} />}>
           {tab === 'graphe' && <GraphView profileId={id} view={view} />}
           {tab === 'liste' && <TraceList profileId={id} view={view} />}
         </Suspense>
@@ -167,24 +171,19 @@ function StartScanDialog({ profile }: { profile: ProfileDetail }) {
       <DialogTrigger asChild>
         <Button disabled={watched.length === 0}>
           <RadarIcon aria-hidden />
-          Lancer un scan
+          {t().scan.start}
         </Button>
       </DialogTrigger>
       {/* The sources scroll; the title and the button to start stay in view. */}
       <DialogContent className="grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Lancer un scan</DialogTitle>
-          <DialogDescription>
-            {watched.length} élément{watched.length > 1 ? 's' : ''} surveillé
-            {watched.length > 1 ? 's' : ''}. Choisis les sources à interroger.
-          </DialogDescription>
+          <DialogTitle>{t().scan.start}</DialogTitle>
+          <DialogDescription>{t().scan.watched(watched.length)}</DialogDescription>
         </DialogHeader>
         <div className="-mx-4 grid content-start gap-3 overflow-y-auto px-4">
-          {modules.isPending && <Pending label="Chargement des sources…" />}
+          {modules.isPending && <Pending label={t().scan.loadingSources} />}
           {modules.data && usable.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              Aucune source disponible pour ces éléments pour l’instant.
-            </p>
+            <p className="text-sm text-muted-foreground">{t().scan.noSource}</p>
           )}
           <ul className="grid gap-3">
             {usable.map((module) => {
@@ -209,7 +208,7 @@ function StartScanDialog({ profile }: { profile: ProfileDetail }) {
                       {module.title}
                       {module.demo && (
                         <span className="rounded bg-amber-100 px-1.5 text-xs text-amber-950 dark:bg-amber-950 dark:text-amber-50">
-                          fictif
+                          {t().scan.fake}
                         </span>
                       )}
                     </Label>
@@ -219,12 +218,12 @@ function StartScanDialog({ profile }: { profile: ProfileDetail }) {
                       <p id={`${id}-needs`} className="text-sm">
                         {messageFor(module.unavailable)}{' '}
                         <Link href="/reglages" className="underline underline-offset-2">
-                          Réglages
+                          {t().shell.settings}
                         </Link>
                       </p>
                     )}
                     <p className="text-xs text-muted-foreground">
-                      Accepte :{' '}
+                      {t().scan.accepts}{' '}
                       {module.accepts
                         .filter((k) => kinds.has(k as never))
                         .map((k) => KIND_LABELS[k])
@@ -243,7 +242,7 @@ function StartScanDialog({ profile }: { profile: ProfileDetail }) {
         </div>
         <DialogFooter>
           <Button onClick={launch} disabled={start.isPending || selected.length === 0}>
-            {start.isPending ? 'Lancement…' : 'Lancer'}
+            {start.isPending ? t().scan.starting : t().scan.go}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -257,25 +256,22 @@ function DeleteProfile({ id, name }: { id: number; name: string }) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Supprimer le profil">
+        <Button variant="ghost" size="icon" aria-label={t().profile.delete}>
           <Trash2Icon aria-hidden />
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Supprimer « {name} » ?</AlertDialogTitle>
-          <AlertDialogDescription>
-            Le profil, ses éléments, ses scans et tout ce qu’ils ont trouvé sont effacés de cet
-            ordinateur.
-          </AlertDialogDescription>
+          <AlertDialogTitle>{t().profile.deleteTitle(name)}</AlertDialogTitle>
+          <AlertDialogDescription>{t().profile.deleteText}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Garder</AlertDialogCancel>
+          <AlertDialogCancel>{t().profile.keep}</AlertDialogCancel>
           <AlertDialogAction
             variant="destructive"
             onClick={() => remove.mutate(undefined, { onSuccess: () => navigate('/') })}
           >
-            Supprimer
+            {t().common.delete}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -288,11 +284,11 @@ function ScanHistory({ profileId }: { profileId: number }) {
   return (
     <section aria-labelledby="scans-title" className="grid gap-3">
       <h2 id="scans-title" className="font-heading text-lg font-semibold">
-        Scans
+        {t().tabs.scans}
       </h2>
-      {scans.isPending && <Pending label="Chargement des scans…" />}
+      {scans.isPending && <Pending label={t().profile.loadingScans} />}
       {scans.data?.length === 0 && (
-        <p className="text-sm text-muted-foreground">Aucun scan encore.</p>
+        <p className="text-sm text-muted-foreground">{t().profile.noScan}</p>
       )}
       {scans.data && <ScanDiff profileId={profileId} scans={scans.data} />}
       <ul className="divide-y rounded-lg border empty:hidden">
@@ -304,11 +300,11 @@ function ScanHistory({ profileId }: { profileId: number }) {
             >
               <span>
                 {formatDate(scan.created_at)}
-                {scan.notes?.check ? ` · vérification de « ${scan.notes.trace} »` : ''}
-                {scan.notes?.scheduled ? ' · programmé' : ''}
+                {scan.notes?.check ? ` · ${t().profile.checkOf(String(scan.notes.trace))}` : ''}
+                {scan.notes?.scheduled ? ` · ${t().profile.scheduled}` : ''}
               </span>
               <span className="flex items-center gap-3 text-sm text-muted-foreground">
-                {scan.results_count} résultat{scan.results_count > 1 ? 's' : ''}
+                {t().scan.results(scan.results_count)}
                 <ScanStatusBadge status={scan.status} />
               </span>
             </Link>

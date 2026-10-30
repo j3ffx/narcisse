@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,12 +28,9 @@ export function Backups() {
     <section aria-labelledby={`${id}-title`} className="grid gap-4" data-testid="backups">
       <div>
         <h2 id={`${id}-title`} className="font-heading text-lg font-semibold">
-          Sauvegarde
+          {t().backups.title}
         </h2>
-        <p className="text-sm text-muted-foreground">
-          Tous tes profils, leurs traces, tes demandes et tes réglages, dans un fichier .narcisse :
-          pour les garder ailleurs, ou passer sur un autre ordinateur.
-        </p>
+        <p className="text-sm text-muted-foreground">{t().backups.intro}</p>
       </div>
       <MakeBackup />
       <RestoreBackup />
@@ -61,7 +59,7 @@ function MakeBackup() {
       if (!response.ok) throw new ApiError('internal_error', {}, response.status);
       saveFile(fileName(response), await response.blob(), 'application/octet-stream');
       setPassphrase('');
-      toast.success('Sauvegarde enregistrée dans tes téléchargements.');
+      toast.success(t().backups.saved);
     } catch (error) {
       toast.error(errorMessage(error));
     } finally {
@@ -71,7 +69,7 @@ function MakeBackup() {
   return (
     <form onSubmit={make} className="grid gap-2">
       <div className="grid max-w-md gap-1.5">
-        <Label htmlFor={`${id}-passphrase`}>Phrase de passe (facultative)</Label>
+        <Label htmlFor={`${id}-passphrase`}>{t().backups.passphrase}</Label>
         <Input
           id={`${id}-passphrase`}
           type="password"
@@ -81,14 +79,12 @@ function MakeBackup() {
           aria-describedby={`${id}-help`}
         />
         <p id={`${id}-help`} className="text-xs text-muted-foreground">
-          Avec une phrase de passe, la sauvegarde est chiffrée et garde aussi tes tokens GitHub et
-          GitLab, et la clé de ton assistant IA. Ne la perds pas : sans elle, personne ne pourra
-          relire la sauvegarde, pas même Narcisse.
+          {t().backups.passphraseHelp}
         </p>
       </div>
       <Button type="submit" disabled={busy} className="w-fit">
         <ArchiveIcon aria-hidden />
-        {busy ? 'Sauvegarde…' : 'Télécharger une sauvegarde'}
+        {busy ? t().backups.saving : t().backups.download}
       </Button>
     </form>
   );
@@ -122,7 +118,7 @@ function RestoreBackup() {
         passphrase: passphrase || null,
       });
       toast.success(
-        `Restauré : ${restored.profiles} profil${restored.profiles > 1 ? 's' : ''} de la sauvegarde du ${formatDay(restored.created_at)}. Tes données d’avant sont gardées dans ${restored.safety}.`,
+        t().backups.restored(restored.profiles, formatDay(restored.created_at), restored.safety),
         { duration: 15_000 },
       );
       // Everything shown came from the data just replaced: start afresh.
@@ -136,10 +132,10 @@ function RestoreBackup() {
 
   return (
     <div className="grid gap-2">
-      <h3 className="text-sm font-semibold">Restaurer une sauvegarde</h3>
+      <h3 className="text-sm font-semibold">{t().backups.restoreTitle}</h3>
       <div className="flex flex-wrap items-end gap-3">
         <div className="grid gap-1.5">
-          <Label htmlFor={`${id}-file`}>Fichier .narcisse</Label>
+          <Label htmlFor={`${id}-file`}>{t().backups.file}</Label>
           <Input
             id={`${id}-file`}
             type="file"
@@ -152,7 +148,7 @@ function RestoreBackup() {
           />
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor={`${id}-restore-passphrase`}>Sa phrase de passe, si elle en a une</Label>
+          <Label htmlFor={`${id}-restore-passphrase`}>{t().backups.itsPassphrase}</Label>
           <Input
             id={`${id}-restore-passphrase`}
             type="password"
@@ -164,7 +160,7 @@ function RestoreBackup() {
         </div>
         <Button variant="outline" disabled={!file || busy} onClick={() => setConfirming(true)}>
           <ArchiveRestoreIcon aria-hidden />
-          {busy ? 'Restauration…' : 'Restaurer'}
+          {busy ? t().backups.restoring : t().backups.restore}
         </Button>
       </div>
       {error && (
@@ -175,16 +171,14 @@ function RestoreBackup() {
       <AlertDialog open={confirming} onOpenChange={setConfirming}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remplacer toutes tes données ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tes profils, traces, demandes et réglages actuels sont remplacés par ceux de la
-              sauvegarde. Ils sont d’abord gardés dans une sauvegarde de sécurité, dans le dossier
-              de Narcisse.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t().backups.confirmTitle}</AlertDialogTitle>
+            <AlertDialogDescription>{t().backups.confirmText}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void restore()}>Restaurer</AlertDialogAction>
+            <AlertDialogCancel>{t().common.cancel}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void restore()}>
+              {t().backups.restore}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

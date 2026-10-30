@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { useReviewEntity } from '@/lib/queries';
 import type { Entity, EntityStatus } from '@/lib/types';
@@ -11,26 +12,26 @@ export function ReviewButtons({ entity }: { entity: Entity }) {
   const confirmed = entity.status === 'confirmed';
   const rejected = entity.status === 'false_positive';
   return (
-    <div className="flex shrink-0 gap-1" role="group" aria-label={`Trier ${entity.display}`}>
+    <div className="flex shrink-0 gap-1" role="group" aria-label={t().review.sort(entity.display)}>
       <Button
         size="sm"
         variant={confirmed ? 'default' : 'outline'}
         aria-pressed={confirmed}
-        aria-label="C’est moi"
+        aria-label={t().entityStatus.confirmed}
         onClick={() => set('confirmed')}
       >
         <CheckIcon aria-hidden />
-        <span className="hidden sm:inline">C’est moi</span>
+        <span className="hidden sm:inline">{t().entityStatus.confirmed}</span>
       </Button>
       <Button
         size="sm"
         variant={rejected ? 'secondary' : 'ghost'}
         aria-pressed={rejected}
-        aria-label="Pas moi"
+        aria-label={t().entityStatus.false_positive}
         onClick={() => set('false_positive')}
       >
         <XIcon aria-hidden />
-        <span className="hidden sm:inline">Pas moi</span>
+        <span className="hidden sm:inline">{t().entityStatus.false_positive}</span>
       </Button>
     </div>
   );

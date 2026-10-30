@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { AiLeads } from '@/features/assistant/AiLeads';
 import { Pending } from '@/components/Pending';
 import { Button } from '@/components/ui/button';
@@ -13,17 +14,8 @@ import { useId } from 'react';
 import { toast } from 'sonner';
 import { Link } from 'wouter';
 
-const DEPTHS: [number, string][] = [
-  [0, 'Non : je valide chaque piste'],
-  [1, 'Oui, à un saut des éléments'],
-  [2, 'Oui, jusqu’à deux sauts'],
-];
-
-const RESCANS: [Rescan, string][] = [
-  ['never', 'Jamais : je les lance moi-même'],
-  ['weekly', 'Chaque semaine'],
-  ['monthly', 'Chaque mois'],
-];
+const DEPTHS = [0, 1, 2] as const;
+const RESCANS: Rescan[] = ['never', 'weekly', 'monthly'];
 
 const INTERVAL_DAYS: Record<Rescan, number | null> = { never: null, weekly: 7, monthly: 30 };
 
@@ -45,16 +37,12 @@ export function RescanSetting({ profile }: { profile: ProfileDetail }) {
     <section aria-labelledby={`${id}-title`} className="grid gap-3">
       <div>
         <h2 id={`${id}-title`} className="font-heading text-lg font-semibold">
-          Relancer les scans tout seul
+          {t().leads.rescanTitle}
         </h2>
-        <p className="text-sm text-muted-foreground">
-          Tant que Narcisse tourne (coche « Démarrer avec Windows » dans le menu de son icône pour
-          qu’il tourne toujours), il relance un scan du profil avec ses sources cochées par défaut,
-          puis te dit ce qui a changé. Un ordinateur éteint rattrape le scan au démarrage suivant.
-        </p>
+        <p className="text-sm text-muted-foreground">{t().leads.rescanIntro}</p>
       </div>
       <div className="grid w-fit gap-1.5">
-        <Label htmlFor={`${id}-rescan`}>Relancer un scan</Label>
+        <Label htmlFor={`${id}-rescan`}>{t().leads.rescan}</Label>
         <select
           id={`${id}-rescan`}
           className="h-8 rounded-lg border bg-background px-2 text-sm"
@@ -66,18 +54,16 @@ export function RescanSetting({ profile }: { profile: ProfileDetail }) {
             })
           }
         >
-          {RESCANS.map(([value, title]) => (
+          {RESCANS.map((value) => (
             <option key={value} value={value}>
-              {title}
+              {t().leads.rescans[value]}
             </option>
           ))}
         </select>
       </div>
       {days !== null && (
         <p className="text-sm" data-testid="next-scan">
-          {next
-            ? `Prochain scan vers le ${formatDay(next.toISOString())}.`
-            : 'Le premier scan programmé suivra ton premier scan.'}
+          {next ? t().leads.nextScan(formatDay(next.toISOString())) : t().leads.firstScheduled}
         </p>
       )}
     </section>
@@ -92,17 +78,12 @@ export function PivotDepth({ profile }: { profile: ProfileDetail }) {
     <section aria-labelledby={`${id}-title`} className="grid gap-3">
       <div>
         <h2 id={`${id}-title`} className="font-heading text-lg font-semibold">
-          Suivre les pistes pendant les scans
+          {t().leads.pivotTitle}
         </h2>
-        <p className="text-sm text-muted-foreground">
-          Une piste est une trace trouvée qui pourrait servir de point de départ (un email lu dans
-          un profil, un domaine cité dans une bio…). Par défaut, Narcisse te les propose ci-dessus
-          et tu choisis. Il peut aussi suivre de lui-même les plus sûres (confiance d’au moins 70),
-          25 au plus par scan, jamais une trace que tu as rejetée.
-        </p>
+        <p className="text-sm text-muted-foreground">{t().leads.pivotIntro}</p>
       </div>
       <div className="grid w-fit gap-1.5">
-        <Label htmlFor={`${id}-depth`}>Suivre les pistes sûres automatiquement</Label>
+        <Label htmlFor={`${id}-depth`}>{t().leads.pivot}</Label>
         <select
           id={`${id}-depth`}
           className="h-8 rounded-lg border bg-background px-2 text-sm"
@@ -114,9 +95,9 @@ export function PivotDepth({ profile }: { profile: ProfileDetail }) {
             })
           }
         >
-          {DEPTHS.map(([depth, title]) => (
+          {DEPTHS.map((depth) => (
             <option key={depth} value={depth}>
-              {title}
+              {t().leads.depths[depth]}
             </option>
           ))}
         </select>
@@ -133,19 +114,14 @@ export function Leads({ profileId }: { profileId: number }) {
     <section aria-labelledby={`${id}-title`} className="grid gap-3">
       <div>
         <h2 id={`${id}-title`} className="font-heading text-lg font-semibold">
-          Pistes
+          {t().leads.title}
         </h2>
-        <p className="text-sm text-muted-foreground">
-          Les traces assez sûres (confiance d’au moins 60) pour qu’un scan parte aussi d’elles, et
-          qui ne sont pas encore des éléments. Les plus sûres d’abord.
-        </p>
+        <p className="text-sm text-muted-foreground">{t().leads.intro}</p>
       </div>
-      {leads.isPending && <Pending label="Recherche des pistes…" />}
+      {leads.isPending && <Pending label={t().leads.loading} />}
       {leads.isError && <p role="alert">{errorMessage(leads.error)}</p>}
       {leads.data?.length === 0 && (
-        <p className="text-sm text-muted-foreground">
-          Aucune piste pour l’instant : les scans en trouveront en fouillant tes éléments.
-        </p>
+        <p className="text-sm text-muted-foreground">{t().leads.none}</p>
       )}
       {!!leads.data?.length && (
         <ul className="grid gap-2">
@@ -180,8 +156,11 @@ function LeadRow({ profileId, lead }: { profileId: number; lead: Lead }) {
           </Link>
         </p>
         <p className="text-xs text-muted-foreground">
-          Confiance {points(entity.confidence ?? 0)} · risque {RISK_LEVEL_LABELS[riskLevel(risk)]} (
-          {points(risk)})
+          {t().leads.scores(
+            points(entity.confidence ?? 0),
+            RISK_LEVEL_LABELS[riskLevel(risk)],
+            points(risk),
+          )}
           {via ? ` · ${RELATION_LABELS[relation ?? ''] ?? relation} via ${via.display}` : ''}
         </p>
       </div>
@@ -194,27 +173,24 @@ function LeadRow({ profileId, lead }: { profileId: number; lead: Lead }) {
             add.mutate(
               { kind: entity.kind as SeedKind, value: entity.display },
               {
-                onSuccess: () =>
-                  toast.success(
-                    'Ajouté aux éléments du profil : lance un scan pour fouiller à partir de lui.',
-                  ),
+                onSuccess: () => toast.success(t().seeds.added),
                 onError: (error) => toast.error(errorMessage(error)),
               },
             )
           }
         >
           <PlusIcon aria-hidden />
-          Ajouter comme élément
+          {t().seeds.addAsElement}
         </Button>
         <Button
           size="sm"
           variant="ghost"
           disabled={dismiss.isPending}
-          aria-label={`Écarter la piste ${entity.display}`}
+          aria-label={t().leads.dismissLead(entity.display)}
           onClick={() => dismiss.mutate(entity.id)}
         >
           <XIcon aria-hidden />
-          Écarter
+          {t().leads.dismiss}
         </Button>
       </div>
     </li>

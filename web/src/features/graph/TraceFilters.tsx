@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -36,13 +37,14 @@ export function TraceFilters({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant={active ? 'secondary' : 'outline'} aria-label="Filtres">
+        <Button variant={active ? 'secondary' : 'outline'} aria-label={t().filters.title}>
           <FilterIcon aria-hidden />
-          Filtres{active ? ' (actifs)' : ''}
+          {t().filters.title}
+          {active ? ` ${t().filters.active}` : ''}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="grid max-h-[70dvh] w-80 gap-4 overflow-y-auto">
-        <Group title="Types">
+        <Group title={t().filters.kinds}>
           {[...kinds].map(([kind, n]) => (
             <Choice
               key={kind}
@@ -55,18 +57,18 @@ export function TraceFilters({
             />
           ))}
         </Group>
-        <Group title="Sources">
+        <Group title={t().shell.sources}>
           {[...modules].map(([name, n]) => (
             <Choice
               key={name}
               id={`module-${name}`}
-              label={`${name === 'seed' ? 'Déclaré par toi' : sourceTitle(name)} (${n})`}
+              label={`${name === 'seed' ? t().filters.declared : sourceTitle(name)} (${n})`}
               checked={filter.modules.includes(name)}
               onChange={(on) => onChange({ ...filter, modules: toggle(filter.modules, name, on) })}
             />
           ))}
         </Group>
-        <Group title="Statut">
+        <Group title={t().requests.status}>
           {STATUSES.map((status) => (
             <Choice
               key={status}
@@ -80,13 +82,13 @@ export function TraceFilters({
           ))}
           <Choice
             id="filter-hide-gone"
-            label="Masquer les disparues"
+            label={t().filters.hideGone}
             checked={filter.hideGone}
             onChange={(on) => onChange({ ...filter, hideGone: on })}
           />
         </Group>
         <div className="grid gap-1.5">
-          <Label htmlFor="filter-confidence">Confiance minimale</Label>
+          <Label htmlFor="filter-confidence">{t().filters.minConfidence}</Label>
           <select
             id="filter-confidence"
             className="h-8 rounded-lg border bg-background px-2 text-sm"
@@ -95,13 +97,15 @@ export function TraceFilters({
           >
             {CONFIDENCES.map((c) => (
               <option key={c} value={c}>
-                {c === 0 ? 'Toutes' : `${Math.round(c * 100)} % et plus`}
+                {c === 0
+                  ? t().filters.allConfidences
+                  : t().filters.percentAndMore(Math.round(c * 100))}
               </option>
             ))}
           </select>
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor="filter-risk">Risque minimal</Label>
+          <Label htmlFor="filter-risk">{t().filters.minRisk}</Label>
           <select
             id="filter-risk"
             className="h-8 rounded-lg border bg-background px-2 text-sm"
@@ -110,13 +114,13 @@ export function TraceFilters({
           >
             {[...RISK_FLOORS].reverse().map(([floor, level]) => (
               <option key={level} value={floor}>
-                {floor === 0 ? 'Tous' : `${RISK_LEVEL_LABELS[level]} et plus`}
+                {floor === 0 ? t().filters.allRisks : t().filters.andMore(RISK_LEVEL_LABELS[level])}
               </option>
             ))}
           </select>
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor="filter-since">Vues depuis le</Label>
+          <Label htmlFor="filter-since">{t().filters.since}</Label>
           <Input
             id="filter-since"
             type="date"
@@ -125,7 +129,7 @@ export function TraceFilters({
           />
         </div>
         <Button variant="ghost" disabled={!active} onClick={() => onChange(NO_FILTER)}>
-          Tout afficher
+          {t().filters.reset}
         </Button>
       </PopoverContent>
     </Popover>

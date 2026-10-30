@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { ReviewButtons } from '@/components/ReviewButtons';
 import { KIND_LABELS, RELATION_LABELS } from '@/lib/labels';
 import { useModules } from '@/lib/queries';
@@ -27,7 +28,7 @@ export function ResultList({ items }: { items: Result[] }) {
       ref={parent}
       className="max-h-[36rem] overflow-y-auto rounded-lg border"
       tabIndex={0}
-      aria-label="Liste des résultats"
+      aria-label={t().scanPage.list}
     >
       <ul className="relative" style={{ height: virtualizer.getTotalSize() }}>
         {virtualizer.getVirtualItems().map((row) => {
@@ -62,7 +63,7 @@ export function ResultList({ items }: { items: Result[] }) {
                       target="_blank"
                       rel="noreferrer noopener"
                       className="shrink-0 text-muted-foreground hover:text-foreground"
-                      aria-label={`Ouvrir ${result.url}`}
+                      aria-label={t().scanPage.open(String(result.url))}
                     >
                       <ExternalLinkIcon aria-hidden className="size-4" />
                     </a>
@@ -74,7 +75,7 @@ export function ResultList({ items }: { items: Result[] }) {
                     : ''}
                   {titles.get(result.module) ?? result.module}
                   {result.confidence !== null &&
-                    ` · confiance ${Math.round(result.confidence * 100)} %`}
+                    ` · ${t().scanPage.confidence(Math.round(result.confidence * 100))}`}
                 </p>
                 {result.excerpt && (
                   <p className="truncate text-xs text-muted-foreground">{result.excerpt}</p>

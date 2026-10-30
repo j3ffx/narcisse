@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { shortestPath, type GraphPath } from '@/lib/graph';
 import { RELATION_LABELS } from '@/lib/labels';
@@ -37,38 +38,36 @@ export function PathFinder({
     <section className="grid gap-2" aria-labelledby="path-title">
       <h3 id="path-title" className="flex items-center gap-1.5 text-sm font-semibold">
         <RouteIcon aria-hidden className="size-4" />
-        Comment est-ce relié à…
+        {t().path.title}
       </h3>
       <div className="flex flex-wrap gap-2">
         <TraceSearch
           nodes={data.nodes.filter((n) => n.id !== from && !hidden.has(n.id))}
           onPick={(node) => link(node.id)}
-          label="Relier à une trace"
-          placeholder="une autre trace"
+          label={t().path.linkTo}
+          placeholder={t().path.another}
           shortcut={false}
           className="relative min-w-40 flex-1"
         />
         {identity && identity.id !== from && (
           <Button variant="outline" size="sm" onClick={() => link(identity.id)}>
-            toi
+            {t().path.you}
           </Button>
         )}
       </div>
       {missing && (
         <p role="status" className="text-sm text-muted-foreground">
-          Rien ne relie ces deux traces{hidden.size ? ' parmi celles affichées' : ''}.
+          {t().path.none(hidden.size > 0)}
         </p>
       )}
       {path && (
         <div className="grid gap-1" data-testid="path">
           <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">
-              {path.edges.length} lien{path.edges.length > 1 ? 's' : ''}
-            </p>
+            <p className="text-xs text-muted-foreground">{t().path.links(path.edges.length)}</p>
             <Button
               variant="ghost"
               size="icon-xs"
-              aria-label="Effacer le chemin"
+              aria-label={t().path.clear}
               onClick={() => onPath(null)}
             >
               <XIcon aria-hidden />

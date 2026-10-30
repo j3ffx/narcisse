@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -32,7 +33,7 @@ export function AppShell({
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-background focus:px-3 focus:py-2"
       >
-        Aller au contenu
+        {t().shell.skip}
       </a>
       <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur">
         <div
@@ -46,14 +47,14 @@ export function AppShell({
             Narcisse
           </Link>
           <nav
-            aria-label="Navigation"
+            aria-label={t().shell.navigation}
             className="order-last flex w-full gap-4 text-sm sm:order-none sm:ml-2 sm:w-auto"
           >
             {[
-              ['/', 'Profils'],
-              ['/sources', 'Sources'],
-              ['/mot-de-passe', 'Mot de passe'],
-              ['/reglages', 'Réglages'],
+              ['/', t().shell.profiles],
+              ['/sources', t().shell.sources],
+              ['/mot-de-passe', t().shell.password],
+              ['/reglages', t().shell.settings],
             ].map(([href, label]) => (
               <Link
                 key={href}
@@ -72,7 +73,7 @@ export function AppShell({
             {connection === 'reconnecting' && (
               <span role="status" className="flex items-center gap-1 text-xs text-muted-foreground">
                 <WifiOffIcon aria-hidden className="size-4" />
-                Reconnexion…
+                {t().shell.reconnecting}
               </span>
             )}
             <ActivityCenter />
@@ -82,7 +83,7 @@ export function AppShell({
       </header>
       {info.data?.demo && (
         <p className="border-b bg-amber-50 px-4 py-2 text-center text-sm text-amber-950 dark:bg-amber-950 dark:text-amber-50">
-          Mode démo : le module de démonstration invente des résultats, sans rien interroger.
+          {t().shell.demoBanner}
         </p>
       )}
       <main id="main" className={cn('mx-auto px-4 py-6', wide ? 'max-w-[110rem]' : 'max-w-5xl')}>
@@ -92,11 +93,7 @@ export function AppShell({
   );
 }
 
-const THEMES: { value: ThemeChoice; label: string }[] = [
-  { value: 'system', label: 'Comme le système' },
-  { value: 'light', label: 'Clair' },
-  { value: 'dark', label: 'Sombre' },
-];
+const THEMES: ThemeChoice[] = ['system', 'light', 'dark'];
 
 function ThemeMenu() {
   const { choice, resolved, setChoice } = useTheme();
@@ -104,15 +101,15 @@ function ThemeMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Thème">
+        <Button variant="ghost" size="icon" aria-label={t().shell.theme}>
           <Icon aria-hidden />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuRadioGroup value={choice} onValueChange={(v) => setChoice(v as ThemeChoice)}>
-          {THEMES.map((t) => (
-            <DropdownMenuRadioItem key={t.value} value={t.value}>
-              {t.label}
+          {THEMES.map((theme) => (
+            <DropdownMenuRadioItem key={theme} value={theme}>
+              {t().shell.themes[theme]}
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>

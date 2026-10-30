@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -30,31 +31,26 @@ export function TriageButton({ profileId }: { profileId: number }) {
       <DialogTrigger asChild>
         <Button variant="outline">
           <SparklesIcon aria-hidden />
-          Trier avec l’IA
+          {t().triage.button}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Trier les traces à vérifier</DialogTitle>
-          <DialogDescription>
-            {name} dit, pour chaque trace pas encore triée, si c’est sans doute toi. Rien n’est
-            appliqué : chaque avis attend ton clic dans le détail de la trace.
-          </DialogDescription>
+          <DialogTitle>{t().triage.title}</DialogTitle>
+          <DialogDescription>{t().triage.intro(name)}</DialogDescription>
         </DialogHeader>
         <p className="text-sm" role="status" data-testid="triage-count">
           {blocked
-            ? `${name} envoie les traces hors de ta machine : autorise-le d’abord dans les Réglages.`
+            ? t().triage.blocked(name)
             : count.isPending
-              ? 'Calcul du nombre de traces…'
+              ? t().triage.counting
               : waiting === 0
-                ? 'Aucune trace à trier : elles sont toutes triées, ou déjà demandées.'
-                : `${waiting} question${waiting > 1 ? 's' : ''}, une par trace${
-                    count.data?.capped ? ' (les suivantes au prochain lot)' : ''
-                  }${status.data.remote ? ', chacune envoyée à Anthropic' : ''}.`}
+                ? t().triage.none
+                : t().triage.questions(waiting, count.data?.capped ?? false, status.data.remote)}
         </p>
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)}>
-            Annuler
+            {t().common.cancel}
           </Button>
           <Button
             disabled={blocked || waiting === 0 || triage.isPending}
@@ -62,14 +58,12 @@ export function TriageButton({ profileId }: { profileId: number }) {
               triage.mutate(undefined, {
                 onSuccess: (done) => {
                   setOpen(false);
-                  toast.success(
-                    `${done.count} question${done.count > 1 ? 's' : ''} envoyée${done.count > 1 ? 's' : ''} à ${name}. Les avis arrivent dans le détail des traces.`,
-                  );
+                  toast.success(t().triage.sent(done.count, name));
                 },
               })
             }
           >
-            Lancer le tri
+            {t().triage.start}
           </Button>
         </DialogFooter>
       </DialogContent>

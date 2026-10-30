@@ -1,3 +1,4 @@
+import { lang, t } from '@/i18n';
 import { Pending } from '@/components/Pending';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -50,14 +51,13 @@ export function TraceAssistant({ profileId, entity }: { profileId: number; entit
     <section aria-labelledby={titleId} className="grid gap-2" data-testid="trace-assistant">
       <h3 id={titleId} className="flex items-center gap-1.5 text-sm font-semibold">
         <SparklesIcon aria-hidden className="size-4" />
-        Assistant IA
+        {t().aiPanel.title}
       </h3>
       {blocked ? (
         <p className="text-sm text-muted-foreground">
-          {PROVIDER_LABELS[status.data.provider]} envoie la trace hors de ta machine : autorise-le
-          d’abord dans les{' '}
+          {t().aiPanel.blocked(PROVIDER_LABELS[status.data.provider])}{' '}
           <Link href="/reglages" className="underline underline-offset-2">
-            Réglages
+            {t().shell.settings}
           </Link>
           .
         </p>
@@ -71,7 +71,7 @@ export function TraceAssistant({ profileId, entity }: { profileId: number; entit
           <SentText entityId={entity.id} status={status.data} />
         </>
       )}
-      {annotations.isPending && <Pending label="Chargement des avis de l’IA…" />}
+      {annotations.isPending && <Pending label={t().aiPanel.loading} />}
       {TASKS.map((task) => {
         const annotation = latest(list, task);
         if (!annotation || annotation.decision === 'dismissed') return null;
@@ -108,31 +108,28 @@ function SentText({ entityId, status }: { entityId: number; status: AssistantSta
   const [open, setOpen] = useState(false);
   const prompt = usePrompt(entityId, 'explain', open);
   const where = !status.remote
-    ? 'reste sur ta machine'
+    ? t().aiPanel.staysHere
     : status.provider === 'claude_code'
-      ? 'part chez Anthropic'
-      : 'quitte ta machine';
+      ? t().aiPanel.toAnthropic
+      : t().aiPanel.leaves;
   return (
     <details className="text-sm" onToggle={(e) => setOpen(e.currentTarget.open)}>
       <summary className="w-fit cursor-pointer text-muted-foreground underline-offset-2 hover:underline">
-        Voir ce qui {where}
+        {t().aiPanel.see(where)}
       </summary>
       <div className="mt-2 grid gap-1">
-        {prompt.isPending && open && <Pending label="Préparation du texte…" />}
+        {prompt.isPending && open && <Pending label={t().aiPanel.preparing} />}
         {prompt.data && (
           <>
             <pre
               tabIndex={0}
-              aria-label="Texte envoyé à l’assistant"
+              aria-label={t().aiPanel.sentText}
               className="max-h-64 overflow-auto rounded-md border bg-muted/40 p-2 text-xs whitespace-pre-wrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               data-testid="assistant-prompt"
             >
               {prompt.data.text}
             </pre>
-            <p className="text-xs text-muted-foreground">
-              « Est-ce bien moi ? » envoie le même texte, sans la ligne du score. Rien d’autre de
-              ton profil ne part.
-            </p>
+            <p className="text-xs text-muted-foreground">{t().aiPanel.sameText}</p>
           </>
         )}
       </div>
@@ -171,7 +168,7 @@ function Answer({
             disabled={ask.isPending}
             onClick={() => ask.mutate({ entityId: entity.id, task: annotation.task })}
           >
-            Réessayer
+            {t().common.retry}
           </Button>
         </div>
       </>
@@ -190,7 +187,7 @@ function Answer({
     >
       <div className="flex items-center justify-between gap-2">
         <p className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-          <Badge variant="secondary">Avis de l’IA</Badge>
+          <Badge variant="secondary">{t().aiPanel.badge}</Badge>
           {TASK_LABELS[annotation.task]} · {answeredBy(annotation)} ·{' '}
           {formatDate(annotation.created_at)}
         </p>
@@ -198,7 +195,7 @@ function Answer({
           <Button
             size="icon-sm"
             variant="ghost"
-            aria-label="Supprimer cet avis"
+            aria-label={t().aiPanel.delete}
             disabled={remove.isPending}
             onClick={() => remove.mutate(annotation)}
           >
@@ -225,12 +222,12 @@ function TriageBody({ annotation }: { annotation: Annotation }) {
       )}
       <p>{textOf(annotation, 'reason')}</p>
       {annotation.decision === 'accepted' ? (
-        <p className="text-xs text-muted-foreground">Appliqué au statut de la trace.</p>
+        <p className="text-xs text-muted-foreground">{t().aiPanel.applied}</p>
       ) : (
         <div className="flex flex-wrap gap-2">
           {verdict !== 'unsure' && verdict !== null && (
             <Button size="sm" disabled={update.isPending} onClick={() => decide('accepted')}>
-              {verdict === 'me' ? 'Appliquer : c’est moi' : 'Appliquer : pas moi'}
+              {verdict === 'me' ? t().aiPanel.applyMe : t().aiPanel.applyNotMe}
             </Button>
           )}
           <Button
@@ -239,7 +236,7 @@ function TriageBody({ annotation }: { annotation: Annotation }) {
             disabled={update.isPending}
             onClick={() => decide('dismissed')}
           >
-            Ignorer
+            {t().aiPanel.ignore}
           </Button>
         </div>
       )}
@@ -266,7 +263,7 @@ function ExplainBody({ annotation }: { annotation: Annotation }) {
         }}
       >
         <div className="grid gap-1">
-          <Label htmlFor={`${id}-summary`}>Ce que c’est</Label>
+          <Label htmlFor={`${id}-summary`}>{t().aiPanel.whatItIs}</Label>
           <textarea
             id={`${id}-summary`}
             rows={3}
@@ -277,7 +274,7 @@ function ExplainBody({ annotation }: { annotation: Annotation }) {
           />
         </div>
         <div className="grid gap-1">
-          <Label htmlFor={`${id}-risk`}>Ce que ça expose</Label>
+          <Label htmlFor={`${id}-risk`}>{t().aiPanel.whatItExposes}</Label>
           <textarea
             id={`${id}-risk`}
             rows={3}
@@ -289,10 +286,10 @@ function ExplainBody({ annotation }: { annotation: Annotation }) {
         </div>
         <div className="flex gap-2">
           <Button size="sm" type="submit" disabled={update.isPending || !summary.trim()}>
-            Enregistrer
+            {t().common.save}
           </Button>
           <Button size="sm" type="button" variant="ghost" onClick={() => setEditing(false)}>
-            Annuler
+            {t().common.cancel}
           </Button>
         </div>
       </form>
@@ -302,7 +299,9 @@ function ExplainBody({ annotation }: { annotation: Annotation }) {
     <>
       <p>{textOf(annotation, 'summary')}</p>
       <p>{textOf(annotation, 'risk')}</p>
-      {annotation.edited && <p className="text-xs text-muted-foreground">Modifié par toi.</p>}
+      {annotation.edited && (
+        <p className="text-xs text-muted-foreground">{t().aiPanel.editedByYou}</p>
+      )}
       <div className="flex flex-wrap gap-2">
         <Button
           size="sm"
@@ -313,7 +312,7 @@ function ExplainBody({ annotation }: { annotation: Annotation }) {
             setEditing(true);
           }}
         >
-          Modifier
+          {t().aiPanel.edit}
         </Button>
         <Button
           size="sm"
@@ -321,7 +320,7 @@ function ExplainBody({ annotation }: { annotation: Annotation }) {
           disabled={update.isPending}
           onClick={() => update.mutate({ id: annotation.id, decision: 'dismissed' })}
         >
-          Masquer
+          {t().aiPanel.hide}
         </Button>
       </div>
     </>
@@ -341,25 +340,22 @@ function LeadsBody({ profileId, annotation }: { profileId: number; annotation: A
                 {KIND_LABELS[lead.kind as EntityKind] ?? lead.kind}
               </span>{' '}
               <span className="font-medium break-all">{lead.value}</span>
-              {lead.reason ? ` : ${lead.reason}` : ''}
+              {lead.reason ? `${lang() === 'fr' ? ' : ' : ': '}${lead.reason}` : ''}
             </li>
           ))}
         </ul>
       ) : (
-        <p>Aucune piste nouvelle dans les preuves de cette trace.</p>
+        <p>{t().aiPanel.noLead}</p>
       )}
       {dropped > 0 && (
-        <p className="text-xs text-muted-foreground">
-          {dropped} autre{dropped > 1 ? 's' : ''} écartée{dropped > 1 ? 's' : ''} : absente
-          {dropped > 1 ? 's' : ''} des preuves, ou déjà dans ton profil.
-        </p>
+        <p className="text-xs text-muted-foreground">{t().aiPanel.dropped(dropped)}</p>
       )}
       {leads.length > 0 && (
         <Link
           href={`/profils/${profileId}/elements`}
           className="w-fit text-sm underline underline-offset-2"
         >
-          Les ajouter depuis Éléments → Pistes
+          {t().aiPanel.addFrom}
         </Link>
       )}
     </>

@@ -1,3 +1,4 @@
+import { num, t } from '@/i18n';
 import { Pending } from '@/components/Pending';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,21 +40,19 @@ export function ProfilesPage() {
     <div className="grid gap-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-heading text-2xl font-semibold">Profils</h1>
-          <p className="text-sm text-muted-foreground">
-            Un profil rassemble ce qui t’identifie : noms, pseudos, emails… Narcisse part de là.
-          </p>
+          <h1 className="font-heading text-2xl font-semibold">{t().shell.profiles}</h1>
+          <p className="text-sm text-muted-foreground">{t().profiles.intro}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <DemoGraphMenu />
           <NewProfileDialog />
         </div>
       </div>
-      {profiles.isPending && <Pending label="Chargement des profils…" />}
+      {profiles.isPending && <Pending label={t().profiles.loading} />}
       {profiles.isError && <p role="alert">{errorMessage(profiles.error)}</p>}
       {profiles.data?.length === 0 && (
         <p className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
-          Aucun profil pour l’instant. Crée le premier, par exemple « Perso ».
+          {t().profiles.none}
         </p>
       )}
       <ul className="grid gap-3 sm:grid-cols-2">
@@ -103,31 +102,29 @@ function NewProfileDialog() {
       <DialogTrigger asChild>
         <Button>
           <PlusIcon aria-hidden />
-          Nouveau profil
+          {t().profiles.new}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <form onSubmit={submit} className="grid gap-4">
           <DialogHeader>
-            <DialogTitle>Nouveau profil</DialogTitle>
-            <DialogDescription>
-              Tu ajouteras ensuite ce qui t’identifie (noms, pseudos, emails…).
-            </DialogDescription>
+            <DialogTitle>{t().profiles.new}</DialogTitle>
+            <DialogDescription>{t().profiles.newHint}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-2">
-            <Label htmlFor="profile-name">Nom du profil</Label>
+            <Label htmlFor="profile-name">{t().profiles.name}</Label>
             <Input
               id="profile-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Jeanne Exemple (perso)"
+              placeholder={t().profiles.namePlaceholder}
               required
               maxLength={200}
               autoFocus
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="profile-kind">Type</Label>
+            <Label htmlFor="profile-kind">{t().profiles.kind}</Label>
             <Select value={kind} onValueChange={(v) => setKind(v as ProfileKind)}>
               <SelectTrigger id="profile-kind" className="w-full">
                 <SelectValue />
@@ -148,7 +145,7 @@ function NewProfileDialog() {
           )}
           <DialogFooter>
             <Button type="submit" disabled={create.isPending || !name.trim()}>
-              {create.isPending ? 'Création…' : 'Créer'}
+              {create.isPending ? t().profiles.creating : t().profiles.create}
             </Button>
           </DialogFooter>
         </form>
@@ -170,13 +167,13 @@ function DemoGraphMenu() {
       <DropdownMenuTrigger asChild>
         <Button variant="outline" disabled={make.isPending}>
           <WaypointsIcon aria-hidden />
-          {make.isPending ? 'Création du graphe fictif…' : 'Graphe fictif'}
+          {make.isPending ? t().profiles.makingDemoGraph : t().profiles.demoGraph}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-auto">
         {[500, 5000, 20000].map((nodes) => (
           <DropdownMenuItem key={nodes} onSelect={() => create(nodes)}>
-            Profil fictif de {nodes.toLocaleString('fr-FR')} traces
+            {t().profiles.demoGraphOf(num(nodes))}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

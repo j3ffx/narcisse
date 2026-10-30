@@ -1,3 +1,4 @@
+import { num, t } from '@/i18n';
 import { Pending } from '@/components/Pending';
 import { Button } from '@/components/ui/button';
 import {
@@ -46,7 +47,7 @@ export function Requests({ profileId }: { profileId: number }) {
     <div className="grid gap-8">
       {exposure.data && <ExposureSummary exposure={exposure.data} />}
       {exposure.isError && <p role="alert">{errorMessage(exposure.error)}</p>}
-      {requests.isPending && <Pending label="Chargement de tes demandes…" />}
+      {requests.isPending && <Pending label={t().requests.loading} />}
       {requests.isError && <p role="alert">{errorMessage(requests.error)}</p>}
       {requests.data && <RequestGroups profileId={profileId} requests={requests.data} />}
     </div>
@@ -60,15 +61,12 @@ function ExposureSummary({ exposure }: { exposure: Exposure }) {
     <section aria-labelledby={`${id}-title`} className="grid gap-3" data-testid="exposure">
       <div>
         <h2 id={`${id}-title`} className="font-heading text-lg font-semibold">
-          Ton exposition
+          {t().requests.exposure}
         </h2>
-        <p className="text-sm text-muted-foreground">
-          Les traces qui sont à toi (ou pas encore triées) et que l’on trouve encore en public, par
-          niveau de risque. Une trace qu’un scan ne trouve plus après ta demande en sort.
-        </p>
+        <p className="text-sm text-muted-foreground">{t().requests.exposureIntro}</p>
       </div>
       <div className="flex flex-wrap items-end gap-6">
-        <ul className="flex flex-wrap gap-4" aria-label="Traces par niveau de risque">
+        <ul className="flex flex-wrap gap-4" aria-label={t().requests.byLevel}>
           {LEVELS.map((level) => (
             <li key={level} className="grid gap-0.5" data-level={level}>
               <span className="font-heading text-2xl font-semibold">
@@ -84,13 +82,12 @@ function ExposureSummary({ exposure }: { exposure: Exposure }) {
         <History exposure={exposure} />
       </div>
       <p className="text-sm text-muted-foreground">
-        {traces} trace{traces > 1 ? 's' : ''} exposée{traces > 1 ? 's' : ''} ·{' '}
-        {exposure.requests.sent + exposure.requests.waiting} demande
-        {exposure.requests.sent + exposure.requests.waiting > 1 ? 's' : ''} en cours
-        {exposure.due > 0 ? ` · ${exposure.due} à relancer` : ''}
-        {exposure.gone > 0
-          ? ` · ${exposure.gone} trace${exposure.gone > 1 ? 's' : ''} disparue${exposure.gone > 1 ? 's' : ''}`
-          : ''}
+        {t().requests.counts(
+          traces,
+          exposure.requests.sent + exposure.requests.waiting,
+          exposure.due,
+          exposure.gone,
+        )}
       </p>
     </section>
   );
@@ -100,11 +97,7 @@ function ExposureSummary({ exposure }: { exposure: Exposure }) {
 function History({ exposure }: { exposure: Exposure }) {
   const points = exposure.history;
   if (points.length < 2) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        L’évolution apparaîtra après ton prochain scan.
-      </p>
-    );
+    return <p className="text-sm text-muted-foreground">{t().requests.historyLater}</p>;
   }
   const width = 220;
   const height = 48;
@@ -117,7 +110,12 @@ function History({ exposure }: { exposure: Exposure }) {
   const line = values.map((v, i) => `${(i * step).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
   const first = points[0]!;
   const last = points[points.length - 1]!;
-  const summary = `Exposition : ${first.exposure.toLocaleString('fr-FR')} au scan du ${formatDay(first.taken_at)}, ${last.exposure.toLocaleString('fr-FR')} au scan du ${formatDay(last.taken_at)}.`;
+  const summary = t().requests.historySummary(
+    num(first.exposure),
+    formatDay(first.taken_at),
+    num(last.exposure),
+    formatDay(last.taken_at),
+  );
   return (
     <figure className="grid gap-1">
       <svg
@@ -131,18 +129,20 @@ function History({ exposure }: { exposure: Exposure }) {
         <polyline fill="none" stroke="currentColor" strokeWidth="2" points={line} />
       </svg>
       <figcaption className="text-xs text-muted-foreground">
-        Exposition {first.exposure.toLocaleString('fr-FR')} →{' '}
-        {last.exposure.toLocaleString('fr-FR')}, sur tes {points.length} derniers scans
+        {t().requests.historyCaption(num(first.exposure), num(last.exposure), points.length)}
       </figcaption>
     </figure>
   );
 }
 
-const GROUPS: { title: string; pick: (r: FollowedRequest) => boolean }[] = [
-  { title: 'À relancer', pick: (r) => r.due },
-  { title: 'En cours', pick: (r) => !r.due && (r.status === 'sent' || r.status === 'waiting') },
-  { title: 'À faire', pick: (r) => r.status === 'todo' },
-  { title: 'Terminées', pick: (r) => r.status === 'done' || r.status === 'refused' },
+const GROUPS: {
+  key: 'due' | 'running' | 'todo' | 'done';
+  pick: (r: FollowedRequest) => boolean;
+}[] = [
+  { key: 'due', pick: (r) => r.due },
+  { key: 'running', pick: (r) => !r.due && (r.status === 'sent' || r.status === 'waiting') },
+  { key: 'todo', pick: (r) => r.status === 'todo' },
+  { key: 'done', pick: (r) => r.status === 'done' || r.status === 'refused' },
 ];
 
 function RequestGroups({
@@ -155,23 +155,20 @@ function RequestGroups({
   if (requests.length === 0) {
     return (
       <section className="grid gap-2">
-        <h2 className="font-heading text-lg font-semibold">Tes demandes</h2>
-        <p className="text-sm text-muted-foreground">
-          Rien à suivre pour l’instant. Dans le détail d’une trace, « Que faire ? » te dit quoi
-          faire ; « Ajouter à « À faire » » ou « Je l’ai envoyée » la fait suivre ici.
-        </p>
+        <h2 className="font-heading text-lg font-semibold">{t().requests.yours}</h2>
+        <p className="text-sm text-muted-foreground">{t().requests.none}</p>
       </section>
     );
   }
   return (
     <>
-      {GROUPS.map(({ title, pick }) => {
+      {GROUPS.map(({ key, pick }) => {
         const items = requests.filter(pick);
         if (items.length === 0) return null;
         return (
-          <section key={title} className="grid gap-2" data-testid="request-group">
+          <section key={key} className="grid gap-2" data-testid="request-group">
             <h2 className="font-heading text-lg font-semibold">
-              {title} ({items.length})
+              {t().requests.groups[key]} ({items.length})
             </h2>
             <ul className="grid gap-2">
               {items.map((request) => (
@@ -210,7 +207,7 @@ function RequestRow({ profileId, request }: { profileId: number; request: Follow
         </p>
         <div className="grid gap-1">
           <Label htmlFor={`${id}-status`} className="sr-only">
-            Statut
+            {t().requests.status}
           </Label>
           <select
             id={`${id}-status`}
@@ -230,7 +227,7 @@ function RequestRow({ profileId, request }: { profileId: number; request: Follow
       </div>
       <p className="text-muted-foreground" data-testid="request-summary">
         {requestSummary(request)}
-        {request.recipient ? ` · à ${request.recipient}` : ''}
+        {request.recipient ? ` · ${t().requests.to(request.recipient)}` : ''}
       </p>
       {checked && (
         <p className={request.check === 'gone' ? 'font-medium' : ''} data-testid="request-check">
@@ -247,18 +244,18 @@ function RequestRow({ profileId, request }: { profileId: number; request: Follow
             onClick={() =>
               check.mutate(request.id, {
                 onSuccess: (scan) => {
-                  toast.success(
-                    'Vérification lancée : les recherches qui l’avaient trouvée repassent.',
-                    {
-                      action: { label: 'Voir', onClick: () => navigate(`/scans/${scan.id}`) },
+                  toast.success(t().requests.checkStarted, {
+                    action: {
+                      label: t().requests.see,
+                      onClick: () => navigate(`/scans/${scan.id}`),
                     },
-                  );
+                  });
                 },
               })
             }
           >
             <RefreshCwIcon aria-hidden />
-            Vérifier maintenant
+            {t().requests.checkNow}
           </Button>
         )}
         <Button
@@ -268,14 +265,14 @@ function RequestRow({ profileId, request }: { profileId: number; request: Follow
           onClick={() => stop.mutate(request.id)}
         >
           <Trash2Icon aria-hidden />
-          Ne plus suivre
+          {t().requests.stop}
         </Button>
       </div>
     </li>
   );
 }
 
-const LANG_LABELS: Record<Lang, string> = { fr: 'Français', en: 'English' };
+const LANG_LABELS: Record<Lang, string> = { fr: 'Français', en: 'English' }; // in their own language
 
 /** The reminder of a request unanswered for a month, the request copied below it. */
 function ReminderDialog({ profileId, request }: { profileId: number; request: FollowedRequest }) {
@@ -285,13 +282,13 @@ function ReminderDialog({ profileId, request }: { profileId: number; request: Fo
   const update = useUpdateRequest(profileId);
   const letter = reminder.data?.[lang];
   const href = letter ? mailtoHref(request.recipient ?? '', letter.subject, letter.body) : '';
-  const copy = async (done = 'Texte copié.') => {
+  const copy = async (done = t().letters.copied) => {
     if (!letter) return;
     try {
-      await navigator.clipboard.writeText(letterText(letter.subject, letter.body));
+      await navigator.clipboard.writeText(letterText(letter.subject, letter.body, lang));
       toast.success(done);
     } catch {
-      toast.error('Copie impossible : sélectionne le texte et copie-le à la main.');
+      toast.error(t().letters.copyFailed);
     }
   };
   return (
@@ -299,19 +296,16 @@ function ReminderDialog({ profileId, request }: { profileId: number; request: Fo
       <DialogTrigger asChild>
         <Button size="sm">
           <BellRingIcon aria-hidden />
-          Préparer la relance
+          {t().requests.prepareReminder}
         </Button>
       </DialogTrigger>
       <DialogContent className="grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Relance</DialogTitle>
-          <DialogDescription>
-            Un mois sans réponse : le RGPD te permet de relancer, puis de saisir la CNIL. Narcisse
-            n’envoie rien.
-          </DialogDescription>
+          <DialogTitle>{t().requests.reminder}</DialogTitle>
+          <DialogDescription>{t().requests.reminderIntro}</DialogDescription>
         </DialogHeader>
         <div className="-mx-4 grid content-start gap-3 overflow-y-auto px-4">
-          <div role="group" aria-label="Langue de la relance" className="flex gap-2">
+          <div role="group" aria-label={t().requests.reminderLang} className="flex gap-2">
             {(['fr', 'en'] as const).map((option) => (
               <Button
                 key={option}
@@ -324,21 +318,21 @@ function ReminderDialog({ profileId, request }: { profileId: number; request: Fo
               </Button>
             ))}
           </div>
-          {reminder.isPending && <Pending label="Préparation de la relance…" />}
+          {reminder.isPending && <Pending label={t().requests.preparing} />}
           {reminder.isError && <p role="alert">{errorMessage(reminder.error)}</p>}
           {letter && (
             <pre
               className="whitespace-pre-wrap rounded-lg border p-3 font-sans text-sm"
               data-testid="reminder-text"
             >
-              {letterText(letter.subject, letter.body)}
+              {letterText(letter.subject, letter.body, lang)}
             </pre>
           )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => void copy()} disabled={!letter}>
             <CopyIcon aria-hidden />
-            Copier le texte
+            {t().letters.copy}
           </Button>
           {letter && (
             <Button asChild variant="outline">
@@ -346,12 +340,11 @@ function ReminderDialog({ profileId, request }: { profileId: number; request: Fo
                 href={href}
                 onClick={() => {
                   // Too long for a link: the text goes through the clipboard.
-                  if (!href.includes('&body='))
-                    void copy('Texte copié : colle-le dans le message.');
+                  if (!href.includes('&body=')) void copy(t().letters.copiedPaste);
                 }}
               >
                 <MailIcon aria-hidden />
-                Ouvrir dans ma messagerie
+                {t().letters.openMail}
               </a>
             </Button>
           )}
@@ -363,13 +356,13 @@ function ReminderDialog({ profileId, request }: { profileId: number; request: Fo
                 {
                   onSuccess: () => {
                     setOpen(false);
-                    toast.success('Relance notée : la prochaine sera proposée dans un mois.');
+                    toast.success(t().requests.reminded);
                   },
                 },
               )
             }
           >
-            C’est envoyé
+            {t().requests.sent}
           </Button>
         </DialogFooter>
       </DialogContent>

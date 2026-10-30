@@ -1,7 +1,8 @@
+import { t } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { messageFor } from '@/lib/errors';
-import { KIND_LABELS, NOTE_LABELS } from '@/lib/labels';
+import { KIND_LABELS, noteLabels } from '@/lib/labels';
 import { useModules, useRetryRun } from '@/lib/queries';
 import { formatDuration, remainingSeconds, secondsUntil } from '@/lib/time';
 import type { Run } from '@/lib/types';
@@ -26,31 +27,30 @@ export function RunRow({ run, now }: { run: Run; now: number }) {
           <span className="font-medium">{title}</span>
           <span className="text-muted-foreground">
             {' · '}
-            {KIND_LABELS[run.input_kind]} « {run.input_value} »
-            {run.depth > 0 && ` · piste suivie (${run.depth} saut${run.depth > 1 ? 's' : ''})`}
+            {KIND_LABELS[run.input_kind]} {t().run.quoted(run.input_value)}
+            {run.depth > 0 && ` · ${t().run.followed(run.depth)}`}
           </span>
         </div>
         <RunStatusBadge status={run.status} />
       </div>
       {percent !== null && run.status !== 'done' && (
-        <Progress value={percent} aria-label={`Progression : ${percent} %`} />
+        <Progress value={percent} aria-label={t().run.progress(percent)} />
       )}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-        <span>
-          {run.results_count} résultat{run.results_count > 1 ? 's' : ''}
-        </span>
-        {eta !== null && <span>reste ≈ {formatDuration(eta)}</span>}
+        <span>{t().scan.results(run.results_count)}</span>
+        {eta !== null && <span>{t().run.left(formatDuration(eta))}</span>}
         {run.status === 'rate_limited' && run.retry_at && (
-          <span>reprise dans {formatDuration(secondsUntil(run.retry_at, now))}</span>
+          <span>{t().run.resumesIn(formatDuration(secondsUntil(run.retry_at, now)))}</span>
         )}
         {run.status === 'queued' && run.retry_at && (
-          <span>nouvel essai dans {formatDuration(secondsUntil(run.retry_at, now))}</span>
+          <span>{t().run.retryIn(formatDuration(secondsUntil(run.retry_at, now)))}</span>
         )}
-        {run.attempts > 1 && <span>essai {run.attempts}</span>}
+        {run.attempts > 1 && <span>{t().run.attempt(run.attempts)}</span>}
       </div>
       {run.notes && (
         <p className="text-xs text-muted-foreground" data-testid="run-notes">
-          {NOTE_LABELS.filter(([key]) => run.notes?.[key])
+          {noteLabels()
+            .filter(([key]) => run.notes?.[key])
             .map(([key, label]) => label(run.notes![key]!))
             .join(' · ')}
         </p>
@@ -73,7 +73,7 @@ export function RunRow({ run, now }: { run: Run; now: number }) {
               onClick={() => retry.mutate({ scanId: run.scan_id, runId: run.id })}
             >
               <RotateCcwIcon aria-hidden />
-              Réessayer
+              {t().common.retry}
             </Button>
           )}
         </div>

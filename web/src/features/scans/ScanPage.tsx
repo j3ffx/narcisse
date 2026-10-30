@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { Pending } from '@/components/Pending';
 import { useDelayed } from '@/hooks/useDelayed';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -37,7 +38,7 @@ const RESULT_KINDS: EntityKind[] = [
 export function ScanPage({ id }: { id: number }) {
   const scan = useScan(id);
   const now = useNow();
-  if (scan.isPending) return <Pending label="Chargement du scan…" />;
+  if (scan.isPending) return <Pending label={t().scanPage.loading} />;
   if (scan.isError) return <p role="alert">{errorMessage(scan.error)}</p>;
   const data = scan.data;
 
@@ -54,7 +55,7 @@ export function ScanPage({ id }: { id: number }) {
           </Link>
           <p className="text-sm text-muted-foreground">{formatDate(data.created_at)}</p>
           <h1 className="flex flex-wrap items-center gap-3 font-heading text-2xl font-semibold">
-            Scan
+            {t().scanPage.title}
             <ScanStatusBadge status={data.status} />
           </h1>
         </div>
@@ -62,22 +63,21 @@ export function ScanPage({ id }: { id: number }) {
       </div>
       {data.notes?.changes && (
         <p className="text-sm" data-testid="scan-changes">
-          {data.notes.scheduled ? 'Scan programmé. ' : ''}Depuis le scan précédent :{' '}
-          {changesText(data.notes.changes)}{' '}
+          {data.notes.scheduled ? `${t().scanPage.scheduled} ` : ''}
+          {t().scanPage.since} {changesText(data.notes.changes)}{' '}
           <Link href={`/profils/${data.profile_id}/scans`} className="underline underline-offset-2">
-            Voir le détail
+            {t().scanPage.details}
           </Link>
         </p>
       )}
       {data.notes?.check && (
         <p className="text-sm" data-testid="scan-check">
-          Vérification de « {data.notes.trace} » : seules les recherches qui l’avaient trouvée
-          repassent. À la fin, ta demande dans « À faire » dit si elle a disparu.
+          {t().scanPage.check(String(data.notes.trace))}
         </p>
       )}
       <section aria-labelledby="runs-title" className="grid gap-2">
         <h2 id="runs-title" className="font-heading text-lg font-semibold">
-          Recherches
+          {t().scanPage.runs}
         </h2>
         {!!(data.notes?.pivots || data.notes?.capped?.length) && (
           <p className="text-sm text-muted-foreground" data-testid="scan-pivots">
@@ -97,13 +97,8 @@ export function ScanPage({ id }: { id: number }) {
 
 /** « 3 pistes suivies · 2 laissées (plafond de 25 par scan atteint) ». */
 function pivotSummary(followed: number, capped: number): string {
-  const parts = [`${followed} piste${followed > 1 ? 's' : ''} suivie${followed > 1 ? 's' : ''}`];
-  if (capped) {
-    parts.push(
-      `${capped} laissée${capped > 1 ? 's' : ''} (plafond de 25 par scan atteint : ajoute-les ` +
-        `comme éléments si tu veux qu’elles soient fouillées)`,
-    );
-  }
+  const parts = [t().scanPage.followed(followed)];
+  if (capped) parts.push(t().scanPage.capped(capped));
   return parts.join(' · ');
 }
 
@@ -125,19 +120,19 @@ function Results({ scanId, live }: { scanId: number; live: boolean }) {
     <section aria-labelledby="results-title" className="grid gap-3">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h2 id="results-title" className="font-heading text-lg font-semibold">
-          Résultats{' '}
+          {t().scanPage.results}{' '}
           <span className="text-base font-normal text-muted-foreground" aria-live="polite">
             ({total}
-            {live ? ', en direct' : ''})
+            {live ? `, ${t().scanPage.live}` : ''})
           </span>
         </h2>
         <div className="flex flex-wrap gap-2">
           <Select value={kind} onValueChange={setKind}>
-            <SelectTrigger className="w-40" aria-label="Type de résultat">
+            <SelectTrigger className="w-40" aria-label={t().scanPage.resultKind}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL}>Tous les types</SelectItem>
+              <SelectItem value={ALL}>{t().scanPage.allKinds}</SelectItem>
               {RESULT_KINDS.map((k) => (
                 <SelectItem key={k} value={k}>
                   {KIND_LABELS[k]}
@@ -148,8 +143,8 @@ function Results({ scanId, live }: { scanId: number; live: boolean }) {
           <Input
             type="search"
             className="w-56"
-            placeholder="Chercher dans les résultats"
-            aria-label="Chercher dans les résultats"
+            placeholder={t().scanPage.search}
+            aria-label={t().scanPage.search}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -158,27 +153,25 @@ function Results({ scanId, live }: { scanId: number; live: boolean }) {
               checked={falsePositives}
               onCheckedChange={(checked) => setFalsePositives(checked === true)}
             />
-            Afficher les « pas moi »
+            {t().scanPage.showNotMe}
           </Label>
         </div>
       </div>
       {filtering && (
         <p role="status" className="text-sm text-muted-foreground">
-          Filtrage des résultats…
+          {t().scanPage.filtering}
         </p>
       )}
-      {results.isPending && <Pending label="Chargement des résultats…" />}
+      {results.isPending && <Pending label={t().scanPage.loadingResults} />}
       {results.isError && <p role="alert">{errorMessage(results.error)}</p>}
       {results.data && items.length === 0 && (
         <p className="text-sm text-muted-foreground">
-          {live ? 'Les résultats apparaîtront ici dès qu’ils arrivent.' : 'Aucun résultat.'}
+          {live ? t().scanPage.willAppear : t().scanPage.noResult}
         </p>
       )}
       {items.length > 0 && <ResultList items={items} />}
       {items.length < total && (
-        <p className="text-sm text-muted-foreground">
-          {items.length} résultats affichés sur {total} : affine le filtre pour voir les autres.
-        </p>
+        <p className="text-sm text-muted-foreground">{t().scanPage.shown(items.length, total)}</p>
       )}
     </section>
   );
@@ -186,13 +179,10 @@ function Results({ scanId, live }: { scanId: number; live: boolean }) {
 
 /** « 3 nouvelles traces, 1 disparue » (as the tray says it). */
 function changesText(changes: { new: number; gone: number; modified: number }): string {
+  const say = t().scanPage;
   const parts: string[] = [];
-  if (changes.new)
-    parts.push(
-      `${changes.new} nouvelle${changes.new > 1 ? 's' : ''} trace${changes.new > 1 ? 's' : ''}`,
-    );
-  if (changes.gone) parts.push(`${changes.gone} disparue${changes.gone > 1 ? 's' : ''}`);
-  if (changes.modified)
-    parts.push(`${changes.modified} modifiée${changes.modified > 1 ? 's' : ''}`);
-  return parts.length ? `${parts.join(', ')}.` : 'rien de nouveau.';
+  if (changes.new) parts.push(say.newTraces(changes.new));
+  if (changes.gone) parts.push(say.gone(changes.gone));
+  if (changes.modified) parts.push(say.modified(changes.modified));
+  return parts.length ? `${parts.join(', ')}.` : say.nothingNew;
 }

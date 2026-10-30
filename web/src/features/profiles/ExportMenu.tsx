@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -39,7 +40,7 @@ export function ExportMenu({ profileId }: { profileId: number }) {
           'application/json;charset=utf-8',
         );
       }
-      toast.success('Export enregistré dans tes téléchargements. Il contient tes données.');
+      toast.success(t().exports.saved);
     } catch (error) {
       toast.error(errorMessage(error));
     } finally {
@@ -52,19 +53,15 @@ export function ExportMenu({ profileId }: { profileId: number }) {
       <DropdownMenuTrigger asChild>
         <Button variant="outline" disabled={busy}>
           <DownloadIcon aria-hidden />
-          Exporter
+          {t().exports.export}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuLabel>Le fichier contiendra tes données</DropdownMenuLabel>
+        <DropdownMenuLabel>{t().exports.warning}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => void save('html')}>
-          Rapport à lire ou imprimer (HTML)
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => void save('csv')}>
-          Les traces, pour un tableur (CSV)
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => void save('json')}>Tout, en JSON</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => void save('html')}>{t().exports.html}</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => void save('csv')}>{t().exports.csv}</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => void save('json')}>{t().exports.json}</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

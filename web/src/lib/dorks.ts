@@ -1,3 +1,4 @@
+import { t } from '@/i18n';
 import type { Seed } from './types';
 
 /** A search engine the user opens themselves: Narcisse never asks one. */
@@ -53,63 +54,62 @@ export function queriesFor(seed: Seed, all: readonly Seed[]): AssistedQuery[] {
         .filter((s) => s.kind === 'organization' && !/^\d+$/.test(s.normalized))
         .map((s) => s.value.trim());
       return [
-        { query: exact, why: 'Les pages qui citent ce nom exact.' },
-        { query: `${exact} site:linkedin.com`, why: 'Ton profil LinkedIn, et ceux qui te citent.' },
-        { query: `${exact} (cv OR "curriculum vitae")`, why: 'Un CV en ligne.' },
+        { query: exact, why: t().dorks.name },
+        { query: `${exact} site:linkedin.com`, why: t().dorks.linkedin },
+        { query: `${exact} (cv OR "curriculum vitae")`, why: t().dorks.cv },
         {
           query: `${exact} filetype:pdf`,
-          why: 'Des documents : comptes rendus, annuaires, listes de participants…',
+          why: t().dorks.documents,
         },
         {
           query: `${exact} (site:societe.com OR site:pappers.fr OR site:annuaire-entreprises.data.gouv.fr)`,
-          why: 'Les registres d’entreprises : dirigeant, associé, auto-entrepreneur.',
+          why: t().dorks.registers,
         },
         {
+          // i18n: kept (the words searched for, as French pages write them)
           query: `${exact} (adresse OR téléphone OR "né le" OR "née le")`,
-          why: 'Des coordonnées, une date de naissance.',
+          why: t().dorks.details,
         },
         ...organizations.map((organization) => ({
           query: `${exact} ${quoted(organization)}`,
-          why: `Ce nom avec ${organization}.`,
+          why: t().dorks.withOrganization(organization),
         })),
       ];
     }
     case 'username':
       return [
-        { query: exact, why: 'Les pages qui citent ce pseudo.' },
-        { query: `inurl:${value}`, why: 'Les adresses qui le contiennent : des profils, souvent.' },
+        { query: exact, why: t().dorks.username },
+        { query: `inurl:${value}`, why: t().dorks.inUrl },
       ];
     case 'email': {
       const local = value.split('@')[0] ?? '';
       return [
-        { query: exact, why: 'Les pages qui citent cette adresse.' },
+        { query: exact, why: t().dorks.email },
         {
           query: `${exact} (filetype:pdf OR filetype:xls OR filetype:xlsx OR filetype:csv)`,
-          why: 'Des documents et des listes qui la contiennent.',
+          why: t().dorks.emailDocuments,
         },
-        ...(local.length >= 4
-          ? [{ query: quoted(local), why: 'Ce qui précède le @ : souvent un pseudo.' }]
-          : []),
+        ...(local.length >= 4 ? [{ query: quoted(local), why: t().dorks.local }] : []),
       ];
     }
     case 'phone':
       return [
         {
           query: phoneVariants(seed.normalized).map(quoted).join(' OR '),
-          why: 'Ce numéro, écrit de plusieurs façons.',
+          why: t().dorks.phone,
         },
       ];
     case 'domain':
       return [
         {
           query: `site:${seed.normalized}`,
-          why: 'Les pages du site que les moteurs gardent, oubliées comprises.',
+          why: t().dorks.site,
         },
-        { query: `${quoted(seed.normalized)} -site:${seed.normalized}`, why: 'Qui cite ce site.' },
+        { query: `${quoted(seed.normalized)} -site:${seed.normalized}`, why: t().dorks.citing },
       ];
     case 'address':
     case 'organization':
-      return [{ query: exact, why: 'Les pages qui citent exactement ceci.' }];
+      return [{ query: exact, why: t().dorks.exact }];
     case 'account':
       return [];
   }
