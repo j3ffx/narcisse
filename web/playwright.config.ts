@@ -1,9 +1,18 @@
 import { defineConfig, devices } from '@playwright/test';
-import { mkdtempSync } from 'node:fs';
+import { mkdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const PORT = 4173;
+
+// One data directory, emptied at each run: a new one per run piled up in the temporary folder.
+// Workers load this file too, while the server already runs on it: only the main process empties
+// it.
+const DATA_DIR = join(tmpdir(), 'narcisse-e2e');
+if (process.env.TEST_WORKER_INDEX === undefined) {
+  rmSync(DATA_DIR, { recursive: true, force: true });
+  mkdirSync(DATA_DIR, { recursive: true });
+}
 
 /**
  * End-to-end tests against the real thing: the built UI served by `narcisse serve --demo`, on a
@@ -32,7 +41,7 @@ export default defineConfig({
     reuseExistingServer: false,
     timeout: 180_000,
     env: {
-      NARCISSE_DATA_DIR: mkdtempSync(join(tmpdir(), 'narcisse-e2e-')),
+      NARCISSE_DATA_DIR: DATA_DIR,
       NARCISSE_SPEED: '3',
     },
   },

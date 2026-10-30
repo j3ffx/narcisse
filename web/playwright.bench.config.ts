@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-import { mkdtempSync } from 'node:fs';
+import { mkdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -15,6 +15,16 @@ const GPU = [
   '--enable-gpu',
   ...(process.platform === 'win32' ? ['--use-angle=d3d11'] : []),
 ];
+
+// One data directory, emptied at each run: a new one per run piled up in the temporary folder.
+// Workers load this file too, while the server already runs on it: only the main process empties
+// it.
+const DATA_DIR = join(tmpdir(), 'narcisse-bench');
+if (process.env.TEST_WORKER_INDEX === undefined) {
+  rmSync(DATA_DIR, { recursive: true, force: true });
+  mkdirSync(DATA_DIR, { recursive: true });
+}
+
 export default defineConfig({
   testDir: 'bench',
   testMatch: '*.bench.ts',
@@ -38,6 +48,6 @@ export default defineConfig({
     url: `http://127.0.0.1:${PORT}/api/info`,
     reuseExistingServer: false,
     timeout: 180_000,
-    env: { NARCISSE_DATA_DIR: mkdtempSync(join(tmpdir(), 'narcisse-bench-')) },
+    env: { NARCISSE_DATA_DIR: DATA_DIR },
   },
 });
