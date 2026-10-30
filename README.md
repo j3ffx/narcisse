@@ -43,7 +43,8 @@ discréditer. Ces usages sont souvent illégaux, et toujours contraires à l’e
 
 - **Tout reste sur ta machine.** Narcisse tourne en local et n’écoute que sur `127.0.0.1`. Pas de
   compte, pas de serveur distant, aucune télémétrie. Les seules requêtes qui sortent vont vers les
-  sources interrogées (et vers le LLM que tu auras choisi, si tu en configures un).
+  sources interrogées (et vers l’assistant IA que tu auras choisi, si tu en choisis un, pour
+  les seules traces sur lesquelles tu lui poses une question).
 - **Passif.** Il lit des API et des pages publiques, des archives et des registres ouverts. Il ne
   sollicite jamais un service pour deviner si tu y as un compte, ne se connecte nulle part et ne
   remplit aucun formulaire.
@@ -278,6 +279,27 @@ ressource extérieure), ses traces en CSV pour un tableur, ou tout en JSON. Dans
 « Restaurer » le remet en place, après avoir gardé tes données du moment dans une sauvegarde de
 sécurité. En ligne de commande, `narcisse backup [--chiffrer]` et `narcisse restore FICHIER` font
 de même (le second, Narcisse arrêté).
+
+### Un assistant IA, si tu veux
+
+Narcisse marche sans IA, et n’en utilise aucune tant que tu n’en choisis pas une dans les
+**Réglages**. Aujourd’hui, l’assistant possible est ton **Claude Code** (avec ton abonnement :
+installe-le et connecte-toi une fois, Narcisse ne fait que le lancer). Il sert à deux choses,
+depuis le détail d’une trace :
+
+- **« Est-ce bien moi ? »** : il compare la trace et ses preuves aux noms et pseudos que tu as
+  déclarés, et dit si c’est sans doute toi, sans doute pas, ou impossible à dire. Le bouton
+  **Trier avec l’IA** d’un profil pose la question pour les traces pas encore triées (50 à la
+  fois, le nombre est annoncé avant).
+- **Expliquer une trace** : ce que c’est, et ce qu’un inconnu pourrait en tirer. Tu peux réécrire
+  ou masquer l’explication.
+
+Chaque réponse est marquée « Avis de l’IA » et ne change rien d’elle-même : un verdict n’est
+appliqué au statut de la trace que si tu cliques « Appliquer ». Avec Claude Code, ce que tu
+demandes part chez Anthropic : il faut l’accepter une fois dans les Réglages, et « Voir ce qui
+part » montre le texte exact avant l’envoi (la trace, ses preuves, tes noms et pseudos déclarés,
+rien d’autre de ton profil). Claude Code tourne sans outils, sans tes réglages ni tes serveurs MCP,
+dans un dossier vide : il ne peut que lire ce texte et répondre.
 
 ## Ajouter une source
 

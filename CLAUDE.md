@@ -93,6 +93,15 @@ fixtures, docs, commit messages or commit metadata.
   their Fediverse instances, or the site of the domain a run searches, declared for that run),
   DNS lookups through the machine's own resolver (never DNS over HTTPS to a third party) and, if
   the user configured one, to their LLM. WHOIS (port 43) goes through the same gate as HTTP.
+- **The assistant is optional, asked, and never acts.** No LLM until the user picks one in the
+  settings (`llm_provider`, "none" by default); demo mode offers only the fake `demo` one. It reads
+  a trace only when the user asks about it (`llm/assistant.py` queues the question, stored with
+  the exact text sent), and only what `llm/tasks.py` puts in: the trace, its proofs (framed as
+  data), the declared names and user names, never tokens or other traces. Answers are JSON of a
+  fixed shape, stored as annotations labelled as such; a verdict changes a trace's status only
+  when the user accepts it. A provider whose data leaves the machine (Claude Code) needs the
+  user's agreement first (`llm_remote_ok`), and the UI shows the text before it is sent. Claude
+  Code runs headless with no tools, no session, `--safe-mode`, no MCP, in an empty folder.
 - **User data lives outside the repository**, in the OS data directory (`platformdirs`), overridable
   with `NARCISSE_DATA_DIR`. Demo mode and `npm run dev` use their own directories (`narcisse-demo`,
   `narcisse-dev`), so fictitious profiles never mix with real ones.
@@ -138,6 +147,7 @@ fixtures, docs, commit messages or commit metadata.
   `schedule.py`),
   `modules/` (one file per source; `_text.py` reads profiles' bios and relates findings to the
   profile they were read on), `api/`, `storage/` (models, Alembic migrations: `scripts/new-migration.py`),
+  `llm/` (the optional assistant: providers, the tasks and the text they send, the queue),
   `history.py` (what changed between two scans), `export.py` (a profile's complete export,
   which the UI turns into CSV and HTML in `web/src/lib/report.ts`), `storage/backup.py`
   (backups, plain or sealed with a passphrase, and restoring them in place),
