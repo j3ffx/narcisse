@@ -39,7 +39,7 @@ SCRYPT = {"n": 2**15, "r": 8, "p": 1}  # about 32 MB and a fraction of a second
 DATABASE = "narcisse.sqlite3"
 SETTINGS = "preferences.json"
 MANIFEST = "manifest.json"
-TOKENS = ("github_token", "gitlab_token")
+TOKENS = ("github_token", "gitlab_token", "llm_key")
 
 
 @dataclass(frozen=True)
@@ -104,7 +104,7 @@ def create(settings: Settings, now: datetime, passphrase: str | None = None) -> 
         revision, profiles = _copy_database(settings.database_path, copy)
         preferences = Preferences.load(settings.preferences_path)
         if not passphrase:
-            preferences = replace(preferences, github_token=None, gitlab_token=None)
+            preferences = replace(preferences, github_token=None, gitlab_token=None, llm_key=None)
         manifest = Manifest(
             format=FORMAT,
             version=VERSION,
@@ -182,9 +182,7 @@ def replace_data(settings: Settings, backup: Backup) -> None:
     current = Preferences.load(settings.preferences_path)
     restored = Preferences.load_dict(backup.preferences)
     if not backup.manifest.tokens:
-        restored = replace(
-            restored, github_token=current.github_token, gitlab_token=current.gitlab_token
-        )
+        restored = replace(restored, **{token: getattr(current, token) for token in TOKENS})
     restored.save(settings.preferences_path)
 
 

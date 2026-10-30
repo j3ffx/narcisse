@@ -39,6 +39,7 @@ class Status:
     available: bool
     reason: str | None = None  # an error code, when not available
     params: dict[str, Any] = field(default_factory=dict)
+    models: tuple[str, ...] = ()  # the models the provider can be asked to use
 
 
 class Provider(Protocol):

@@ -38,6 +38,7 @@ from narcisse.engine.http import new_transport_client
 from narcisse.engine.plugin import SourceModule
 from narcisse.errors import AppError
 from narcisse.llm.assistant import Assistant, Factory
+from narcisse.llm.local import Puller
 from narcisse.modules import discover
 from narcisse.preferences import Preferences
 from narcisse.schemas import AppInfo, ClientError
@@ -93,6 +94,7 @@ def create_app(
         offered = {n: m for n, m in available.items() if m.meta.demo == settings.demo}
         async with new_transport_client(transport=http_transport) as client:
             launcher = Launcher(client, settings.preferences_path)
+            puller = Puller(client, settings.preferences_path)
 
             async def open_runtime() -> Services:
                 """The database (migrated), its events and the engine, started."""
@@ -110,11 +112,12 @@ def create_app(
                 helper = Assistant(
                     bus,
                     lambda: Preferences.load(settings.preferences_path),
+                    client,
                     demo=settings.demo,
                     factory=llm,
                 )
                 await helper.start()
-                return Services(settings, db, bus, engine, launcher, helper, reopen)
+                return Services(settings, db, bus, engine, launcher, helper, puller, reopen)
 
             async def close_runtime(services: Services) -> None:
                 services.bus.close()
@@ -139,6 +142,7 @@ def create_app(
                 yield
             finally:
                 launcher.cancel()
+                await puller.stop()
                 await close_runtime(app.state.services)
 
     app = FastAPI(

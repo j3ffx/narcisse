@@ -14,7 +14,7 @@ from narcisse.schemas import PreferencesOut, PreferencesPatch
 
 router = APIRouter(tags=["preferences"])
 
-TOKENS = ("github_token", "gitlab_token")
+TOKENS = ("github_token", "gitlab_token", "llm_key")
 
 
 def _out(preferences: Preferences) -> PreferencesOut:
@@ -27,6 +27,8 @@ def _out(preferences: Preferences) -> PreferencesOut:
         searxng_autostart=preferences.searxng_autostart,
         llm_provider=preferences.llm_provider,
         llm_model=preferences.llm_model,
+        llm_url=preferences.llm_url,
+        llm_key_set=bool(preferences.llm_key),
         llm_remote_ok=preferences.llm_remote_ok,
     )
 
@@ -37,15 +39,19 @@ def _instances(values: list[str]) -> tuple[str, ...]:
     return tuple(dict.fromkeys(hosts))
 
 
-def _searxng(value: str | None) -> str | None:
-    """An instance's address (`http://127.0.0.1:8888`), without a trailing slash; None to remove."""
+def _address(value: str | None, error: str) -> str | None:
+    """A server's address (`http://127.0.0.1:8888`), without a trailing slash; None to remove."""
     value = (value or "").strip()
     if not value:
         return None
     parts = urlsplit(value)
     if parts.scheme not in ("http", "https") or not parts.hostname:
-        raise AppError("invalid_searxng_url", status=422)
+        raise AppError(error, status=422)
     return f"{parts.scheme}://{parts.netloc}{parts.path.rstrip('/')}"
+
+
+def _searxng(value: str | None) -> str | None:
+    return _address(value, "invalid_searxng_url")
 
 
 @router.get("/preferences")
@@ -72,6 +78,8 @@ async def update_preferences(body: PreferencesPatch, s: ServicesDep) -> Preferen
             changes[key] = (changes[key] or "").strip() or None
     if "searxng_url" in changes:
         changes["searxng_url"] = _searxng(changes["searxng_url"])
+    if "llm_url" in changes:
+        changes["llm_url"] = _address(changes["llm_url"], "invalid_llm_url")
     if "fediverse_instances" in changes:
         changes["fediverse_instances"] = _instances(changes["fediverse_instances"])
     if changes.get("llm_provider") not in (None, *s.assistant.providers()):

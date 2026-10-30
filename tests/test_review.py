@@ -78,6 +78,8 @@ async def test_settings_keep_the_tokens_without_ever_showing_them(
         "searxng_autostart": False,
         "llm_provider": "none",
         "llm_model": None,
+        "llm_url": None,
+        "llm_key_set": False,
         "llm_remote_ok": False,
     }
     assert await api.json("GET", "/preferences") == nothing

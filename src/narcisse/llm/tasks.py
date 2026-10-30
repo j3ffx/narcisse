@@ -7,6 +7,7 @@ copied from the web: they are framed as data, and the answer is JSON of a fixed 
 action.
 """
 
+import re
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
@@ -14,7 +15,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from narcisse.domain import EntityKind
-from narcisse.llm.provider import Task
+from narcisse.errors import AppError
+from narcisse.llm.provider import LLMError, Task
+from narcisse.normalize import normalize
 from narcisse.storage.models import Edge, Entity, Evidence, Seed
 
 MAX_PROOFS = 8
@@ -73,7 +76,53 @@ TRY = Task(
     Answer,
 )
 
-TASKS = {task.name: task for task in (TRIAGE, EXPLAIN)}
+
+class LetterOut(BaseModel):
+    subject: str = Field(max_length=500)
+    body: str = Field(max_length=20_000)
+
+
+class Lead(BaseModel):
+    kind: Literal["email", "username", "domain", "phone", "account"]
+    value: str = Field(max_length=500, description="Tel qu’écrit dans les preuves.")
+    reason: str = Field(max_length=500, description="Où il apparaît, et pourquoi le suivre.")
+
+
+class Leads(BaseModel):
+    leads: list[Lead] = Field(max_length=5)
+
+
+LETTER = Task(
+    "letter",
+    "Tu aides une personne à adapter une lettre qu’elle va envoyer elle-même pour faire "
+    "supprimer des données personnelles (RGPD). On te donne la lettre, ce qu’elle veut y "
+    "ajouter et le ton voulu. Garde la langue de la lettre, tous les articles de loi cités, la "
+    "liste des pages concernées et les repères entre crochets (comme [NOM 1] ou [EMAIL 1]) "
+    "exactement tels quels. N’invente aucun fait, aucune date, aucune promesse. Rends l’objet "
+    "et le texte complets.",
+    LetterOut,
+)
+LEADS = Task(
+    "leads",
+    "Tu aides une personne à retrouver ses traces publiques sur Internet. On te donne les noms "
+    "et pseudos qu’elle a déclarés, puis une de ses traces et ses preuves. Relève dans les "
+    "preuves au plus cinq éléments qui pourraient mener à d’autres traces d’elle : une adresse "
+    "email, un pseudo, un nom de domaine, un numéro de téléphone, l’adresse d’un compte. "
+    "Recopie chaque valeur exactement comme elle est écrite dans les preuves, sans en déduire "
+    "ni en compléter aucune ; ne relève pas ce qu’elle a déjà déclaré ; aucune piste vaut mieux "
+    "qu’une piste douteuse. " + DATA_ONLY,
+    Leads,
+)
+
+TASKS = {task.name: task for task in (TRIAGE, EXPLAIN, LETTER, LEADS)}
+# Kinds of the profile's elements a letter hides behind markers before it is sent.
+MASKED = {
+    EntityKind.NAME: "NOM",
+    EntityKind.EMAIL: "EMAIL",
+    EntityKind.ADDRESS: "ADRESSE",
+    EntityKind.PHONE: "TELEPHONE",
+}
+ARTICLE = re.compile(r"\barticles?\s+(\d+(?:\.\d+)?)", re.IGNORECASE)
 
 KIND_NAMES = {
     EntityKind.NAME: "nom",
@@ -155,3 +204,121 @@ async def prompt(session: AsyncSession, task: Task, entity: Entity) -> str:
     if not proofs:
         lines.append("(aucune)")
     return "\n".join(lines)
+
+
+# Letters
+
+
+async def masks(session: AsyncSession, profile_id: int) -> dict[str, str]:
+    """The profile's names, e-mails, addresses and phone numbers, each behind its marker
+    ("[NOM 1]": "Jeanne Exemple"). The longest first, so that one inside another is caught."""
+    seeds = await session.scalars(
+        select(Seed)
+        .where(Seed.profile_id == profile_id, Seed.kind.in_(tuple(MASKED)))
+        .order_by(Seed.id)
+    )
+    counts: dict[str, int] = {}
+    found: dict[str, str] = {}
+    for seed in seeds:
+        label = MASKED[EntityKind(seed.kind)]
+        counts[label] = counts.get(label, 0) + 1
+        found[f"[{label} {counts[label]}]"] = seed.value
+    return dict(sorted(found.items(), key=lambda item: -len(item[1])))
+
+
+def masked(text: str, markers: dict[str, str]) -> str:
+    for marker, value in markers.items():
+        text = re.sub(re.escape(value), marker, text, flags=re.IGNORECASE)
+    return text
+
+
+def unmasked(text: str, markers: dict[str, str]) -> str:
+    for marker, value in markers.items():
+        text = text.replace(marker, value)
+    return text
+
+
+async def letter_prompt(
+    session: AsyncSession,
+    entity: Entity,
+    subject: str,
+    body: str,
+    context: str | None,
+    tone: Literal["courteous", "firm"],
+) -> str:
+    """The letter as sent to the assistant: the profile's identity behind markers."""
+    markers = await masks(session, entity.profile_id)
+    wish = " ".join((context or "").split())
+    lines = [
+        "La lettre à adapter :",
+        f"<objet>{masked(subject, markers)}</objet>",
+        f"<texte>{masked(body, markers)}</texte>",
+        "",
+        f"Ce que la personne veut y ajouter : {masked(wish, markers) or 'rien de plus'}",
+        "Ton voulu : " + ("courtois" if tone == "courteous" else "ferme, sans être agressif"),
+    ]
+    return "\n".join(lines)
+
+
+def _articles(text: str) -> set[str]:
+    return set(ARTICLE.findall(text))
+
+
+async def _finish_letter(
+    session: AsyncSession, entity: Entity, sent: str, data: dict[str, Any]
+) -> dict[str, Any]:
+    original = sent.split("<texte>", 1)[-1].split("</texte>", 1)[0]
+    if not _articles(original) <= _articles(data["body"]):
+        raise LLMError("llm_letter_changed")
+    markers = await masks(session, entity.profile_id)
+    return {
+        "subject": unmasked(data["subject"], markers),
+        "body": unmasked(data["body"], markers),
+    }
+
+
+# Leads
+
+
+async def _finish_leads(
+    session: AsyncSession, entity: Entity, data: dict[str, Any]
+) -> dict[str, Any]:
+    """Only the leads written as such in the trace's proofs, new to the profile: a value the
+    model made up or completed is dropped."""
+    proofs = await session.scalars(select(Evidence).where(Evidence.entity_id == entity.id))
+    haystack = " ".join(f"{p.url or ''} {p.excerpt or ''}" for p in proofs).casefold()
+    known = {
+        (kind, normalized)
+        for kind, normalized in await session.execute(
+            select(Seed.kind, Seed.normalized).where(Seed.profile_id == entity.profile_id)
+        )
+    }
+    known.add((entity.kind, entity.normalized))
+    kept: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+    for lead in data["leads"]:
+        value = str(lead["value"]).strip()
+        if not value or value.casefold() not in haystack:
+            continue
+        try:
+            display, normalized = normalize(EntityKind(lead["kind"]), value)
+        except AppError:
+            continue
+        key = (lead["kind"], normalized)
+        if key in known or key in seen:
+            continue
+        seen.add(key)
+        kept.append({**lead, "value": display})
+    return {"leads": kept, "dropped": len(data["leads"]) - len(kept)}
+
+
+async def finish(
+    session: AsyncSession, task: str, entity: Entity, sent: str, data: dict[str, Any]
+) -> dict[str, Any]:
+    """An answer as it is kept: checked against what was sent and the trace's proofs, the
+    profile's identity put back where the markers were."""
+    if task == LETTER.name:
+        return await _finish_letter(session, entity, sent, data)
+    if task == LEADS.name:
+        return await _finish_leads(session, entity, data)
+    return data

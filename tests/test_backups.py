@@ -21,6 +21,7 @@ from tests.conftest import Api, ApiFactory
 from tests.fakes import Steps
 
 TOKEN = "ab" * 20  # low entropy: not a secret to gitleaks
+KEY = "cd" * 20
 
 
 async def make(api: Api, passphrase: str | None = None) -> bytes:
@@ -47,12 +48,16 @@ def manifest(data: bytes) -> dict[str, Any]:
 
 async def test_a_backup_brings_everything_back(api: Api, settings: Settings) -> None:
     await api.profile(("name", "Jeanne Exemple"), name="Jeanne Exemple")
-    await api.json("PATCH", "/preferences", {"github_token": TOKEN, "exclude_adult": True})
+    await api.json(
+        "PATCH", "/preferences", {"github_token": TOKEN, "llm_key": KEY, "exclude_adult": True}
+    )
     data = await make(api)
     assert manifest(data)["profiles"] == 1
     assert manifest(data)["tokens"] is False
     with zipfile.ZipFile(io.BytesIO(data)) as archive:
-        assert TOKEN not in archive.read("preferences.json").decode()
+        saved = archive.read("preferences.json").decode()
+        assert TOKEN not in saved
+        assert KEY not in saved
 
     # Things change after the backup…
     await api.profile(name="Autre profil")
@@ -67,6 +72,7 @@ async def test_a_backup_brings_everything_back(api: Api, settings: Settings) -> 
     assert preferences["exclude_adult"] is True
     # A plain backup carries no token: the current one stays.
     assert preferences["github_token_set"] is True
+    assert preferences["llm_key_set"] is True
     # Narcisse runs on, on the restored data.
     profile = await api.profile(("username", "jeanne"), name="Après")
     scan = await api.json("POST", f"/profiles/{profile}/scans", {}, status=201)

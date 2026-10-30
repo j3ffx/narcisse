@@ -339,6 +339,8 @@ class PreferencesOut(Schema):
     searxng_autostart: bool
     llm_provider: str
     llm_model: str | None
+    llm_url: str | None
+    llm_key_set: bool
     llm_remote_ok: bool
 
 
@@ -352,9 +354,12 @@ class PreferencesPatch(Schema):
     # The address of the user's SearXNG instance; an empty string (or null) removes it.
     searxng_url: str | None = Field(default=None, max_length=200)
     searxng_autostart: bool | None = None
-    llm_provider: Literal["none", "claude_code", "demo"] | None = None
+    llm_provider: Literal["none", "claude_code", "local", "openai", "demo"] | None = None
     # An empty string (or null) goes back to the provider's default model.
     llm_model: str | None = Field(default=None, max_length=100)
+    # The local server's or the service's address; its key (empty or null removes it).
+    llm_url: str | None = Field(default=None, max_length=200)
+    llm_key: str | None = Field(default=None, max_length=500)
     llm_remote_ok: bool | None = None
 
 
@@ -526,7 +531,7 @@ class PasswordRangeOut(Schema):
     suffixes: list[tuple[str, int]]
 
 
-AnnotationTask = Literal["triage", "explain"]
+AnnotationTask = Literal["triage", "explain", "letter", "leads"]
 AnnotationDecision = Literal["pending", "accepted", "dismissed"]
 
 
@@ -550,7 +555,28 @@ class AnnotationOut(Schema):
 
 
 class AnnotationIn(Schema):
-    task: AnnotationTask
+    # A letter is asked with its text (`LetterIn`).
+    task: Literal["triage", "explain", "leads"]
+
+
+class LetterIn(Schema):
+    """A letter to adapt: as the user has it now, what they want added, and the tone."""
+
+    subject: str = Field(max_length=500)
+    body: str = Field(min_length=1, max_length=20_000)
+    context: str | None = Field(default=None, max_length=500)
+    tone: Literal["courteous", "firm"] = "courteous"
+
+
+class AiLeadOut(Schema):
+    """An element the assistant read in a trace's proofs, not declared yet."""
+
+    annotation_id: int
+    index: int  # its place in the answer
+    source: EntityOut  # the trace it was read in
+    kind: EntityKind
+    value: str
+    reason: str
 
 
 class AnnotationPatch(Schema):
@@ -584,3 +610,45 @@ class TriageOut(Schema):
 
 class TryOut(Schema):
     model: str | None
+
+
+class GpuOut(Schema):
+    name: str
+    memory_gb: float | None
+    dedicated: bool
+
+
+class LocalServerOut(Schema):
+    name: str
+    url: str
+    models: list[str]
+
+
+class RecommendationOut(Schema):
+    model: str
+    size_gb: float
+    speed: str
+
+
+class MachineOut(Schema):
+    """What this machine can run, the model that suits it, and the model servers running."""
+
+    system: str
+    memory_gb: float | None
+    cores: int | None
+    gpus: list[GpuOut]
+    unified: bool
+    recommended: RecommendationOut
+    servers: list[LocalServerOut]
+
+
+class PullIn(Schema):
+    model: str = Field(min_length=1, max_length=100, pattern=r"^[A-Za-z0-9._:/-]+$")
+
+
+class PullOut(Schema):
+    model: str | None
+    status: Literal["idle", "pulling", "done", "failed", "cancelled"]
+    completed: int
+    total: int
+    error_code: str | None

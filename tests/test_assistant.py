@@ -4,6 +4,9 @@ and how its answers change nothing until the user accepts them."""
 import asyncio
 from typing import Any
 
+import pytest
+
+from narcisse.llm import assistant as assistant_module
 from narcisse.llm.provider import LLMError, Reply, Status, Task
 from narcisse.preferences import Preferences
 from narcisse.storage.models import Annotation
@@ -80,7 +83,12 @@ async def test_each_side_offers_its_own_assistants(make_api: ApiFactory) -> None
     await demo.stop()
 
     real = await make_api(demo=False, data_dir=demo.app.state.services.settings.data_dir / "r")
-    assert (await real.json("GET", "/assistant"))["providers"] == ["none", "claude_code"]
+    assert (await real.json("GET", "/assistant"))["providers"] == [
+        "none",
+        "claude_code",
+        "local",
+        "openai",
+    ]
     refused = await real.json("PATCH", "/preferences", {"llm_provider": "demo"}, 422)
     assert refused["code"] == "llm_provider_unavailable"
 
@@ -283,3 +291,147 @@ async def test_an_annotation_can_be_deleted_and_is_exported(api: Api) -> None:
 def test_the_assistant_is_off_by_default() -> None:
     preferences = Preferences()
     assert (preferences.llm_provider, preferences.llm_remote_ok) == ("none", False)
+
+
+LETTER = (
+    "Madame, Monsieur,\n\nEn application de l’article 17 du RGPD, je vous demande d’effacer mes "
+    "données.\n\nJeanne Exemple\njeanne@example.org\n1 rue de l’Exemple, Lille"
+)
+
+
+async def letter_profile(api: Api) -> tuple[int, int]:
+    profile, _ = await finished_scan(
+        api,
+        ("name", "Jeanne Exemple"),
+        ("email", "jeanne@example.org"),
+        ("address", "1 rue de l’Exemple, Lille"),
+    )
+    trace = await api.json(
+        "POST", f"/profiles/{profile}/traces", {"url": "https://example.org/page"}, status=201
+    )
+    return profile, trace["id"]
+
+
+async def test_a_letter_is_sent_without_the_users_identity(make_api: ApiFactory) -> None:
+    provider = FakeProvider(
+        {
+            "letter": {
+                "subject": "Effacement de mes données",
+                "body": "Bonjour,\n\nAu titre de l’article 17 du RGPD, merci d’effacer ce compte "
+                "ouvert en 2012.\n\n[NOM 1]\n[EMAIL 1]\n[ADRESSE 1]",
+            }
+        }
+    )
+    api = await make_api(llm=with_provider(provider))
+    _, trace = await letter_profile(api)
+    await choose(api)
+    letter = {"subject": "Demande d’effacement", "body": LETTER, "context": "ouvert en 2012"}
+
+    preview = (await api.json("POST", f"/entities/{trace}/letter/prompt", letter))["text"]
+    await api.json("POST", f"/entities/{trace}/letter", {**letter, "tone": "firm"}, status=202)
+    [note] = await answered(api, trace)
+
+    assert provider.prompts[0] == note["prompt"]
+    for sent in (preview, provider.prompts[0]):
+        for private in ("Jeanne Exemple", "jeanne@example.org", "rue de l’Exemple"):
+            assert private not in sent
+        for marker in ("[NOM 1]", "[EMAIL 1]", "[ADRESSE 1]", "article 17"):
+            assert marker in sent
+    assert "ferme" in provider.prompts[0]
+    # The answer comes back with the identity where the markers were.
+    assert note["output"]["body"].endswith(
+        "Jeanne Exemple\njeanne@example.org\n1 rue de l’Exemple, Lille"
+    )
+
+
+async def test_a_letter_that_lost_its_legal_grounds_is_refused(make_api: ApiFactory) -> None:
+    provider = FakeProvider({"letter": {"subject": "Bonjour", "body": "Merci d’effacer ça."}})
+    api = await make_api(llm=with_provider(provider))
+    _, trace = await letter_profile(api)
+    await choose(api)
+    await api.json("POST", f"/entities/{trace}/letter", {"subject": "S", "body": LETTER}, 202)
+    [note] = await answered(api, trace)
+    assert (note["state"], note["error_code"], note["output"]) == (
+        "failed",
+        "llm_letter_changed",
+        None,
+    )
+
+
+async def test_only_leads_written_in_the_proofs_are_kept(make_api: ApiFactory) -> None:
+    provider = FakeProvider(
+        {
+            "leads": {
+                "leads": [
+                    {"kind": "email", "value": "jeanne.pro@example.net", "reason": "Contact."},
+                    {"kind": "domain", "value": "jeanne-blog.example.com", "reason": "Blog."},
+                    {"kind": "email", "value": "invente@example.org", "reason": "Deviné."},
+                    {"kind": "username", "value": "jeanne-ex", "reason": "Déjà déclaré."},
+                ]
+            }
+        }
+    )
+    api = await make_api(llm=with_provider(provider))
+    profile, _ = await finished_scan(api, ("name", "Jeanne Exemple"), ("username", "jeanne-ex"))
+    trace = await api.json(
+        "POST",
+        f"/profiles/{profile}/traces",
+        {
+            "url": "https://example.org/jeanne-ex",
+            "note": "Contact : jeanne.pro@example.net, blog : jeanne-blog.example.com",
+        },
+        status=201,
+    )
+    await choose(api)
+    await api.json("POST", f"/entities/{trace['id']}/annotations", {"task": "leads"}, 202)
+    [note] = await answered(api, trace["id"])
+
+    assert [lead["value"] for lead in note["output"]["leads"]] == [
+        "jeanne.pro@example.net",
+        "jeanne-blog.example.com",
+    ]
+    assert note["output"]["dropped"] == 2
+    leads = await api.json("GET", f"/profiles/{profile}/ai-leads")
+    assert [(lead["kind"], lead["source"]["id"]) for lead in leads] == [
+        ("email", trace["id"]),
+        ("domain", trace["id"]),
+    ]
+    # Not traces: nothing new in the graph, nothing for the pivot to follow.
+    graph = await api.json("GET", f"/profiles/{profile}/graph")
+    assert "jeanne.pro@example.net" not in [node["display"] for node in graph["nodes"]]
+
+    await api.json("POST", f"/annotations/{note['id']}/leads/0/dismiss")
+    await api.json(
+        "POST",
+        f"/profiles/{profile}/seeds",
+        {"kind": "domain", "value": "jeanne-blog.example.com"},
+        status=201,
+    )
+    assert await api.json("GET", f"/profiles/{profile}/ai-leads") == []
+    await api.json("POST", f"/annotations/{note['id']}/leads/9/dismiss", status=404)
+
+
+async def test_a_bug_checking_an_answer_does_not_stop_the_queue(
+    make_api: ApiFactory, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls = 0
+
+    async def broken(*args: Any) -> dict[str, Any]:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise RuntimeError("a bug")
+        return dict(args[-1])
+
+    monkeypatch.setattr(assistant_module, "finish", broken)
+    api = await make_api(
+        llm=with_provider(FakeProvider({"explain": {"summary": "a", "risk": "b"}}))
+    )
+    _, traces = await finished_scan(api)
+    await choose(api)
+    await api.json("POST", f"/entities/{traces[0]['id']}/annotations", {"task": "explain"}, 202)
+    [failed] = await answered(api, traces[0]["id"])
+    await api.json("POST", f"/entities/{traces[1]['id']}/annotations", {"task": "explain"}, 202)
+    [done] = await answered(api, traces[1]["id"])
+    assert (failed["state"], failed["error_code"]) == ("failed", "llm_failed")
+    assert done["state"] == "done"

@@ -25,10 +25,15 @@ class Preferences:
     # (after the machine restarted, say). Off until the user ticks it: it may open Docker Desktop.
     searxng_autostart: bool = False
     # The assistant (an LLM) the user chose: "none" (nothing is ever sent), "claude_code" (their
-    # Claude Code, run headless), "demo" (demo mode's fake one). `llm_model` is the provider's
-    # model name (its default when None).
+    # Claude Code, run headless), "local" (a server on this machine: Ollama, LM Studio,
+    # llama.cpp), "openai" (any OpenAI-compatible service), "demo" (demo mode's fake one).
+    # `llm_model` is the provider's model name (Claude Code's default when None).
     llm_provider: str = "none"
     llm_model: str | None = None
+    # The address of the local server or of the service (OpenAI-compatible API), and its key if
+    # it needs one (a secret, like the tokens).
+    llm_url: str | None = None
+    llm_key: str | None = None
     # The user agreed that traces they ask about are sent to a provider outside the machine.
     llm_remote_ok: bool = False
 

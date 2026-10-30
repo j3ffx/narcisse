@@ -9,9 +9,11 @@ import asyncio
 import contextlib
 import logging
 import time
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 
+import httpx
 from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from narcisse.domain import EntityKind, EntityStatus
 from narcisse.engine.events import EventBus, Transaction
@@ -19,8 +21,9 @@ from narcisse.errors import AppError, not_found
 from narcisse.llm import claude_code
 from narcisse.llm.claude_code import ClaudeCode
 from narcisse.llm.demo import Demo
+from narcisse.llm.openai_compat import OpenAICompatible
 from narcisse.llm.provider import LLMError, Provider, Status
-from narcisse.llm.tasks import TASKS, TRY, prompt
+from narcisse.llm.tasks import TASKS, TRY, finish, prompt
 from narcisse.preferences import Preferences
 from narcisse.schemas import AnnotationOut, AssistantOut, TryOut
 from narcisse.storage.models import Annotation, Entity
@@ -45,11 +48,13 @@ class Assistant:
         self,
         bus: EventBus,
         preferences: Callable[[], Preferences],
+        client: httpx.AsyncClient,
         *,
         demo: bool,
         factory: Factory | None = None,
     ) -> None:
         self.bus = bus
+        self.client = client
         self._preferences = preferences
         self.demo = demo
         self._factory = factory or self._provider_for
@@ -61,13 +66,21 @@ class Assistant:
 
     def providers(self) -> list[str]:
         """Demo mode offers the demo assistant only, as it offers the demo source only."""
-        return ["none", "demo"] if self.demo else ["none", "claude_code"]
+        return ["none", "demo"] if self.demo else ["none", "claude_code", "local", "openai"]
 
     def _provider_for(self, preferences: Preferences) -> Provider | None:
         if preferences.llm_provider == "demo":
             return Demo(self.bus.clock)
         if preferences.llm_provider == "claude_code":
             return ClaudeCode(preferences.llm_model)
+        if preferences.llm_provider in ("local", "openai"):
+            return OpenAICompatible(
+                preferences.llm_provider,
+                self.client,
+                preferences.llm_url,
+                preferences.llm_model,
+                preferences.llm_key,
+            )
         return None
 
     def provider(self) -> Provider | None:
@@ -100,12 +113,14 @@ class Assistant:
             status = cached[2]
         else:
             status = await provider.status()
-            self._status = (time.monotonic(), key, status)
+            # Only a provider that answers is trusted for a while: one that doesn't (a model
+            # still downloading, a server not started yet) is asked again next time.
+            self._status = (time.monotonic(), key, status) if status.available else None
         return AssistantOut(
             provider=provider.name,
             providers=self.providers(),
             model=provider.model,
-            models=list(claude_code.MODELS) if provider.name == "claude_code" else [],
+            models=list(claude_code.MODELS if provider.name == "claude_code" else status.models),
             remote=provider.remote,
             remote_ok=preferences.llm_remote_ok,
             available=status.available,
@@ -130,8 +145,14 @@ class Assistant:
                 raise not_found("entity")
             return await prompt(session, TASKS[task], entity)
 
-    async def ask(self, entity_ids: list[int], task: str) -> list[AnnotationOut]:
-        """Queues one question per trace; the answers arrive as `annotation.updated` events."""
+    async def ask(
+        self,
+        entity_ids: list[int],
+        task: str,
+        text: Callable[[AsyncSession, Entity], Awaitable[str]] | None = None,
+    ) -> list[AnnotationOut]:
+        """Queues one question per trace; the answers arrive as `annotation.updated` events.
+        `text` writes what is sent, when the task's usual text about the trace isn't it."""
         provider = self.usable()
         now = self.bus.clock.now()
         created = []
@@ -148,7 +169,7 @@ class Assistant:
                     task=task,
                     provider=provider.name,
                     model=provider.model,
-                    prompt=await prompt(tx.session, TASKS[task], entity),
+                    prompt=await (text or self._text(task))(tx.session, entity),
                     output=None,
                     edited=False,
                     state="queued",
@@ -161,6 +182,10 @@ class Assistant:
                 created.append(AnnotationOut.model_validate(annotation))
         self._wake.set()
         return created
+
+    @staticmethod
+    def _text(task: str) -> Callable[[AsyncSession, Entity], Awaitable[str]]:
+        return lambda session, entity: prompt(session, TASKS[task], entity)
 
     async def triage_candidates(self, profile_id: int) -> tuple[list[int], bool]:
         """The traces still waiting for a review that were never asked about, the most exposing
@@ -216,7 +241,12 @@ class Assistant:
             await self._wake.wait()
             self._wake.clear()
             while (job := await self.bus.db.shielded(self._next())) is not None:
-                await self._answer(*job)
+                try:
+                    await self._answer(*job)
+                except Exception:
+                    # A bug here must not stop the queue: the question says it failed.
+                    log.exception("the assistant failed on annotation %s", job[0])
+                    await self.bus.db.shielded(self._store(job[0], None, None, "llm_failed", None))
 
     async def _next(self) -> tuple[int, str, str] | None:
         async with self.bus.transaction() as tx:
@@ -258,6 +288,17 @@ class Assistant:
             annotation = await tx.session.get(Annotation, annotation_id)
             if annotation is None:  # deleted while it was being answered
                 return
+            entity = await tx.session.get(Entity, annotation.entity_id)
+            if output is not None and entity is not None:
+                try:
+                    output = await finish(
+                        tx.session, annotation.task, entity, annotation.prompt, output
+                    )
+                except LLMError as exc:
+                    output, code, params = None, exc.code, exc.params or None
+                except Exception:
+                    log.exception("could not check the answer to annotation %s", annotation_id)
+                    output, code = None, "llm_failed"
             annotation.state = "failed" if code else "done"
             annotation.output = output
             annotation.model = model or annotation.model
