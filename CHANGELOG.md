@@ -4,7 +4,11 @@ Les changements de chaque version de Narcisse, la plus récente en premier. Les 
 [versionnage sémantique](https://semver.org/lang/fr/) : tant qu’ils commencent par 0, l’outil évolue
 encore beaucoup.
 
-## En préparation
+## 0.3.0 (2026-10-30)
+
+Un assistant IA, si tu en veux un : il t’aide à trier tes traces, à les comprendre, à trouver des
+pistes et à écrire tes lettres. Aucun par défaut, rien n’est appliqué sans ton clic, et tu vois
+toujours ce qui part.
 
 - Un assistant IA, si tu en choisis un dans les Réglages (aucun par défaut) : ton Claude Code,
   avec ton abonnement. Dans le détail d’une trace, « Est-ce bien moi ? » et « Expliquer cette
