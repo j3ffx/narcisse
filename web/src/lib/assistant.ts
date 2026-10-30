@@ -5,7 +5,16 @@ import type { Annotation, AnnotationTask, AssistantProvider, Verdict } from './t
 export const PROVIDER_LABELS: Record<AssistantProvider, string> = {
   none: 'Aucun',
   claude_code: 'Claude Code',
+  local: 'Un modèle sur ta machine',
+  openai: 'Un autre service compatible OpenAI',
   demo: 'Assistant de démonstration',
+};
+
+/** The provider's short name, as answers name it. */
+export const PROVIDER_NAMES: Record<AssistantProvider, string> = {
+  ...PROVIDER_LABELS,
+  local: 'Le modèle local',
+  openai: 'Le service',
 };
 
 export const MODEL_LABELS: Record<string, string> = {
@@ -23,21 +32,26 @@ export const VERDICT_LABELS: Record<Verdict, string> = {
 export const TASK_LABELS: Record<AnnotationTask, string> = {
   triage: 'Est-ce bien moi ?',
   explain: 'Expliquer cette trace',
+  leads: 'Chercher des pistes',
+  letter: 'Adapter la lettre',
 };
 
 /** What a question waiting or under way is doing. */
 export function stateText(annotation: Annotation, provider: string): string {
   if (annotation.state === 'queued') return 'En attente de son tour…';
   if (annotation.state === 'running')
-    return annotation.task === 'triage'
-      ? `${provider} compare la trace à ce que tu as déclaré…`
-      : `${provider} lit la trace et ses preuves…`;
+    return {
+      triage: `${provider} compare la trace à ce que tu as déclaré…`,
+      explain: `${provider} lit la trace et ses preuves…`,
+      leads: `${provider} cherche des pistes dans les preuves…`,
+      letter: `${provider} réécrit la lettre…`,
+    }[annotation.task];
   return '';
 }
 
 /** Who answered: « Claude Code · claude-haiku-5-5 ». */
 export function answeredBy(annotation: Annotation): string {
-  const provider = PROVIDER_LABELS[annotation.provider] ?? annotation.provider;
+  const provider = PROVIDER_NAMES[annotation.provider] ?? annotation.provider;
   return annotation.model ? `${provider} · ${annotation.model}` : provider;
 }
 
@@ -64,3 +78,27 @@ export const textOf = (annotation: Annotation, field: string): string => {
   const value = annotation.output?.[field];
   return typeof value === 'string' ? value : '';
 };
+
+export interface LeadItem {
+  kind: string;
+  value: string;
+  reason: string;
+  dismissed?: boolean;
+}
+
+/** The leads an answer kept (read in the proofs), as the UI lists them. */
+export const leadsOf = (annotation: Annotation): LeadItem[] => {
+  const leads = annotation.output?.leads;
+  return Array.isArray(leads) ? (leads as LeadItem[]) : [];
+};
+
+/** A download's progress, « 1,2 / 3,4 Go (35 %) », or what it waits for. */
+export function pullProgress(completed: number, total: number): string {
+  if (!total) return 'Préparation du téléchargement…';
+  const gb = (bytes: number) =>
+    (bytes / 2 ** 30).toLocaleString('fr-FR', {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    });
+  return `${gb(completed)} / ${gb(total)} Go (${Math.floor((completed / total) * 100)} %)`;
+}

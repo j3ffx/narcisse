@@ -144,7 +144,7 @@ function Detail({
         )}
       </dl>
       <ScoreReasonsDetails reasons={data.reasons} />
-      {entity.kind !== 'identity' && <TraceAssistant entity={entity} />}
+      {entity.kind !== 'identity' && <TraceAssistant profileId={profileId} entity={entity} />}
       {entity.kind !== 'identity' && <Remediation entityId={entity.id} />}
       {extra}
       <Section title={`Relations (${data.edges.length})`}>

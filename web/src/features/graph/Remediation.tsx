@@ -1,4 +1,5 @@
 import { Pending } from '@/components/Pending';
+import { LetterAssistant } from '@/features/assistant/LetterAssistant';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -258,6 +259,16 @@ function LetterDialog({ action, entityId }: { action: Action; entityId: number }
               </div>
             </>
           )}
+          <LetterAssistant
+            entityId={entityId}
+            subject={subject}
+            body={body}
+            onTake={(nextSubject, nextBody) => {
+              if (byMail) setSubject(nextSubject);
+              setBody(nextBody);
+            }}
+            onRestore={() => switchTo(lang)}
+          />
           <div className="grid gap-1">
             <Label htmlFor={`${id}-body`}>Texte</Label>
             <textarea

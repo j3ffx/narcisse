@@ -384,6 +384,9 @@ export interface Preferences {
   searxng_autostart: boolean;
   llm_provider: AssistantProvider;
   llm_model: string | null;
+  /** The local server's or the service's address. */
+  llm_url: string | null;
+  llm_key_set: boolean;
   /** The user agreed that what they ask about leaves the machine. */
   llm_remote_ok: boolean;
 }
@@ -407,10 +410,12 @@ export interface PreferencesChanges {
   searxng_autostart?: boolean;
   llm_provider?: AssistantProvider;
   llm_model?: string | null;
+  llm_url?: string | null;
+  llm_key?: string | null;
   llm_remote_ok?: boolean;
 }
 
-export type AssistantProvider = 'none' | 'claude_code' | 'demo';
+export type AssistantProvider = 'none' | 'claude_code' | 'local' | 'openai' | 'demo';
 
 /** The assistant the user chose, and whether it can answer now. */
 export interface AssistantStatus {
@@ -427,7 +432,7 @@ export interface AssistantStatus {
   reason: string | null;
 }
 
-export type AnnotationTask = 'triage' | 'explain';
+export type AnnotationTask = 'triage' | 'explain' | 'letter' | 'leads';
 export type Verdict = 'me' | 'not_me' | 'unsure';
 
 /** What the assistant said about a trace, and what was sent to it. */
@@ -446,6 +451,43 @@ export interface Annotation {
   decision: 'pending' | 'accepted' | 'dismissed';
   created_at: string;
   finished_at: string | null;
+}
+
+/** What this machine can run, the model that suits it, and the model servers running. */
+export interface MachineInfo {
+  system: string;
+  memory_gb: number | null;
+  cores: number | null;
+  gpus: { name: string; memory_gb: number | null; dedicated: boolean }[];
+  unified: boolean;
+  recommended: { model: string; size_gb: number; speed: string };
+  servers: { name: string; url: string; models: string[] }[];
+}
+
+/** A model Ollama downloads, followed by the activity centre. */
+export interface ModelPull {
+  model: string | null;
+  status: 'idle' | 'pulling' | 'done' | 'failed' | 'cancelled';
+  completed: number;
+  total: number;
+  error_code: string | null;
+}
+
+/** An element the assistant read in a trace's proofs, not declared yet. */
+export interface AiLead {
+  annotation_id: number;
+  index: number;
+  source: Entity;
+  kind: SeedKind;
+  value: string;
+  reason: string;
+}
+
+export interface LetterRequest {
+  subject: string;
+  body: string;
+  context: string | null;
+  tone: 'courteous' | 'firm';
 }
 
 export interface Triage {

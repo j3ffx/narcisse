@@ -82,8 +82,8 @@ function MakeBackup() {
         />
         <p id={`${id}-help`} className="text-xs text-muted-foreground">
           Avec une phrase de passe, la sauvegarde est chiffrée et garde aussi tes tokens GitHub et
-          GitLab. Ne la perds pas : sans elle, personne ne pourra relire la sauvegarde, pas même
-          Narcisse.
+          GitLab, et la clé de ton assistant IA. Ne la perds pas : sans elle, personne ne pourra
+          relire la sauvegarde, pas même Narcisse.
         </p>
       </div>
       <Button type="submit" disabled={busy} className="w-fit">

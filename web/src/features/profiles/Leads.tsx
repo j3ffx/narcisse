@@ -1,3 +1,4 @@
+import { AiLeads } from '@/features/assistant/AiLeads';
 import { Pending } from '@/components/Pending';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -153,6 +154,7 @@ export function Leads({ profileId }: { profileId: number }) {
           ))}
         </ul>
       )}
+      <AiLeads profileId={profileId} />
     </section>
   );
 }

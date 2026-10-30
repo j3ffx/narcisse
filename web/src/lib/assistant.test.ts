@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { answeredBy, isBusy, latest, stateText, verdictOf, withAnnotation } from './assistant';
+import {
+  answeredBy,
+  isBusy,
+  latest,
+  leadsOf,
+  pullProgress,
+  stateText,
+  verdictOf,
+  withAnnotation,
+} from './assistant';
 import type { Annotation } from './types';
 
 const note = (over: Partial<Annotation> = {}): Annotation => ({
@@ -52,5 +61,16 @@ describe('the assistant’s answers', () => {
     expect(isBusy(note({ state: 'running' }))).toBe(true);
     expect(isBusy(note())).toBe(false);
     expect(isBusy(undefined)).toBe(false);
+  });
+
+  it('lists the leads an answer kept', () => {
+    const leads = [{ kind: 'email', value: 'jeanne.pro@example.net', reason: 'Contact.' }];
+    expect(leadsOf(note({ task: 'leads', output: { leads, dropped: 1 } }))).toEqual(leads);
+    expect(leadsOf(note({ task: 'leads', output: null }))).toEqual([]);
+  });
+
+  it('says how far a download is', () => {
+    expect(pullProgress(0, 0)).toBe('Préparation du téléchargement…');
+    expect(pullProgress(2 ** 30, 4 * 2 ** 30).replace(/\s/g, ' ')).toBe('1,0 / 4,0 Go (25 %)');
   });
 });

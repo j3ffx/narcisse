@@ -9,11 +9,13 @@ import {
   answeredBy,
   isBusy,
   latest,
+  leadsOf,
   stateText,
   textOf,
   verdictOf,
 } from '@/lib/assistant';
 import { messageFor } from '@/lib/errors';
+import { KIND_LABELS } from '@/lib/labels';
 import {
   useAnnotations,
   useAsk,
@@ -23,17 +25,20 @@ import {
   useUpdateAnnotation,
 } from '@/lib/queries';
 import { formatDate } from '@/lib/time';
-import type { Annotation, AnnotationTask, AssistantStatus, Entity } from '@/lib/types';
+import type { Annotation, AnnotationTask, AssistantStatus, Entity, EntityKind } from '@/lib/types';
 import { SparklesIcon, Trash2Icon } from 'lucide-react';
 import { useId, useState, type ReactNode } from 'react';
 import { Link } from 'wouter';
+
+// What can be asked from a trace's panel (a letter is adapted from its own dialog).
+const TASKS = ['triage', 'explain', 'leads'] as const;
 
 const TEXTAREA =
   'w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30';
 
 /** The assistant's part of a trace's panel: ask it, see what is sent, read its answers. Shown
  * only once the user chose an assistant. */
-export function TraceAssistant({ entity }: { entity: Entity }) {
+export function TraceAssistant({ profileId, entity }: { profileId: number; entity: Entity }) {
   const status = useAssistant();
   const on = status.data !== undefined && status.data.provider !== 'none';
   const annotations = useAnnotations(entity.id, on);
@@ -59,7 +64,7 @@ export function TraceAssistant({ entity }: { entity: Entity }) {
       ) : (
         <>
           <div className="flex flex-wrap gap-2">
-            {(['triage', 'explain'] as const).map((task) => (
+            {TASKS.map((task) => (
               <AskButton key={task} entity={entity} task={task} busy={isBusy(latest(list, task))} />
             ))}
           </div>
@@ -67,10 +72,10 @@ export function TraceAssistant({ entity }: { entity: Entity }) {
         </>
       )}
       {annotations.isPending && <Pending label="Chargement des avis de l’IA…" />}
-      {(['triage', 'explain'] as const).map((task) => {
+      {TASKS.map((task) => {
         const annotation = latest(list, task);
         if (!annotation || annotation.decision === 'dismissed') return null;
-        return <Answer key={task} entity={entity} annotation={annotation} />;
+        return <Answer key={task} profileId={profileId} entity={entity} annotation={annotation} />;
       })}
     </section>
   );
@@ -102,7 +107,11 @@ function AskButton({
 function SentText({ entityId, status }: { entityId: number; status: AssistantStatus }) {
   const [open, setOpen] = useState(false);
   const prompt = usePrompt(entityId, 'explain', open);
-  const where = status.remote ? 'part chez Anthropic' : 'reste sur ta machine';
+  const where = !status.remote
+    ? 'reste sur ta machine'
+    : status.provider === 'claude_code'
+      ? 'part chez Anthropic'
+      : 'quitte ta machine';
   return (
     <details className="text-sm" onToggle={(e) => setOpen(e.currentTarget.open)}>
       <summary className="w-fit cursor-pointer text-muted-foreground underline-offset-2 hover:underline">
@@ -131,7 +140,15 @@ function SentText({ entityId, status }: { entityId: number; status: AssistantSta
   );
 }
 
-function Answer({ entity, annotation }: { entity: Entity; annotation: Annotation }) {
+function Answer({
+  profileId,
+  entity,
+  annotation,
+}: {
+  profileId: number;
+  entity: Entity;
+  annotation: Annotation;
+}) {
   const remove = useDeleteAnnotation();
   const ask = useAsk();
   let body: ReactNode;
@@ -161,6 +178,8 @@ function Answer({ entity, annotation }: { entity: Entity; annotation: Annotation
     );
   } else if (annotation.task === 'triage') {
     body = <TriageBody annotation={annotation} />;
+  } else if (annotation.task === 'leads') {
+    body = <LeadsBody profileId={profileId} annotation={annotation} />;
   } else {
     body = <ExplainBody annotation={annotation} />;
   }
@@ -305,6 +324,44 @@ function ExplainBody({ annotation }: { annotation: Annotation }) {
           Masquer
         </Button>
       </div>
+    </>
+  );
+}
+
+function LeadsBody({ profileId, annotation }: { profileId: number; annotation: Annotation }) {
+  const leads = leadsOf(annotation);
+  const dropped = Number(annotation.output?.dropped ?? 0);
+  return (
+    <>
+      {leads.length ? (
+        <ul className="grid gap-1" data-testid="lead-list">
+          {leads.map((lead) => (
+            <li key={`${lead.kind}-${lead.value}`}>
+              <span className="text-muted-foreground">
+                {KIND_LABELS[lead.kind as EntityKind] ?? lead.kind}
+              </span>{' '}
+              <span className="font-medium break-all">{lead.value}</span>
+              {lead.reason ? ` : ${lead.reason}` : ''}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>Aucune piste nouvelle dans les preuves de cette trace.</p>
+      )}
+      {dropped > 0 && (
+        <p className="text-xs text-muted-foreground">
+          {dropped} autre{dropped > 1 ? 's' : ''} écartée{dropped > 1 ? 's' : ''} : absente
+          {dropped > 1 ? 's' : ''} des preuves, ou déjà dans ton profil.
+        </p>
+      )}
+      {leads.length > 0 && (
+        <Link
+          href={`/profils/${profileId}/elements`}
+          className="w-fit text-sm underline underline-offset-2"
+        >
+          Les ajouter depuis Éléments → Pistes
+        </Link>
+      )}
     </>
   );
 }

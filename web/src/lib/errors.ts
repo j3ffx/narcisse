@@ -84,6 +84,20 @@ const MESSAGES: Record<string, (p: Params) => string> = {
   llm_timeout: () => 'L’assistant met trop de temps à répondre. Réessaie.',
   llm_failed: () => 'L’assistant n’a pas pu répondre. Le détail est dans le journal.',
   llm_unreadable: () => 'La réponse de l’assistant est illisible. Réessaie.',
+  llm_unreachable: (p) =>
+    `Rien ne répond à l’adresse ${typeof p.address === 'string' ? p.address : 'réglée'} : le serveur est-il lancé ?`,
+  llm_model_missing: (p) =>
+    `Le serveur n’a pas le modèle ${typeof p.model === 'string' ? `« ${p.model} »` : 'choisi'} : télécharge-le, ou choisis-en un autre.`,
+  llm_model_unset: () => 'Choisis un modèle dans les Réglages.',
+  llm_key_rejected: () => 'Le service refuse la clé enregistrée (expirée ou fausse ?).',
+  llm_url_missing: () => 'Il manque l’adresse du service, dans les Réglages.',
+  invalid_llm_url: () => 'Cette adresse n’a pas l’air valide (http://… ou https://…).',
+  llm_letter_changed: () =>
+    'La lettre proposée avait perdu les articles de loi de l’originale : elle a été écartée. Réessaie.',
+  pull_running: () => 'Un modèle est déjà en cours de téléchargement.',
+  pull_failed: () => 'Ollama n’a pas pu télécharger ce modèle. Le détail est dans le journal.',
+  ollama_missing: () =>
+    'Ollama ne répond pas : installe-le (ollama.com) ou lance-le, puis réessaie.',
   annotation_not_ready: () => 'Cette réponse n’est pas encore arrivée.',
   annotation_not_applicable: () => 'Cet avis ne tranche pas : il n’y a rien à appliquer.',
   annotation_not_editable: () => 'Seule une explication se modifie.',

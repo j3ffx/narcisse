@@ -162,6 +162,8 @@ function apply(client: QueryClient, event: LiveEvent) {
     case 'annotation.updated':
       annotated(client, event.data);
       void client.invalidateQueries({ queryKey: keys.triage(event.data.profile_id) });
+      if (event.data.task === 'leads')
+        void client.invalidateQueries({ queryKey: keys.aiLeads(event.data.profile_id) });
       break;
     case 'annotation.deleted':
       unannotated(client, event.data.entity_id, event.data.id);

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { del, get, patch, post } from './api';
+import { api, del, get, patch, post } from './api';
 import { withAnnotation } from './assistant';
 import { errorMessage } from './errors';
 import { withEntity as withEntityInGraph } from './graph';
@@ -15,6 +15,10 @@ import {
 } from './live';
 import type {
   Activity,
+  AiLead,
+  LetterRequest,
+  MachineInfo,
+  ModelPull,
   Annotation,
   AnnotationTask,
   AssistantStatus,
@@ -75,6 +79,8 @@ export const keys = {
   assistant: ['assistant'] as const,
   annotations: (entityId: number) => ['annotations', entityId] as const,
   triage: (profileId: number) => ['triage', profileId] as const,
+  aiLeads: (profileId: number) => ['ai-leads', profileId] as const,
+  pull: ['model-pull'] as const,
 };
 
 // Reads
@@ -359,6 +365,7 @@ export function useAddSeed(profileId: number) {
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: keys.profile(profileId) });
       void client.invalidateQueries({ queryKey: keys.leads(profileId) });
+      void client.invalidateQueries({ queryKey: keys.aiLeads(profileId) });
     },
   });
 }
@@ -628,6 +635,85 @@ export function useTriage(profileId: number) {
     mutationFn: () => post<Triage>(`/profiles/${profileId}/triage`),
     onSettled: () => void client.invalidateQueries({ queryKey: keys.triage(profileId) }),
     onError: failed,
+  });
+}
+
+/** What this machine can run, and the model servers running (read when the user looks). */
+export const useMachine = (enabled: boolean) =>
+  useQuery({
+    queryKey: ['machine'],
+    queryFn: () => get<MachineInfo>('/assistant/machine'),
+    enabled,
+    staleTime: 10_000,
+  });
+
+/** A model Ollama downloads; polled while it runs. */
+export const useModelPull = () =>
+  useQuery({
+    queryKey: keys.pull,
+    queryFn: () => get<ModelPull>('/assistant/pull'),
+    refetchInterval: (query) => (query.state.data?.status === 'pulling' ? 1000 : false),
+  });
+
+export function useStartPull() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (model: string) => post<ModelPull>('/assistant/pull', { model }),
+    onSuccess: (pull) => client.setQueryData(keys.pull, pull),
+    onError: failed,
+  });
+}
+
+export function useCancelPull() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => api<ModelPull>('DELETE', '/assistant/pull'),
+    onSuccess: (pull) => client.setQueryData(keys.pull, pull),
+    onError: failed,
+  });
+}
+
+/** Has the assistant adapt a letter; its proposal arrives as a live event. */
+export function useAdaptLetter(entityId: number) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (letter: LetterRequest) => post<Annotation>(`/entities/${entityId}/letter`, letter),
+    onSuccess: (annotation) => annotated(client, annotation),
+    onError: failed,
+  });
+}
+
+/** What adapting a letter would send: the profile's identity behind markers. */
+export const useLetterPrompt = (entityId: number) =>
+  useMutation({
+    mutationFn: (letter: LetterRequest) =>
+      post<{ text: string }>(`/entities/${entityId}/letter/prompt`, letter),
+    onError: failed,
+  });
+
+/** The elements the assistant read in the profile's traces, not declared yet. */
+export const useAiLeads = (profileId: number, enabled: boolean) =>
+  useQuery({
+    queryKey: keys.aiLeads(profileId),
+    queryFn: () => get<AiLead[]>(`/profiles/${profileId}/ai-leads`),
+    enabled,
+  });
+
+export function useDismissAiLead(profileId: number) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (lead: AiLead) =>
+      post<Annotation>(`/annotations/${lead.annotation_id}/leads/${lead.index}/dismiss`),
+    onMutate: (lead) => {
+      client.setQueryData<AiLead[]>(keys.aiLeads(profileId), (leads) =>
+        leads?.filter((l) => l !== lead),
+      );
+    },
+    onSuccess: (annotation) => annotated(client, annotation),
+    onError: (error) => {
+      void client.invalidateQueries({ queryKey: keys.aiLeads(profileId) });
+      failed(error);
+    },
   });
 }
 
