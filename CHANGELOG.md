@@ -4,7 +4,7 @@ Les changements de chaque version de Narcisse, la plus récente en premier. Les 
 [versionnage sémantique](https://semver.org/lang/fr/) : tant qu’ils commencent par 0, l’outil évolue
 encore beaucoup.
 
-## En préparation
+## 0.4.0 (2026-10-30)
 
 Narcisse parle anglais aussi.
 

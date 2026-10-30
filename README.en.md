@@ -65,7 +65,7 @@ You need [uv](https://docs.astral.sh/uv/getting-started/installation/), which al
 Python if it is missing. Then, in a terminal:
 
 ```bash
-uv tool install https://github.com/j3ffx/narcisse/releases/download/v0.3.0/narcisse-0.3.0-py3-none-any.whl
+uv tool install https://github.com/j3ffx/narcisse/releases/download/v0.4.0/narcisse-0.4.0-py3-none-any.whl
 ```
 
 (For a newer version, take the link of the `.whl` file on the
