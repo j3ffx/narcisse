@@ -4,6 +4,17 @@ Les changements de chaque version de Narcisse, la plus récente en premier. Les 
 [versionnage sémantique](https://semver.org/lang/fr/) : tant qu’ils commencent par 0, l’outil évolue
 encore beaucoup.
 
+## En préparation
+
+Narcisse parle anglais aussi.
+
+- L’interface en français ou en anglais : la langue de ton navigateur, ou celle choisie dans les
+  Réglages. Les preuves des nouveaux scans, les sources, les actions et les guides, l’export,
+  l’icône, les notifications et la ligne de commande suivent ; les preuves des scans d’avant
+  restent en français.
+- L’assistant IA reçoit ses consignes et répond dans ta langue.
+- Un README en anglais.
+
 ## 0.3.0 (2026-10-30)
 
 Un assistant IA, si tu en veux un : il t’aide à trier tes traces, à les comprendre, à trouver des

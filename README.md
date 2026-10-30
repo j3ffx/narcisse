@@ -1,6 +1,6 @@
 # Narcisse
 
-Ce qu’Internet sait de toi, et comment le réduire.
+Ce qu’Internet sait de toi, et comment le réduire. ([English](README.en.md))
 
 Tu décris qui tu es (noms, pseudos, emails, téléphones, domaines…). Narcisse cherche les traces
 publiques de cette identité, les relie dans un graphe pour montrer comment elles s’enchaînent,
@@ -16,6 +16,9 @@ déréférencement, envoyer une demande RGPD. Puis il suit tes progrès d’un s
 > point elle t’expose (en expliquant pourquoi), te dit quoi faire de chacune (avec les demandes RGPD
 > prêtes à envoyer) et suit tes demandes jusqu’à ce que la trace disparaisse. Ce que chaque version
 > apporte : le [journal des changements](CHANGELOG.md).
+
+Narcisse parle français et anglais : il suit la langue de ton navigateur, ou celle choisie dans
+les **Réglages**.
 
 ![Le graphe d’un profil fictif en mode démo : une trace sélectionnée et le chemin qui la relie à
 l’identité, le reste atténué, la mini-carte et le détail de la trace](docs/capture-graphe.png)
@@ -313,7 +316,7 @@ des repères avant l’envoi, et remis à leur place au retour ; une proposition
 articles de loi est écartée. Le texte ne remplace le tien que si tu cliques « Reprendre ce
 texte ».
 
-Chaque réponse est marquée « Avis de l’IA » et ne change rien d’elle-même : un verdict n’est
+L’assistant répond dans la langue que Narcisse te parle. Chaque réponse est marquée « Avis de l’IA » et ne change rien d’elle-même : un verdict n’est
 appliqué au statut de la trace que si tu cliques « Appliquer ». « Voir ce qui part » montre le
 texte exact avant l’envoi (la trace, ses preuves, tes noms et pseudos déclarés, rien d’autre de ton
 profil). Un assistant hors de ta machine (Claude Code, un service, ou un serveur de ton réseau

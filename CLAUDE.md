@@ -144,6 +144,15 @@ fixtures, docs, commit messages or commit metadata.
   lists per site), never a real person; CI is fully mocked.
 - **Errors:** the UI shows a human message (an error code translated by the UI); stack traces go to
   the log file only.
+- **French and English.** Narcisse speaks the user's choice (`ui_lang`, "auto" by default), else
+  the browser's (`Accept-Language`), else the system's (`NARCISSE_LANG` in tests); `i18n.resolve`
+  decides. No text is written in one language in the code: the UI's are in `web/src/i18n/fr.ts`
+  (the reference; `en.ts` has the same shape, checked by `catalog.test.ts`, which also fails on
+  French left in the code; a line kept on purpose follows an `i18n: kept` comment). A module's
+  proofs are notes (`notes.note(code, **params)`, a code of `notes.NOTES` with both texts),
+  rendered when read; a source's title and description are `{fr, en}`. Proofs stored before
+  0.4.0 keep their French sentence. The assistant is asked and answers in the user's language,
+  stored with its annotation. The demo's fictitious identities stay French.
 - **Accessibility:** contrast ≥ 4.5:1 (tokens), visible focus, keyboard reachable, `alt` text,
   `prefers-reduced-motion` respected (scripted motion included), light and dark themes.
 
@@ -163,10 +172,12 @@ fixtures, docs, commit messages or commit metadata.
   JustDeleteMe and Narcisse's own sheets, the rules in `actions.py`, the GDPR letters in
   `data/letters/`, and in `follow.py` the requests the user follows: reminders, the check a
   later scan makes, the exposure snapshot taken when a scan ends), `demo_graph.py` (fictitious graphs of thousands of traces, demo mode only),
+  `i18n.py` (which language to speak) and `notes.py` (the proofs' sentences in both languages),
   `desktop/` (tray, Windows integration, the icon drawn in `art.py` and exported by
   `scripts/make-icons.py`).
   `tests/`: pytest (`tests/fakes.py` holds modules whose timing tests control).
 - `web/`: the UI (Vite, React, Tailwind, shadcn/ui in `src/components/ui/`, TanStack Query, wouter).
+  `src/i18n/`: the texts, in French (`fr.ts`) and English (`en.ts`), read with `t()`.
   `src/lib/live.ts` and `src/lib/graph.ts` apply the live events to the query cache.
   `src/features/graph/`: the graph (Sigma 4 + graphology, ForceAtlas2 in a Web Worker, loaded on
   demand) and the list that mirrors it. `npm run build` writes the UI into
