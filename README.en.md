@@ -67,7 +67,7 @@ or discrediting them. These uses are often illegal, and always against the spiri
 ### Windows
 
 1. Download **[Narcisse-Setup.exe](https://github.com/j3ffx/narcisse/releases/latest/download/Narcisse-Setup.exe)**
-   (about 50 MB).
+   (about 35 MB).
 2. Open it. It needs no administrator rights and nothing else to install.
 3. Narcisse opens, and shows up in the Start menu.
 

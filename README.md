@@ -70,7 +70,7 @@ discréditer. Ces usages sont souvent illégaux, et toujours contraires à l’e
 ### Windows
 
 1. Télécharge **[Narcisse-Setup.exe](https://github.com/j3ffx/narcisse/releases/latest/download/Narcisse-Setup.exe)**
-   (environ 50 Mo).
+   (environ 35 Mo).
 2. Ouvre-le. Il n’a pas besoin des droits d’administrateur et ne demande rien d’autre à installer.
 3. Narcisse s’ouvre et apparaît dans le menu Démarrer.
 
