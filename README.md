@@ -97,7 +97,7 @@ est moins éprouvé que sous Windows. Il te faut
 Puis, dans un terminal :
 
 ```bash
-uv tool install https://github.com/j3ffx/narcisse/releases/download/v0.5.0/narcisse-0.5.0-py3-none-any.whl
+uv tool install https://github.com/j3ffx/narcisse/releases/download/v0.5.1/narcisse-0.5.1-py3-none-any.whl
 ```
 
 ```bash

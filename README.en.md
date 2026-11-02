@@ -89,7 +89,7 @@ than on Windows. You need [uv](https://docs.astral.sh/uv/getting-started/install
 installs Python if it is missing. Then, in a terminal:
 
 ```bash
-uv tool install https://github.com/j3ffx/narcisse/releases/download/v0.5.0/narcisse-0.5.0-py3-none-any.whl
+uv tool install https://github.com/j3ffx/narcisse/releases/download/v0.5.1/narcisse-0.5.1-py3-none-any.whl
 ```
 
 ```bash

@@ -4,7 +4,7 @@ Les changements de chaque version de Narcisse, la plus récente en premier. Les 
 [versionnage sémantique](https://semver.org/lang/fr/) : tant qu’ils commencent par 0, l’outil évolue
 encore beaucoup.
 
-## En préparation
+## 0.5.1 (2026-11-02)
 
 - Une case dans les Réglages, décochée par défaut, pour être prévenu d’une nouvelle version : une
   fois par jour au plus, Narcisse demande à GitHub quelle est la dernière, et rien de tes données ne
