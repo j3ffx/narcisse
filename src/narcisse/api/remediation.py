@@ -165,9 +165,9 @@ async def get_remediation(entity_id: int, s: ServicesDep, lang: LangDep) -> Reme
             context = trace.letter_context(service, now.date())
             rendered = {}
             if action.letter is not None:
-                for lang in ("fr", "en"):
-                    letter = letters.render(action.letter, lang, context)
-                    rendered[lang] = LetterOut(subject=letter.subject, body=letter.body)
+                for language in ("fr", "en"):
+                    letter = letters.render(action.letter, language, context)
+                    rendered[language] = LetterOut(subject=letter.subject, body=letter.body)
             request = followed.get((action.code, service or ""))
             out.append(
                 ActionOut(

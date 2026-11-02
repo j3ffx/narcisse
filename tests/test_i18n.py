@@ -99,6 +99,29 @@ async def test_the_api_writes_proofs_and_sources_in_the_language_asked(api: Api)
     assert (await api.json("GET", "/preferences"))["ui_lang"] == "fr"
 
 
+async def test_what_to_do_about_a_trace_follows_the_language(api: Api) -> None:
+    scan_id = await demo_scan(api)
+    results = (await api.json("GET", f"/scans/{scan_id}/results"))["items"]
+    page = next(
+        r["entity"]["id"] for r in results if "journal.example.net" in r["entity"]["display"]
+    )
+
+    async def complaint_and_links(language: str) -> list[str]:
+        answer = await api.client.get(
+            f"/api/entities/{page}/remediation", headers={"Accept-Language": language}
+        )
+        body = answer.json()
+        return [
+            body["complaint"]["title"],
+            *[x["title"] for a in body["actions"] for x in a["links"]],
+        ]
+
+    french, english = await complaint_and_links("fr-FR"), await complaint_and_links("en-GB")
+    assert len(french) > 1
+    assert "Google : demande de suppression au titre du RGPD" in french
+    assert "Google: removal request under the GDPR" in english
+
+
 async def test_live_results_follow_the_chosen_language(make_api: ApiFactory) -> None:
     api = await make_api()
     await api.json("PATCH", "/preferences", {"ui_lang": "en"})
