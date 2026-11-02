@@ -46,7 +46,8 @@ discréditer. Ces usages sont souvent illégaux, et toujours contraires à l’e
 
 ## Comment Narcisse se comporte
 
-- **Tout reste sur ta machine.** Narcisse tourne en local et n’écoute que sur `127.0.0.1`. Pas de
+- **Tout reste sur ta machine**, et rien n’y est chiffré : tes profils et tes tokens sont lisibles par
+  qui a accès à ta session (seules les sauvegardes peuvent être chiffrées). Narcisse tourne en local et n’écoute que sur `127.0.0.1`. Pas de
   compte, pas de serveur distant, aucune télémétrie. Les seules requêtes qui sortent vont vers les
   sources interrogées (et vers l’assistant IA que tu auras choisi, si tu en choisis un, pour
   les seules traces sur lesquelles tu lui poses une question).
@@ -66,24 +67,47 @@ discréditer. Ces usages sont souvent illégaux, et toujours contraires à l’e
 
 ## Installer
 
-Il te faut [uv](https://docs.astral.sh/uv/getting-started/installation/), qui installe aussi
-Python s’il manque. Puis, dans un terminal :
+### Windows
+
+1. Télécharge **[Narcisse-Setup.exe](https://github.com/j3ffx/narcisse/releases/latest/download/Narcisse-Setup.exe)**
+   (environ 50 Mo).
+2. Ouvre-le. Il n’a pas besoin des droits d’administrateur et ne demande rien d’autre à installer.
+3. Narcisse s’ouvre et apparaît dans le menu Démarrer.
+
+Windows peut afficher « Windows a protégé votre ordinateur » : l’installateur n’est pas encore signé,
+ce que Windows n’aime pas chez un logiciel qu’il connaît peu. Clique sur « Informations
+complémentaires », puis « Exécuter quand même ». Il est construit et testé en public par la
+[CI du projet](https://github.com/j3ffx/narcisse/actions), à partir de ce dépôt.
+
+- **Mettre à jour** : télécharge et ouvre la nouvelle version, par-dessus l’ancienne. Tes données
+  sont gardées, et une sauvegarde est faite avant toute évolution de leur format (dans le dossier
+  `sauvegardes` de tes données ; « Restaurer » dans les Réglages la remet en place). Narcisse ne
+  cherche pas tout seul s’il existe une nouvelle version : regarde la page des
+  [versions](https://github.com/j3ffx/narcisse/releases).
+- **Désinstaller** : Paramètres de Windows → Applications → Narcisse. Tes données restent, pour le cas
+  où tu réinstallerais : leur dossier est indiqué dans les Réglages de Narcisse, supprime-le si tu
+  veux tout effacer.
+
+### macOS, Linux, ou depuis un terminal
+
+Il n’y a pas encore d’installateur pour eux : les tests tournent sur ces systèmes, mais Narcisse y
+est moins éprouvé que sous Windows. Il te faut
+[uv](https://docs.astral.sh/uv/getting-started/installation/), qui installe aussi Python s’il manque.
+Puis, dans un terminal :
 
 ```bash
-uv tool install https://github.com/j3ffx/narcisse/releases/download/v0.4.0/narcisse-0.4.0-py3-none-any.whl
+uv tool install https://github.com/j3ffx/narcisse/releases/download/v0.5.0/narcisse-0.5.0-py3-none-any.whl
 ```
-
-(Pour une version plus récente, prends le lien du fichier `.whl` sur la page des
-[versions](https://github.com/j3ffx/narcisse/releases).) Ensuite :
 
 ```bash
-narcisse serve --demo
+narcisse serve
 ```
 
-- **Mettre à jour** : la même commande avec le lien de la nouvelle version et `--force`, puis
-  « Redémarrer » dans le menu de l’icône de Narcisse.
+(`--demo` pour l’essayer sur une identité inventée.)
+
+- **Mettre à jour** : la même commande avec le lien de la nouvelle version et `--force`.
 - **Désinstaller** : `uv tool uninstall narcisse`. Tes données restent dans leur dossier
-  (`narcisse paths` te dit où) : supprime-le si tu veux tout effacer.
+  (`narcisse paths` te dit où).
 - **Depuis les sources** (pour contribuer) : il faut aussi [Node.js](https://nodejs.org/) 22 ou
   plus. `git clone https://github.com/j3ffx/narcisse.git`, puis dans le dossier `npm ci`,
   `npm run build` et `uv run narcisse serve --demo`. Les règles du dépôt sont dans
@@ -91,10 +115,12 @@ narcisse serve --demo
 
 ## Premiers pas
 
-Le navigateur s’ouvre sur <http://narcisse.localhost> : une adresse que les navigateurs envoient
-d’eux-mêmes vers ta machine, sans réglage. En mode démo, crée un profil fictif (« Jeanne Exemple »),
-ajoute un nom, un pseudo, un email et un domaine, puis lance un scan avec le module de démonstration :
-les résultats arrivent au fil de l’eau pendant une trentaine de secondes, avec une limite de débit,
+Narcisse s’ouvre sur <http://narcisse.localhost> : une adresse que les navigateurs envoient
+d’eux-mêmes vers ta machine, sans réglage. Un accueil te dit à quoi il sert, puis tu choisis :
+« J’ai compris, commencer » pour tes vraies données, ou « Essayer avec un exemple » pour le mode démo,
+qui n’interroge aucun site et garde ses données à part. En mode démo, crée un profil fictif (« Jeanne
+Exemple »), ajoute un nom, un pseudo, un email et un domaine, puis lance un scan avec le module de
+démonstration : les résultats arrivent au fil de l’eau pendant une trentaine de secondes, avec une limite de débit,
 une erreur réseau rattrapée seule et une panne à relancer. Tu peux mettre en pause, annuler, fermer
 le navigateur ou arrêter Narcisse : tout reprend où ça en était.
 
@@ -115,13 +141,8 @@ filtres et la même sélection, sous une forme que tout le monde peut lire. En m
 
 ### Comme une appli (Windows)
 
-```powershell
-narcisse shortcut --demo
-```
-
-(Sans `--demo`, il s’ouvre directement sur tes vraies données.)
-
-Narcisse apparaît dans le menu Démarrer (tape « Narcisse », ou épingle-le). Un clic l’ouvre dans sa
+L’installateur le met dans le menu Démarrer (tape « Narcisse », ou épingle-le). Depuis un terminal,
+c’est `narcisse shortcut`. Un clic l’ouvre dans sa
 propre fenêtre, en le démarrant d’abord s’il ne tourne pas. Il se range alors près de l’horloge :
 l’icône dit ce qui se passe (un point bleu pendant un scan, jaune en pause, rouge si une recherche
 échoue), et son menu permet d’ouvrir Narcisse, de mettre les scans en pause, de couper les

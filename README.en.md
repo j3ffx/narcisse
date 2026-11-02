@@ -19,10 +19,10 @@ request. Then it follows your progress from one scan to the next.
 > [changelog](CHANGELOG.md) (in French).
 
 Narcisse speaks French and English: it follows your browser's language, or the one chosen in
-**Settings**. The screenshots below are of the French interface.
+**Settings**.
 
 ![The graph of a fictitious profile in demo mode: a selected trace and the path linking it to the
-identity, the rest dimmed, the minimap and the trace's details](docs/capture-graphe.png)
+identity, the rest dimmed, the minimap and the trace's details](docs/capture-graphe-en.png)
 
 ## Who it is for, what it is for
 
@@ -45,7 +45,8 @@ or discrediting them. These uses are often illegal, and always against the spiri
 
 ## How Narcisse behaves
 
-- **Everything stays on your machine.** Narcisse runs locally and only listens on `127.0.0.1`. No
+- **Everything stays on your machine**, and nothing there is encrypted: your profiles and tokens can
+  be read by whoever has access to your session (only backups can be encrypted). Narcisse runs locally and only listens on `127.0.0.1`. No
   account, no remote server, no telemetry. The only requests that leave go to the sources asked
   (and to the AI assistant you chose, if you choose one, for the traces you ask it about only).
 - **Passive.** It reads public APIs and pages, open archives and registries. It never pokes a
@@ -63,34 +64,55 @@ or discrediting them. These uses are often illegal, and always against the spiri
 
 ## Install
 
-You need [uv](https://docs.astral.sh/uv/getting-started/installation/), which also installs
-Python if it is missing. Then, in a terminal:
+### Windows
+
+1. Download **[Narcisse-Setup.exe](https://github.com/j3ffx/narcisse/releases/latest/download/Narcisse-Setup.exe)**
+   (about 50 MB).
+2. Open it. It needs no administrator rights and nothing else to install.
+3. Narcisse opens, and shows up in the Start menu.
+
+Windows may say "Windows protected your PC": the installer isn't signed yet, which Windows dislikes
+in software it hardly knows. Click "More info", then "Run anyway". It is built and tested in public
+by the project's [CI](https://github.com/j3ffx/narcisse/actions), from this repository.
+
+- **Update**: download and open the new version, over the old one. Your data is kept, and a backup
+  is made before any change to its format (in the `sauvegardes` folder of your data; "Restore" in
+  Settings puts it back). Narcisse doesn't look for new versions on its own: see the
+  [releases](https://github.com/j3ffx/narcisse/releases) page.
+- **Uninstall**: Windows Settings → Apps → Narcisse. Your data stays, in case you install it again:
+  Narcisse's Settings say where it is, delete that folder to erase everything.
+
+### macOS, Linux, or from a terminal
+
+There is no installer for them yet: the tests run on these systems, but Narcisse is less proven there
+than on Windows. You need [uv](https://docs.astral.sh/uv/getting-started/installation/), which also
+installs Python if it is missing. Then, in a terminal:
 
 ```bash
-uv tool install https://github.com/j3ffx/narcisse/releases/download/v0.4.0/narcisse-0.4.0-py3-none-any.whl
+uv tool install https://github.com/j3ffx/narcisse/releases/download/v0.5.0/narcisse-0.5.0-py3-none-any.whl
 ```
-
-(For a newer version, take the link of the `.whl` file on the
-[releases](https://github.com/j3ffx/narcisse/releases) page.) Then:
 
 ```bash
-narcisse serve --demo
+narcisse serve
 ```
 
-- **Update**: the same command with the new version's link and `--force`, then "Restart" in the
-  menu of Narcisse's icon.
-- **Uninstall**: `uv tool uninstall narcisse`. Your data stays in its folder (`narcisse paths`
-  tells you where): delete it to erase everything.
+(`--demo` to try it on a made-up identity.)
+
+- **Update**: the same command with the new version's link and `--force`.
+- **Uninstall**: `uv tool uninstall narcisse`. Your data stays in its folder (`narcisse paths` tells
+  you where).
 - **From the sources** (to contribute): you also need [Node.js](https://nodejs.org/) 22 or later.
-  `git clone https://github.com/j3ffx/narcisse.git`, then in the folder `npm ci`, `npm run build`
-  and `uv run narcisse serve --demo`. The repository's rules are in [CLAUDE.md](CLAUDE.md).
+  `git clone https://github.com/j3ffx/narcisse.git`, then in the folder `npm ci`, `npm run build` and
+  `uv run narcisse serve --demo`. The repository's rules are in [CLAUDE.md](CLAUDE.md).
 
 The command line speaks your system's language; `NARCISSE_LANG=en` makes it speak English.
 
 ## First steps
 
-The browser opens on <http://narcisse.localhost>: an address browsers send to your machine on
-their own, with nothing to set up. In demo mode, create a fictitious profile ("Jeanne Exemple"),
+Narcisse opens on <http://narcisse.localhost>: an address browsers send to your machine on their
+own, with nothing to set up. A welcome page says what it is for, then you choose: "Got it, let's
+start" for your real data, or "Try with an example" for demo mode, which asks no site and keeps its
+data apart. In demo mode, create a fictitious profile ("Jeanne Exemple"),
 add a name, a username, an email and a domain, then start a scan with the demo module: results
 come in as they are found for about thirty seconds, with a rate limit, a network error caught
 again on its own and a failure to retry. You can pause, cancel, close the browser or stop
@@ -112,13 +134,8 @@ profile of 500 to 20,000 made-up traces, to see the graph at scale.
 
 ### As an app (Windows)
 
-```powershell
-narcisse shortcut --demo
-```
-
-(Without `--demo`, it opens straight on your real data.)
-
-Narcisse shows up in the Start menu (type "Narcisse", or pin it). A click opens it in its own
+The installer puts it in the Start menu (type "Narcisse", or pin it). From a terminal, that's
+`narcisse shortcut`. A click opens it in its own
 window, starting it first if it isn't running. It then sits by the clock: the icon tells what is
 going on (a blue dot during a scan, yellow when paused, red if a search fails), and its menu opens
 Narcisse, pauses the scans, mutes notifications, switches between demo mode and your real data
@@ -240,6 +257,11 @@ do, sent, waiting, done, refused), the reminder ready a month after sending (the
 Narcisse's icon reminds you once a day), and "Check now", which runs again only the searches that
 had found the trace. Any scan that no longer finds it marks it gone and closes the request. At the
 top of the tab, your exposure: your traces by risk level, and how it changes scan after scan.
+
+![A fictitious trace's details in demo mode: "What to do?" offers to ask the site to erase the page,
+with the request followed, then to get it delisted](docs/capture-que-faire-en.png)
+
+![A fictitious profile's "To do" tab: exposure by risk level, and a request under way](docs/capture-a-faire-en.png)
 
 ### What changed, your exports, your backup
 

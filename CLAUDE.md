@@ -19,6 +19,7 @@ uv run narcisse searxng          # the user's own SearXNG with Docker, on 127.0.
 npm run check                    # everything CI runs, but gitleaks on the history and the e2e tests
 npm run e2e                      # Playwright against `narcisse serve --demo`, on a temporary data dir
 npm run bench                    # the graph's benchmark (fictitious graphs of 500 to 20,000 traces)
+./scripts/build-installer.ps1    # Windows installer, from dist/ (needs Inno Setup; CI builds and tries it)
 ```
 
 `npm ci` points git at `.githooks/`:
@@ -154,6 +155,11 @@ fixtures, docs, commit messages or commit metadata.
   rendered when read; a source's title and description are `{fr, en}`. Proofs stored before
   0.4.0 keep their French sentence. The assistant is asked and answers in the user's language,
   stored with its annotation. The demo's fictitious identities stay French.
+- **An update never loses data.** Before migrating a database, `storage/backup.py` keeps a backup
+  that restores like any other (the last three). The Windows installer stops only its own Narcisse,
+  and uninstalling leaves the user's data.
+- **What a source answers is not trusted.** A proof's link is kept only if it is a web address
+  (`Finding`), and every response carries a content security policy (`security.py`).
 - **Accessibility:** contrast ≥ 4.5:1 (tokens), visible focus, keyboard reachable, `alt` text,
   `prefers-reduced-motion` respected (scripted motion included), light and dark themes.
 
@@ -189,6 +195,8 @@ fixtures, docs, commit messages or commit metadata.
   - `src/features/graph/`: the graph (Sigma 4 + graphology, ForceAtlas2 in a Web Worker, loaded on
     demand) and the list that mirrors it.
   - `e2e/`: Playwright against `narcisse serve --demo`, on a data dir emptied at each run.
+- `packaging/`: the Windows installer (Inno Setup), a standalone Python with the packages in it,
+  built by `scripts/build-installer.ps1`, tried by `scripts/test-installer.ps1` on a clean CI machine.
 - `scripts/`: repository checks, git hook helpers, and the refresh of the data modules reuse
   (`update-wmn.py`, `update-registries.py`: dated copies in `src/narcisse/modules/data/`;
   `update-jdm.py`: in `src/narcisse/remediation/data/`).
@@ -223,4 +231,5 @@ Semantic versioning. `0.1.0` comes out once the tool is usable for real. After i
 batch of features, `0.x.y` for fixes that matter between them; the smallest touches get no version of
 their own and wait for the next one. `1.0.0` once no improvement is left in sight. `CHANGELOG.md` (in
 French, for users) says what each version brings; a lightweight tag `vX.Y.Z` makes
-`.github/workflows/release.yml` publish the GitHub release with that version's notes.
+`.github/workflows/release.yml` publish the GitHub release with that version's notes, the package and
+the Windows installer.

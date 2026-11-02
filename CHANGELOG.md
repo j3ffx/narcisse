@@ -4,6 +4,21 @@ Les changements de chaque version de Narcisse, la plus récente en premier. Les 
 [versionnage sémantique](https://semver.org/lang/fr/) : tant qu’ils commencent par 0, l’outil évolue
 encore beaucoup.
 
+## En préparation
+
+Narcisse s’installe sans terminal, et n’importe qui peut s’y retrouver du premier coup.
+
+- Un installateur pour Windows : on télécharge, on ouvre, c’est prêt. Pas de droits d’administrateur,
+  rien d’autre à installer. La mise à jour se fait par-dessus, la désinstallation garde tes données.
+- Un accueil au premier lancement : à quoi sert Narcisse, qui tu peux chercher, ce qui sort de ta
+  machine. « Essayer avec un exemple » ouvre le mode démo, et un bouton t’en ramène.
+- Tant qu’un profil n’a pas eu de scan, il te dit quoi faire ensuite.
+- Une sauvegarde est faite avant chaque évolution du format de tes données : une mise à jour ne peut
+  plus te les faire perdre.
+- Plus de sécurité : un lien renvoyé par une source ne peut plus être autre chose qu’une adresse web, et
+  les pages n’exécutent que le code de Narcisse.
+- Liste des sites et pages de suppression à jour.
+
 ## 0.4.0 (2026-10-30)
 
 Narcisse parle anglais aussi.
