@@ -1,4 +1,4 @@
-# Builds dist/Narcisse-Setup-x.y.z.exe from the wheel in dist/ (npm run build && uv build first):
+# Builds dist/Narcisse-Setup.exe from the wheel in dist/ (npm run build && uv build first):
 # a Python of its own, the locked dependencies and Narcisse installed in it, then Inno Setup.
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $true
@@ -40,4 +40,4 @@ Remove-Item (Join-Path $python 'Scripts') -Recurse -Force -ErrorAction SilentlyC
 $iscc = (Get-Command ISCC.exe -ErrorAction SilentlyContinue).Source
 if (-not $iscc) { $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6/ISCC.exe' }
 & $iscc /Q "/DAppVersion=$version" (Join-Path $root 'packaging/narcisse.iss')
-Get-Item (Join-Path $root "dist/Narcisse-Setup-$version.exe") | Select-Object Name, Length
+Get-Item (Join-Path $root 'dist/Narcisse-Setup.exe') | Select-Object Name, Length

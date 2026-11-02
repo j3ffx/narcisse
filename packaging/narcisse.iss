@@ -25,7 +25,8 @@ SetupIconFile=..\src\narcisse\desktop\narcisse.ico
 UninstallDisplayIcon={app}\python\Lib\site-packages\narcisse\desktop\narcisse.ico
 UninstallDisplayName=Narcisse
 OutputDir=..\dist
-OutputBaseFilename=Narcisse-Setup-{#AppVersion}
+; A fixed name: releases/latest/download/Narcisse-Setup.exe is the newest one, always.
+OutputBaseFilename=Narcisse-Setup
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern

@@ -137,5 +137,5 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: narcisse-installer
-          path: dist/Narcisse-Setup-*.exe
+          path: dist/Narcisse-Setup.exe
           retention-days: 14

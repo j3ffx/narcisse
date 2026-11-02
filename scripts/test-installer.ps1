@@ -4,7 +4,7 @@ $ErrorActionPreference = 'Stop'
 
 $root = Split-Path $PSScriptRoot -Parent
 $version = (uv version --short --project $root).Trim()
-$setup = Join-Path $root "dist/Narcisse-Setup-$version.exe"
+$setup = Join-Path $root 'dist/Narcisse-Setup.exe'
 $app = Join-Path $env:LOCALAPPDATA 'Programs/Narcisse'
 $shortcut = Join-Path $env:APPDATA 'Microsoft/Windows/Start Menu/Programs/Narcisse.lnk'
 $port = 8796
