@@ -1,1 +1,5 @@
 blank_issues_enabled: false
+contact_links:
+  - name: Une faille de sécurité / A security flaw
+    url: https://github.com/j3ffx/narcisse/security/advisories/new
+    about: À signaler en privé, pas dans une issue. Report it privately, not in an issue.

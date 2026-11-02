@@ -77,8 +77,8 @@ by the project's [CI](https://github.com/j3ffx/narcisse/actions), from this repo
 
 - **Update**: download and open the new version, over the old one. Your data is kept, and a backup
   is made before any change to its format (in the `sauvegardes` folder of your data; "Restore" in
-  Settings puts it back). Narcisse doesn't look for new versions on its own: see the
-  [releases](https://github.com/j3ffx/narcisse/releases) page.
+  Settings puts it back). To be told of a new version, tick the box in Settings (unticked by
+  default); otherwise, see the [releases](https://github.com/j3ffx/narcisse/releases) page.
 - **Uninstall**: Windows Settings → Apps → Narcisse. Your data stays, in case you install it again:
   Narcisse's Settings say where it is, delete that folder to erase everything.
 
@@ -334,6 +334,10 @@ queue, pause, resume, errors, rate limits, display. The demo module,
 ## Contribute
 
 The repository's rules (commands, commits, privacy, invariants): [CLAUDE.md](CLAUDE.md).
+
+A security flaw? Report it privately:
+[report a vulnerability](https://github.com/j3ffx/narcisse/security/advisories/new). And in a public
+issue, leave out your name, emails and the content of your traces.
 
 ## Credits
 

@@ -93,8 +93,9 @@ fixtures, docs, commit messages or commit metadata.
   JSON body (another website open in the browser can't drive it). Nothing leaves the machine except
   requests to the hosts a source module declares (or that the user added in the settings, such as
   their Fediverse instances, or the site of the domain a run searches, declared for that run),
-  DNS lookups through the machine's own resolver (never DNS over HTTPS to a third party) and, if
-  the user configured one, to their LLM. WHOIS (port 43) goes through the same gate as HTTP.
+  DNS lookups through the machine's own resolver (never DNS over HTTPS to a third party), if the
+  user configured one, to their LLM, and, if they ticked the box (off by default, never in demo
+  mode), one request a day to GitHub for the latest version (`api/updates.py`). WHOIS (port 43) goes through the same gate as HTTP.
 - **The assistant is optional, asked, and never acts.** No LLM until the user picks one in the
   settings (`llm_provider`, "none" by default); demo mode offers only the fake `demo` one. It reads
   a trace only when the user asks about it (`llm/assistant.py` queues the question, stored with

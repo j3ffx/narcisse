@@ -50,7 +50,8 @@ discréditer. Ces usages sont souvent illégaux, et toujours contraires à l’e
   qui a accès à ta session (seules les sauvegardes peuvent être chiffrées). Narcisse tourne en local et n’écoute que sur `127.0.0.1`. Pas de
   compte, pas de serveur distant, aucune télémétrie. Les seules requêtes qui sortent vont vers les
   sources interrogées (et vers l’assistant IA que tu auras choisi, si tu en choisis un, pour
-  les seules traces sur lesquelles tu lui poses une question).
+  les seules traces sur lesquelles tu lui poses une question ; vers GitHub une fois par jour, si tu
+  demandes à être prévenu des nouvelles versions).
 - **Passif.** Il lit des API et des pages publiques, des archives et des registres ouverts. Il ne
   sollicite jamais un service pour deviner si tu y as un compte, ne se connecte nulle part et ne
   remplit aucun formulaire.
@@ -81,9 +82,9 @@ complémentaires », puis « Exécuter quand même ». Il est construit et test�
 
 - **Mettre à jour** : télécharge et ouvre la nouvelle version, par-dessus l’ancienne. Tes données
   sont gardées, et une sauvegarde est faite avant toute évolution de leur format (dans le dossier
-  `sauvegardes` de tes données ; « Restaurer » dans les Réglages la remet en place). Narcisse ne
-  cherche pas tout seul s’il existe une nouvelle version : regarde la page des
-  [versions](https://github.com/j3ffx/narcisse/releases).
+  `sauvegardes` de tes données ; « Restaurer » dans les Réglages la remet en place). Pour être
+  prévenu d’une nouvelle version, coche la case dans les Réglages (décochée par défaut) ; sinon,
+  regarde la page des [versions](https://github.com/j3ffx/narcisse/releases).
 - **Désinstaller** : Paramètres de Windows → Applications → Narcisse. Tes données restent, pour le cas
   où tu réinstallerais : leur dossier est indiqué dans les Réglages de Narcisse, supprime-le si tu
   veux tout effacer.
@@ -355,6 +356,10 @@ d’attente, pause, reprise, erreurs, limites de débit, affichage. Le module de
 ## Contribuer
 
 Les règles du dépôt (commandes, commits, confidentialité, invariants) : [CLAUDE.md](CLAUDE.md).
+
+Une faille de sécurité ? Signale-la en privé :
+[signaler une faille](https://github.com/j3ffx/narcisse/security/advisories/new). Et dans une issue
+publique, n’écris ni ton nom, ni tes emails, ni le contenu de tes traces.
 
 ## Crédits
 
