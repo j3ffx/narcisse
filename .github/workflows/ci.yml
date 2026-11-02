@@ -104,3 +104,38 @@ jobs:
 
       - run: uv sync --locked
       - run: uv run pytest -q
+
+  installer:
+    name: Windows installer
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - uses: astral-sh/setup-uv@v10.3.2
+        with:
+          enable-cache: true
+
+      - name: Build
+        run: |
+          npm ci
+          npm run build
+          uv build
+          choco install innosetup --yes --no-progress
+          ./scripts/build-installer.ps1
+        shell: pwsh
+
+      - name: Install, update and uninstall it
+        run: ./scripts/test-installer.ps1
+        shell: pwsh
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: narcisse-installer
+          path: dist/Narcisse-Setup-*.exe
+          retention-days: 14
