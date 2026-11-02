@@ -27,6 +27,11 @@ export function SettingsPage() {
       <div>
         <h1 className="font-heading text-2xl font-semibold">{t().shell.settings}</h1>
         <p className="text-sm text-muted-foreground">{t().settings.intro(info.data?.data_dir)}</p>
+        {info.data && (
+          <p className="text-sm text-muted-foreground" data-testid="version">
+            Narcisse {info.data.version}
+          </p>
+        )}
       </div>
       {preferences.isPending && <Pending label={t().settings.loading} />}
       {preferences.isError && <p role="alert">{errorMessage(preferences.error)}</p>}
