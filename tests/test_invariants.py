@@ -17,12 +17,12 @@ from narcisse import cli
 from narcisse.app import NO_TELEMETRY, create_app
 from narcisse.config import HOST, Settings
 from narcisse.domain import EntityKind
-from narcisse.engine.plugin import Target
+from narcisse.engine.plugin import Finding, Target
 from narcisse.modules import discover
 from narcisse.modules.demo import DemoModule, findings_for
 from narcisse.storage.database import migrate
 from narcisse.storage.models import Base
-from tests.conftest import ApiFactory
+from tests.conftest import Api, ApiFactory
 
 
 def test_the_server_listens_on_loopback_only(
@@ -104,3 +104,21 @@ def test_user_data_lives_outside_the_repository(monkeypatch: pytest.MonkeyPatch)
     # Fictitious demo profiles never land among real ones.
     assert Settings.from_env(demo=True).data_dir.name == "narcisse-demo"
     assert real.name == "narcisse"
+
+
+@pytest.mark.parametrize("url", ["javascript:alert(1)", "data:text/html,x", "file:///etc/passwd"])
+def test_a_proof_never_links_to_anything_but_a_web_page(url: str) -> None:
+    finding = Finding(kind=EntityKind.URL, value="https://example.org", relation="x", url=url)
+    assert finding.url is None
+
+
+def test_a_proofs_web_link_is_kept() -> None:
+    url = "HTTPS://example.org/page"
+    assert Finding(kind=EntityKind.URL, value=url, relation="x", url=url).url == url
+
+
+async def test_pages_run_only_narcisses_own_scripts(api: Api) -> None:
+    policy = (await api.client.get("/api/info")).headers["content-security-policy"]
+    assert "script-src 'self';" in policy
+    assert "frame-ancestors 'none'" in policy
+    assert "unsafe-eval" not in policy

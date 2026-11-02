@@ -11,11 +11,28 @@ or changing anything:
 
 import json
 
-from starlette.datastructures import Headers
-from starlette.types import ASGIApp, Receive, Scope, Send
+from starlette.datastructures import Headers, MutableHeaders
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
 SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+# Should a text from a scanned page ever slip through: no inline script, no `javascript:` link, and
+# the page talks to its own server only. No website can frame it.
+POLICY = "; ".join(
+    (
+        "default-src 'self'",
+        "script-src 'self'",
+        "worker-src 'self' blob:",  # the graph's layout
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: blob:",
+        "font-src 'self' data:",
+        "connect-src 'self'",
+        "object-src 'none'",
+        "base-uri 'none'",
+        "form-action 'self'",
+        "frame-ancestors 'none'",
+    )
+)
 
 
 def hostname_of(host_header: str) -> str:
@@ -44,7 +61,13 @@ class LocalOnlyMiddleware:
         headers = Headers(scope=scope)
         problem = self._problem(scope["method"], headers)
         if problem is None:
-            await self.app(scope, receive, send)
+
+            async def send_with_policy(message: Message) -> None:
+                if message["type"] == "http.response.start":
+                    MutableHeaders(scope=message).setdefault("Content-Security-Policy", POLICY)
+                await send(message)
+
+            await self.app(scope, receive, send_with_policy)
             return
         status, code = problem
         body = json.dumps({"code": code, "params": {}}).encode()

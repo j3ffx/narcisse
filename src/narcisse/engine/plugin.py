@@ -80,6 +80,12 @@ class Finding:
     # been yielded before (or be the target); otherwise the target stands in.
     via: tuple[EntityKind, str] | None = None
 
+    def __post_init__(self) -> None:
+        # What a source answers is not to be trusted: a `javascript:` link from a hostile server
+        # would otherwise become a link in the page.
+        if self.url and not self.url.lower().startswith(("http://", "https://")):
+            object.__setattr__(self, "url", None)
+
 
 class ModuleError(Exception):
     """A failure the UI can explain. `code` is translated by the UI, with `params`."""
