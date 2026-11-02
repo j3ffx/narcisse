@@ -121,7 +121,7 @@ fixtures, docs, commit messages or commit metadata.
   DNS could hand that name to someone else, then rebind it to this machine.
 - **The desktop side asks before touching the system.** Starting with Windows is off until the
   user ticks it in the tray menu (a value in the user's own Run key, nothing machine-wide); the
-  Start menu entry exists only once `narcisse shortcut` is run. `open` and `tray` open the side
+  Start menu entry exists only once `narcisse shortcut` is run (the installer runs it). `open` and `tray` open the side
   (demo or the user's data) chosen last in the tray menu, kept in the user's config directory
   (`NARCISSE_CONFIG_DIR` in tests). Tests never write the real registry.
 - **Licences are checked** before reusing a tool or dataset. The project is GPL-3.0-only, compatible

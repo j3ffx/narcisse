@@ -4,7 +4,7 @@ Les changements de chaque version de Narcisse, la plus récente en premier. Les 
 [versionnage sémantique](https://semver.org/lang/fr/) : tant qu’ils commencent par 0, l’outil évolue
 encore beaucoup.
 
-## En préparation
+## 0.5.0 (2026-11-02)
 
 Narcisse s’installe sans terminal, et n’importe qui peut s’y retrouver du premier coup.
 
@@ -17,6 +17,8 @@ Narcisse s’installe sans terminal, et n’importe qui peut s’y retrouver du 
   plus te les faire perdre.
 - Plus de sécurité : un lien renvoyé par une source ne peut plus être autre chose qu’une adresse web, et
   les pages n’exécutent que le code de Narcisse.
+- Les liens de « Que faire ? » s’affichaient en anglais dans l’interface française : corrigé.
+- La version de Narcisse est indiquée dans les Réglages.
 - Liste des sites et pages de suppression à jour.
 
 ## 0.4.0 (2026-10-30)
