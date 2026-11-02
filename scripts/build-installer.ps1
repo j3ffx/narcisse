@@ -14,7 +14,8 @@ New-Item -ItemType Directory -Force $work | Out-Null
 # The Python of .python-version, standalone: nothing of the build machine's stays attached to it.
 $wanted = (Get-Content (Join-Path $root '.python-version')).Trim()
 uv python install $wanted --install-dir (Join-Path $work 'pythons') --no-bin
-$found = Get-ChildItem (Join-Path $work 'pythons') -Directory | Select-Object -First 1
+# uv also makes a link named after the minor version: the real folder is the other one.
+$found = Get-ChildItem (Join-Path $work 'pythons') -Directory | Where-Object { -not $_.LinkType } | Select-Object -First 1
 $python = Join-Path $work 'python'
 Move-Item $found.FullName $python
 $exe = Join-Path $python 'python.exe'
