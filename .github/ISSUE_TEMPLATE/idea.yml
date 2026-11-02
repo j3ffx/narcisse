@@ -1,0 +1,17 @@
+name: Une idée / An idea
+description: Une source à ajouter, quelque chose à améliorer. A source to add, something to improve.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Narcisse reste gratuit, local et passif : il ne se connecte à aucun compte, ne contourne aucune protection et sert à se chercher soi-même. Voir [le README](https://github.com/j3ffx/narcisse#pour-qui-pour-quoi).
+
+        Narcisse stays free, local and passive: it signs in nowhere, bypasses no protection and is for looking yourself up. See [the README](https://github.com/j3ffx/narcisse/blob/main/README.en.md).
+  - type: textarea
+    id: idea
+    attributes:
+      label: L'idée / The idea
+      description: Ce qui manque, et à quoi ça te servirait. What's missing, and what you'd use it for.
+    validations:
+      required: true

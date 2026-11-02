@@ -1,0 +1,42 @@
+name: Un problème / A problem
+description: Quelque chose ne marche pas comme prévu. Something doesn't work as it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Ce dépôt est public : n'écris ici ni ton nom, ni tes emails, ni tes pseudos, ni le contenu de tes traces.** Remplace-les par des valeurs fictives.
+
+        **This repository is public: leave out your name, emails, usernames and the content of your traces.** Use made-up values instead.
+  - type: textarea
+    id: what
+    attributes:
+      label: Ce qui s'est passé / What happened
+      description: Ce que tu as fait, ce que tu attendais, ce que tu as vu. What you did, expected and saw.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: En haut des Réglages. At the top of Settings.
+    validations:
+      required: true
+  - type: dropdown
+    id: system
+    attributes:
+      label: Système / System
+      options:
+        - Windows
+        - macOS
+        - Linux
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Journal / Log
+      description: >-
+        Facultatif. Le dossier `logs` de tes données. Relis-le d'abord : retire ce qui t'identifie.
+        Optional. The `logs` folder of your data. Read it first: remove what identifies you.
+      render: text
