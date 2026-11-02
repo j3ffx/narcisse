@@ -190,7 +190,8 @@ fixtures, docs, commit messages or commit metadata.
 ## Performance
 
 The graph must stay fluid (about 60 frames a second up to 5,000 traces) and no task may block the
-page for 200 ms while a scan streams (`e2e/demo.spec.ts` checks it). `npm run bench` measures it;
+page for 200 ms while a scan streams (`e2e/demo.spec.ts` and `e2e/graph-fluidity.spec.ts` check it,
+the latter on the GPU, in software on CI). `npm run bench` measures it;
 headless Chrome draws WebGL in software unless told to use the GPU, so the benchmark asks for it
 and names the renderer. Last run (2026-10-22, nodes sized by risk, integrated Intel Iris Xe,
 Chrome headless):

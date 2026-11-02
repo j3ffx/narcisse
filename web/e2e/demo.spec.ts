@@ -447,53 +447,6 @@ async function sweepFindsTrace(
   return page.evaluate(() => (window as unknown as { overTrace: boolean }).overTrace);
 }
 
-test('no long task over 200 ms on the graph while a scan streams into it', async ({
-  page,
-  request,
-}) => {
-  await page.addInitScript(() => {
-    const w = window as unknown as { longTasks: number[] };
-    w.longTasks = [];
-    new PerformanceObserver((list) => {
-      for (const entry of list.getEntries()) w.longTasks.push(entry.duration);
-    }).observe({ type: 'longtask', buffered: true });
-  });
-  const id = await demoProfile(request, 'Jeanne Exemple (graphe en direct)');
-  const started = await request.post(`/api/profiles/${id}/scans`, { data: {} });
-  const { id: scanId } = (await started.json()) as { id: number };
-  await page.goto(`/profils/${id}`);
-  const canvas = page.getByTestId('graph-canvas');
-  await expect(canvas).toBeVisible();
-  await expect(canvas).toHaveAttribute('data-nodes', /\d+/);
-  const first = Number(await canvas.getAttribute('data-nodes'));
-  // From here on: the page is loaded (its code and shaders compiled), traces keep arriving.
-  await page.evaluate(() => {
-    (window as unknown as { longTasks: number[] }).longTasks = [];
-  });
-  // Click about while traces keep arriving.
-  await page.getByRole('combobox', { name: /Chercher une trace/ }).fill('jeanne');
-  await page.keyboard.press('Escape');
-  await expect
-    .poll(
-      async () =>
-        (
-          (await (await request.get(`/api/scans/${scanId}`)).json()) as {
-            status: string;
-          }
-        ).status,
-      { timeout: LONG_WAIT },
-    )
-    .toBe('done');
-  await expect
-    .poll(async () => Number(await canvas.getAttribute('data-nodes')))
-    .toBeGreaterThan(first);
-
-  const longTasks = await page.evaluate(
-    () => (window as unknown as { longTasks: number[] }).longTasks,
-  );
-  expect(longTasks.filter((d) => d > 200)).toEqual([]);
-});
-
 test('two scans compared, the profile exported, everything backed up then restored', async ({
   page,
   request,

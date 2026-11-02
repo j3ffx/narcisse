@@ -2,19 +2,15 @@ import { defineConfig, devices } from '@playwright/test';
 import { mkdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { GPU } from './e2e/gpu';
 
 const PORT = 4174;
 
 /**
  * The graph's benchmark (`npm run bench`): fictitious graphs of growing size, in a real browser,
- * against `narcisse serve --demo` on a fresh data directory. Headless Chrome draws WebGL in
- * software unless told to use the GPU: these flags ask for it (the table says which renderer drew).
+ * against `narcisse serve --demo` on a fresh data directory, on the GPU (the table says which
+ * renderer drew).
  */
-const GPU = [
-  '--ignore-gpu-blocklist',
-  '--enable-gpu',
-  ...(process.platform === 'win32' ? ['--use-angle=d3d11'] : []),
-];
 
 // One data directory, emptied at each run: a new one per run piled up in the temporary folder.
 // Workers load this file too, while the server already runs on it: only the main process empties
