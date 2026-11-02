@@ -40,6 +40,8 @@ DATABASE = "narcisse.sqlite3"
 SETTINGS = "preferences.json"
 MANIFEST = "manifest.json"
 TOKENS = ("github_token", "gitlab_token", "llm_key")
+BEFORE_UPDATE = "avant-mise-a-jour-"
+UPDATES_KEPT = 3
 
 
 @dataclass(frozen=True)
@@ -192,6 +194,33 @@ def safety_path(settings: Settings, now: datetime) -> Path:
     folder = settings.data_dir / "sauvegardes"
     folder.mkdir(parents=True, exist_ok=True)
     return folder / f"avant-restauration-{now:%Y-%m-%d-%H%M%S}.narcisse"
+
+
+def _revision(database: Path) -> str | None:
+    """The schema revision of a database, None if it doesn't exist or has none yet."""
+    if not database.exists():
+        return None
+    with closing(sqlite3.connect(database)) as connection:
+        try:
+            row = connection.execute("SELECT version_num FROM alembic_version").fetchone()
+        except sqlite3.OperationalError:
+            return None
+    return str(row[0]) if row else None
+
+
+def before_update(settings: Settings, now: datetime) -> Path | None:
+    """Keeps a backup when the database is about to be migrated: an update must never be able to
+    lose the user's data. It restores like any other (tokens left out, as in a plain backup)."""
+    revision = _revision(settings.database_path)
+    if revision is None or revision == head_revision():
+        return None
+    folder = settings.data_dir / "sauvegardes"
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / f"{BEFORE_UPDATE}{now:%Y-%m-%d-%H%M%S}.narcisse"
+    path.write_bytes(create(settings, now))
+    for old in sorted(folder.glob(f"{BEFORE_UPDATE}*.narcisse"))[:-UPDATES_KEPT]:
+        old.unlink()
+    return path
 
 
 def file_name(now: datetime, encrypted: bool) -> str:

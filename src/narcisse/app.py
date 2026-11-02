@@ -5,6 +5,7 @@ import logging
 import mimetypes
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
@@ -44,6 +45,7 @@ from narcisse.preferences import Preferences
 from narcisse.schemas import AppInfo, ClientError
 from narcisse.searxng import Launcher
 from narcisse.security import LocalOnlyMiddleware
+from narcisse.storage import backup
 from narcisse.storage.database import Database, migrate
 
 log = logging.getLogger(__name__)
@@ -101,6 +103,7 @@ def create_app(
 
             async def open_runtime() -> Services:
                 """The database (migrated), its events and the engine, started."""
+                await asyncio.to_thread(backup.before_update, settings, datetime.now(UTC))
                 await asyncio.to_thread(migrate, settings.database_path)
                 db = Database(settings.database_path)
                 bus = EventBus(db, Clock(settings.speed))

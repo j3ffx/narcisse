@@ -7,16 +7,21 @@ import json
 import sqlite3
 import zipfile
 from contextlib import closing
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import pytest
+from alembic import command
+from alembic.config import Config
+from sqlalchemy import create_engine
 from typer.testing import CliRunner
 
 from narcisse import cli
 from narcisse.config import Settings
 from narcisse.preferences import Preferences
 from narcisse.storage import backup
+from narcisse.storage.database import MIGRATIONS, migrate
 from tests.conftest import Api, ApiFactory
 from tests.fakes import Steps
 
@@ -137,8 +142,6 @@ def test_the_command_line_backs_up_and_restores(
     nothing = runner.invoke(cli.app, ["backup", "--out", str(tmp_path)])
     assert nothing.exit_code == 1
 
-    from narcisse.storage.database import migrate
-
     migrate(settings.database_path)
     Preferences(exclude_adult=True).save(settings.preferences_path)
     made = runner.invoke(cli.app, ["backup", "--out", str(tmp_path)])
@@ -158,3 +161,45 @@ def test_the_command_line_backs_up_and_restores(
     )
     assert sealed.exit_code == 0, sealed.output
     assert backup.is_sealed((tmp_path / "sealed").read_bytes())
+
+
+def older_database(settings: Settings) -> None:
+    settings.data_dir.mkdir(parents=True, exist_ok=True)
+    config = Config()
+    config.set_main_option("script_location", str(MIGRATIONS))
+    engine = create_engine(f"sqlite:///{settings.database_path}")
+    with engine.begin() as connection:
+        config.attributes["connection"] = connection
+        command.upgrade(config, "0009")
+    engine.dispose()
+
+
+def test_a_database_about_to_be_migrated_is_backed_up_first(tmp_path: Path) -> None:
+    settings = Settings(data_dir=tmp_path)
+    now = datetime(2026, 11, 2, 12, 0, tzinfo=UTC)
+    assert backup.before_update(settings, now) is None  # nothing yet: a first start
+
+    older_database(settings)
+    kept = backup.before_update(settings, now)
+    assert kept is not None
+    assert backup.read(kept.read_bytes()).manifest.revision == "0009"
+
+    migrate(settings.database_path)
+    assert backup.before_update(settings, now) is None  # up to date: nothing to fear
+
+
+def test_only_the_last_backups_before_an_update_are_kept(tmp_path: Path) -> None:
+    settings = Settings(data_dir=tmp_path)
+    older_database(settings)
+    folder = tmp_path / "sauvegardes"
+    folder.mkdir()
+    (folder / "narcisse-a-moi.narcisse").write_bytes(b"mine")
+    for day in range(1, 6):
+        backup.before_update(settings, datetime(2026, 11, day, tzinfo=UTC))
+    names = sorted(f.name for f in folder.iterdir())
+    assert names == [
+        "avant-mise-a-jour-2026-11-03-000000.narcisse",
+        "avant-mise-a-jour-2026-11-04-000000.narcisse",
+        "avant-mise-a-jour-2026-11-05-000000.narcisse",
+        "narcisse-a-moi.narcisse",
+    ]
