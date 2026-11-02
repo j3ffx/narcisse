@@ -55,9 +55,9 @@ Start-Narcisse | Out-Null
 Write-Output 'Updated over a running Narcisse.'
 
 $uninstaller = Join-Path $app 'unins000.exe'
-$process = Start-Process $uninstaller -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -Wait -PassThru
-if ($process.ExitCode -ne 0) { throw "The uninstaller exited with $($process.ExitCode)." }
-# It copies itself to run from a temporary folder: the removal finishes a little later.
+Start-Process $uninstaller -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -Wait
+# It copies itself to a temporary folder and runs from there: its exit code says nothing, and the
+# removal finishes a little later. What it left is what counts.
 foreach ($try in 1..30) {
   if (-not (Test-Path (Join-Path $app 'python'))) { break }
   Start-Sleep 1
