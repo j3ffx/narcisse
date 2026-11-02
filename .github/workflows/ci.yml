@@ -84,3 +84,23 @@ jobs:
           name: narcisse-dist
           path: dist/
           retention-days: 14
+
+  systems:
+    name: Tests on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        # Windows is what most users run; the job above covers Linux, with everything else.
+        os: [windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v7
+
+      # uv picks Python from .python-version.
+      - uses: astral-sh/setup-uv@v10.3.2
+        with:
+          enable-cache: true
+
+      - run: uv sync --locked
+      - run: uv run pytest -q
