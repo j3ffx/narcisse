@@ -38,6 +38,7 @@ export function SettingsPage() {
       {preferences.data && (
         <>
           <Language choice={preferences.data.ui_lang} />
+          {info.data?.demo === false && <NewVersions asked={preferences.data.check_updates} />}
           <Token
             service="github"
             title={t().settings.githubTitle}
@@ -327,6 +328,25 @@ function SearxngInstance({ address, autostart }: { address: string | null; autos
           </Button>
         </form>
       </details>
+    </section>
+  );
+}
+
+function NewVersions({ asked }: { asked: boolean }) {
+  const update = useUpdatePreferences();
+  return (
+    <section aria-labelledby="updates-title" className="grid gap-3">
+      <h2 id="updates-title" className="font-heading text-lg font-semibold">
+        {t().settings.updatesTitle}
+      </h2>
+      <p className="text-sm text-muted-foreground">{t().settings.updatesHelp}</p>
+      <Label className="flex items-center gap-2 font-normal">
+        <Checkbox
+          checked={asked}
+          onCheckedChange={(checked) => update.mutate({ check_updates: checked === true })}
+        />
+        {t().settings.updatesCheck}
+      </Label>
     </section>
   );
 }

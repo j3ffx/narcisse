@@ -360,6 +360,11 @@ export interface Activity {
   scans: ScanDetail[];
 }
 
+export interface UpdateInfo {
+  latest: string | null;
+  url: string | null;
+}
+
 export interface AppInfo {
   version: string;
   demo: boolean;
@@ -382,6 +387,7 @@ export interface Preferences {
   github_token_set: boolean;
   gitlab_token_set: boolean;
   exclude_adult: boolean;
+  check_updates: boolean;
   fediverse_instances: string[];
   searxng_url: string | null;
   /** Start Narcisse's SearXNG with Narcisse when it doesn't answer. */
@@ -411,6 +417,7 @@ export interface PreferencesChanges {
   github_token?: string | null;
   gitlab_token?: string | null;
   exclude_adult?: boolean;
+  check_updates?: boolean;
   fediverse_instances?: string[];
   searxng_url?: string | null;
   searxng_autostart?: boolean;

@@ -51,6 +51,7 @@ import type {
   Seed,
   SeedKind,
   SeedStatus,
+  UpdateInfo,
 } from './types';
 
 export const keys = {
@@ -66,6 +67,7 @@ export const keys = {
   allResults: ['results'] as const,
   preferences: ['preferences'] as const,
   searxng: ['searxng'] as const,
+  update: ['update'] as const,
   graph: (profileId: number, falsePositives: boolean) =>
     ['graph', profileId, falsePositives] as const,
   graphs: (profileId: number) => ['graph', profileId] as const,
@@ -522,6 +524,17 @@ export function useReviewEntity() {
 
 export const usePreferences = () =>
   useQuery({ queryKey: keys.preferences, queryFn: () => get<Preferences>('/preferences') });
+
+/** Whether a newer version exists, asked only once the user ticked the box. */
+export function useUpdate() {
+  const allowed = usePreferences().data?.check_updates === true;
+  return useQuery({
+    queryKey: keys.update,
+    queryFn: () => get<UpdateInfo>('/update'),
+    enabled: allowed,
+    select: (update) => (allowed ? update : undefined),
+  });
+}
 
 /** The SearXNG status; polled while a launch asked from the app is under way. */
 export function useSearxng() {

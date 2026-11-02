@@ -53,6 +53,34 @@ test('the example starts Narcisse on the demo side, then the page reloads', asyn
   expect(asked).toBe(1);
 });
 
+test('a new version is told only once asked for, and never by default', async ({
+  page,
+  request,
+}) => {
+  await asFirstStart(page);
+  await request.patch('/api/preferences', { data: { welcomed: true } });
+  let asked = 0;
+  await page.route('**/api/update', (route) => {
+    asked += 1;
+    return route.fulfill({
+      json: { latest: '99.0.0', url: 'https://github.com/j3ffx/narcisse/releases/latest' },
+    });
+  });
+  await page.goto('/reglages');
+  const box = page.getByRole('checkbox', { name: 'Me prévenir quand une nouvelle version sort' });
+  await expect(box).not.toBeChecked();
+  await expect(page.getByTestId('new-version')).toHaveCount(0);
+  expect(asked).toBe(0);
+
+  await box.click();
+  await expect(page.getByTestId('new-version')).toContainText('Narcisse 99.0.0 est disponible.');
+  await audit(page);
+
+  await box.click();
+  await expect(page.getByTestId('new-version')).toHaveCount(0);
+  await request.patch('/api/preferences', { data: { check_updates: false } });
+});
+
 test('a new profile says what to do next, until its first scan', async ({ page, request }) => {
   const created = await request.post('/api/profiles', {
     data: { name: 'Jeanne Exemple (étapes)' },

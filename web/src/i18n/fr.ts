@@ -278,6 +278,8 @@ export const fr = {
     settings: 'Réglages',
     reconnecting: 'Reconnexion…',
     switching: 'Narcisse redémarre…',
+    newVersion: (version: string) => `Narcisse ${version} est disponible.`,
+    getIt: 'La télécharger',
     leaveDemo: 'Revenir à mes données',
     demoBanner:
       'Mode démo : le module de démonstration invente des résultats, sans rien interroger.',
@@ -963,6 +965,10 @@ export const fr = {
       'Relancer SearXNG quand Narcisse démarre, s’il ne répond pas (après un redémarrage de l’ordinateur, par exemple). Docker Desktop s’ouvre si besoin.',
     searxngManual: 'Régler l’adresse à la main',
     searxngAddress: 'Adresse de l’instance',
+    updatesTitle: 'Nouvelles versions',
+    updatesHelp:
+      'Une fois par jour au plus, Narcisse demande à GitHub quelle est sa dernière version, et te le dit ici. GitHub voit ton adresse IP, et rien de tes données. Sans cette case, rien n’est demandé.',
+    updatesCheck: 'Me prévenir quand une nouvelle version sort',
     adultTitle: 'Sites adultes',
     adultHelp:
       'La recherche de comptes par pseudo vérifie aussi une quarantaine de sites adultes : un compte oublié là-bas est souvent la trace la plus gênante. Les comptes trouvés portent l’étiquette « site adulte ».',

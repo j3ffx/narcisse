@@ -29,6 +29,7 @@ from narcisse.api import (
     requests,
     scans,
     searxng,
+    updates,
 )
 from narcisse.api.deps import Services, ServicesDep
 from narcisse.clock import Clock
@@ -206,6 +207,7 @@ def create_app(
     api.include_router(entities.router)
     api.include_router(graph.router)
     api.include_router(preferences.router)
+    api.include_router(updates.router)
     api.include_router(passwords.router)
     api.include_router(searxng.router)
     api.include_router(remediation.router)

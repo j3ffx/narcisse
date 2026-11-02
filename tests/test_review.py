@@ -75,6 +75,7 @@ async def test_settings_keep_the_tokens_without_ever_showing_them(
         "github_token_set": False,
         "gitlab_token_set": False,
         "exclude_adult": False,
+        "check_updates": False,
         "fediverse_instances": [],
         "searxng_url": None,
         "searxng_autostart": False,

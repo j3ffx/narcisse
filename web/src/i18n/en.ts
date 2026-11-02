@@ -262,6 +262,8 @@ export const en: Messages = {
     settings: 'Settings',
     reconnecting: 'Reconnecting…',
     switching: 'Narcisse is restarting…',
+    newVersion: (version: string) => `Narcisse ${version} is available.`,
+    getIt: 'Download it',
     leaveDemo: 'Back to my data',
     demoBanner: 'Demo mode: the demo module makes up results, asking nothing of anyone.',
     theme: 'Theme',
@@ -935,6 +937,10 @@ export const en: Messages = {
       'Start SearXNG again when Narcisse starts, if it doesn’t answer (after the computer restarted, for instance). Docker Desktop opens if need be.',
     searxngManual: 'Set the address by hand',
     searxngAddress: 'Address of the instance',
+    updatesTitle: 'New versions',
+    updatesHelp:
+      'At most once a day, Narcisse asks GitHub what its latest version is, and tells you here. GitHub sees your IP address, and none of your data. Without this box, nothing is asked.',
+    updatesCheck: 'Tell me when a new version comes out',
     adultTitle: 'Adult sites',
     adultHelp:
       'The search for accounts by username also checks about forty adult sites: an account forgotten there is often the most embarrassing trace. The accounts found carry the label “adult site”.',

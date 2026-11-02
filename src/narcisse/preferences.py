@@ -13,6 +13,8 @@ log = logging.getLogger(__name__)
 class Preferences:
     # The user went through the welcome page (shown once, before their first profile).
     welcomed: bool = False
+    # Ask GitHub, at most once a day, whether a newer version exists. Off until the user ticks it.
+    check_updates: bool = False
     # A free GitHub personal token: 5,000 requests an hour instead of 60. Optional.
     github_token: str | None = None
     # A free GitLab personal token: gitlab.com then shows a profile's bio, place and site. Optional.

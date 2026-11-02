@@ -333,12 +333,18 @@ class AppInfo(Schema):
     can_switch: bool
 
 
+class UpdateOut(Schema):
+    latest: str | None
+    url: str | None
+
+
 class PreferencesOut(Schema):
     ui_lang: Literal["auto", "fr", "en"]
     welcomed: bool
     github_token_set: bool
     gitlab_token_set: bool
     exclude_adult: bool
+    check_updates: bool
     fediverse_instances: list[str]
     searxng_url: str | None
     searxng_autostart: bool
@@ -357,6 +363,7 @@ class PreferencesPatch(Schema):
     github_token: str | None = Field(default=None, max_length=200)
     gitlab_token: str | None = Field(default=None, max_length=200)
     exclude_adult: bool | None = None
+    check_updates: bool | None = None
     # Host names, or addresses of the instances (https://example.social/…).
     fediverse_instances: list[str] | None = Field(default=None, max_length=50)
     # The address of the user's SearXNG instance; an empty string (or null) removes it.
