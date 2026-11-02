@@ -14,8 +14,10 @@ New-Item -ItemType Directory -Force $work | Out-Null
 # The Python of .python-version, standalone: nothing of the build machine's stays attached to it.
 $wanted = (Get-Content (Join-Path $root '.python-version')).Trim()
 uv python install $wanted --install-dir (Join-Path $work 'pythons') --no-bin
-# uv also makes a link named after the minor version: the real folder is the other one.
-$found = Get-ChildItem (Join-Path $work 'pythons') -Directory | Where-Object { -not $_.LinkType } | Select-Object -First 1
+# Beside it, uv leaves a link named after the minor version and a temporary folder.
+$found = Get-ChildItem (Join-Path $work 'pythons') -Directory |
+  Where-Object { -not $_.LinkType -and (Test-Path (Join-Path $_.FullName 'python.exe')) } |
+  Select-Object -First 1
 $python = Join-Path $work 'python'
 Move-Item $found.FullName $python
 $exe = Join-Path $python 'python.exe'
@@ -30,6 +32,11 @@ uv pip install --python $exe --break-system-packages --no-deps $wheel
 $tag = & $exe -c "import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')"
 @("python$tag.zip", 'DLLs', 'Lib', 'Lib\site-packages', '.', 'import site') |
   Set-Content (Join-Path $python "python$tag._pth") -Encoding ascii
+
+# What Narcisse never runs.
+foreach ($unused in 'BUILD', 'include', 'libs', 'tcl', 'Lib/test', 'Lib/idlelib', 'Lib/tkinter', 'Lib/turtledemo', 'Lib/ensurepip', 'Lib/site-packages/pip', 'DLLs/_tkinter.pyd', 'DLLs/tcl86t.dll', 'DLLs/tk86t.dll') {
+  Remove-Item (Join-Path $python $unused) -Recurse -Force -ErrorAction SilentlyContinue
+}
 
 # Compiled now: the first start doesn't wait for it, and no file changes once installed.
 & $exe -m compileall -q --invalidation-mode unchecked-hash (Join-Path $python 'Lib')
