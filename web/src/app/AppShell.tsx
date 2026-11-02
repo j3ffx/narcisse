@@ -10,6 +10,7 @@ import {
 import { ActivityCenter } from '@/features/activity/ActivityCenter';
 import type { Connection } from '@/hooks/useLiveUpdates';
 import { useInfo } from '@/lib/queries';
+import { useSwitchSide } from '@/lib/side';
 import { MonitorIcon, MoonIcon, SunIcon, WifiOffIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
@@ -24,6 +25,7 @@ export function AppShell({
   children: ReactNode;
 }) {
   const info = useInfo();
+  const side = useSwitchSide();
   const [location] = useLocation();
   // A profile's pages take the whole width (all its tabs alike: switching doesn't move them).
   const wide = /^\/profils\/\d+(\/|$)/.test(location);
@@ -84,6 +86,17 @@ export function AppShell({
       {info.data?.demo && (
         <p className="border-b bg-amber-50 px-4 py-2 text-center text-sm text-amber-950 dark:bg-amber-950 dark:text-amber-50">
           {t().shell.demoBanner}
+          {info.data.can_switch && (
+            <Button
+              variant="link"
+              size="sm"
+              className="ml-2 h-auto p-0 text-amber-950 underline dark:text-amber-50"
+              disabled={side.isPending}
+              onClick={() => side.mutate()}
+            >
+              {side.isPending ? t().shell.switching : t().shell.leaveDemo}
+            </Button>
+          )}
         </p>
       )}
       <main id="main" className={cn('mx-auto px-4 py-6', wide ? 'max-w-[110rem]' : 'max-w-5xl')}>

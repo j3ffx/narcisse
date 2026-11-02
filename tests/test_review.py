@@ -71,6 +71,7 @@ async def test_settings_keep_the_tokens_without_ever_showing_them(
 ) -> None:
     nothing = {
         "ui_lang": "auto",
+        "welcomed": False,
         "github_token_set": False,
         "gitlab_token_set": False,
         "exclude_adult": False,

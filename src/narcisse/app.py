@@ -88,9 +88,11 @@ def create_app(
     modules: dict[str, SourceModule] | None = None,
     http_transport: httpx.AsyncBaseTransport | None = None,
     llm: Factory | None = None,
+    switch_side: Callable[[], None] | None = None,
 ) -> FastAPI:
     """`modules`, `http_transport` and `llm` let tests swap the sources, the network and the
-    assistant's providers."""
+    assistant's providers. `switch_side` starts Narcisse again on the other side (the demo or
+    the user's own data), for whoever runs it and can do that: the tray."""
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -186,7 +188,18 @@ def create_app(
 
     @api.get("/info", tags=["meta"])
     async def info(s: ServicesDep) -> AppInfo:
-        return AppInfo(version=__version__, demo=s.settings.demo, data_dir=str(s.settings.data_dir))
+        return AppInfo(
+            version=__version__,
+            demo=s.settings.demo,
+            data_dir=str(s.settings.data_dir),
+            can_switch=switch_side is not None,
+        )
+
+    @api.post("/side", status_code=202, tags=["meta"])
+    async def side() -> None:
+        if switch_side is None:
+            raise AppError("side_unavailable", status=409)
+        switch_side()
 
     api.include_router(profiles.router)
     api.include_router(scans.router)

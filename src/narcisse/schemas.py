@@ -328,10 +328,14 @@ class AppInfo(Schema):
     version: str
     demo: bool
     data_dir: str
+    # Whether the app can start again on the other side by itself (the tray can, a terminal
+    # doesn't).
+    can_switch: bool
 
 
 class PreferencesOut(Schema):
     ui_lang: Literal["auto", "fr", "en"]
+    welcomed: bool
     github_token_set: bool
     gitlab_token_set: bool
     exclude_adult: bool
@@ -348,6 +352,7 @@ class PreferencesOut(Schema):
 class PreferencesPatch(Schema):
     # The language Narcisse speaks ("auto": the browser's, else the system's).
     ui_lang: Literal["auto", "fr", "en"] | None = None
+    welcomed: bool | None = None
     # An empty string (or null) removes the token.
     github_token: str | None = Field(default=None, max_length=200)
     gitlab_token: str | None = Field(default=None, max_length=200)

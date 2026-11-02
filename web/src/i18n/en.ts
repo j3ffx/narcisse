@@ -197,6 +197,8 @@ export const en: Messages = {
     searxng_json_off: (p) =>
       `${host(p)} refuses JSON results: enable “json” in “search: formats” of its settings.yml.`,
     invalid_searxng_url: () => 'This address doesn’t look valid (http://… or https://…).',
+    side_unavailable: () =>
+      'Narcisse was started from a terminal: run `narcisse serve --demo` instead.',
     searxng_demo: () => 'Unavailable in demo mode: nothing is started on your machine.',
     docker_missing: () => 'Docker can’t be found. Install Docker Desktop, then try again.',
     docker_not_running: () =>
@@ -259,6 +261,8 @@ export const en: Messages = {
     password: 'Password',
     settings: 'Settings',
     reconnecting: 'Reconnecting…',
+    switching: 'Narcisse is restarting…',
+    leaveDemo: 'Back to my data',
     demoBanner: 'Demo mode: the demo module makes up results, asking nothing of anyone.',
     theme: 'Theme',
     themes: { system: 'Like the system', light: 'Light', dark: 'Dark' },
@@ -340,6 +344,34 @@ export const en: Messages = {
     },
   },
 
+  welcome: {
+    title: 'Welcome to Narcisse',
+    intro:
+      'You describe who you are, Narcisse looks for what the Internet shows of you, tells you what it exposes and helps you shrink it.',
+    sections: [
+      [
+        'Who you may look for',
+        'Yourself, or someone who explicitly asked you to. Searching for a person without their knowledge, watching or harassing them is forbidden: these uses are often illegal. Even public, information is still personal data, protected by the GDPR in Europe.',
+      ],
+      [
+        'What leaves your machine',
+        'Your data stays on your computer: no account, no server, no telemetry. A scan only sends what you described to the sources you tick, as your browser would. The “Sources” page says who is contacted.',
+      ],
+      [
+        'What Narcisse will never do',
+        'It signs in to no account and sends nothing on your behalf: it prepares removal requests, you send them. Its results are leads to check: it can mix up namesakes.',
+      ],
+    ] as [string, string][],
+    start: 'Got it, let’s start',
+    tryIt: 'Try with an example',
+    tryHint:
+      'The example uses a made-up identity and contacts no site. Its data is kept apart, and a button brings you back here.',
+  },
+  nextStep: {
+    seeds: 'First step: add your name, a username or an email.',
+    seedsLink: 'Go to the elements',
+    scan: 'Next step: click “Start a scan”. Narcisse asks the public sources, and results come in here as they are found.',
+  },
   profiles: {
     intro:
       'A profile gathers what identifies you: names, usernames, emails… Narcisse starts from there.',

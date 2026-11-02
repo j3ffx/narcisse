@@ -62,7 +62,7 @@ class Tray:
         self.stopping = threading.Event()
         self.server = Server(
             uvicorn.Config(
-                create_app(settings),
+                create_app(settings, switch_side=self._switch_side),
                 host=HOST,
                 port=settings.port,
                 log_config=None,
@@ -232,14 +232,23 @@ class Tray:
         system.spawn_detached(system.command(*self.tray_args))
         self.icon.stop()
 
-    def toggle_demo(self, *_: object) -> None:
+    def toggle_demo(self, *_: object, open_window: bool = True) -> None:
         """Switches between the demo and the user's own data: remembered for the Start menu entry
         and the start with Windows, and Narcisse starts again on the other side, in a window."""
         demo = not self.settings.demo
         mode.remember(demo)
         self._stop_server()
-        system.spawn_detached(system.command("tray", "--open", "--demo" if demo else "--real"))
+        # On the same port: the page waiting for the other side finds it at the same address.
+        side = ("--demo" if demo else "--real", "--port", str(self.settings.port))
+        system.spawn_detached(system.command("tray", *(["--open"] if open_window else []), *side))
         self.icon.stop()
+
+    def _switch_side(self) -> None:
+        """Asked from the page, which reloads by itself. From a thread of its own: the server
+        being stopped is answering this very request."""
+        threading.Thread(
+            target=self.toggle_demo, kwargs={"open_window": False}, name="switch-side"
+        ).start()
 
     def quit(self, *_: object) -> None:
         self._stop_server()

@@ -364,6 +364,7 @@ export interface AppInfo {
   version: string;
   demo: boolean;
   data_dir: string;
+  can_switch: boolean;
 }
 
 export interface RunProgress {
@@ -377,6 +378,7 @@ export interface RunProgress {
 export interface Preferences {
   /** The language of the UI: the browser's ("auto"), or the one chosen. */
   ui_lang: 'auto' | 'fr' | 'en';
+  welcomed: boolean;
   github_token_set: boolean;
   gitlab_token_set: boolean;
   exclude_adult: boolean;
@@ -405,6 +407,7 @@ export interface SearxngStatus {
 
 export interface PreferencesChanges {
   ui_lang?: 'auto' | 'fr' | 'en';
+  welcomed?: boolean;
   github_token?: string | null;
   gitlab_token?: string | null;
   exclude_adult?: boolean;

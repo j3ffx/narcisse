@@ -117,8 +117,13 @@ async def make_api(settings: Settings) -> AsyncIterator[ApiFactory]:
         transport = overrides.pop("http_transport", None) or NoNetwork()
         # The assistant's providers, as a test fakes them; the real ones by default.
         llm = overrides.pop("llm", None)
+        switch_side = overrides.pop("switch_side", None)
         app = create_app(
-            replace(settings, **overrides), modules=modules, http_transport=transport, llm=llm
+            replace(settings, **overrides),
+            modules=modules,
+            http_transport=transport,
+            llm=llm,
+            switch_side=switch_side,
         )
         lifespan = app.router.lifespan_context(app)
         await lifespan.__aenter__()

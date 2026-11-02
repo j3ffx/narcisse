@@ -212,6 +212,8 @@ export const fr = {
     searxng_json_off: (p) =>
       `${host(p)} refuse les résultats en JSON : active « json » dans « search: formats » de son settings.yml.`,
     invalid_searxng_url: () => 'Cette adresse n’a pas l’air valide (http://… ou https://…).',
+    side_unavailable: () =>
+      'Narcisse a été lancé depuis un terminal : relance-le avec `narcisse serve --demo`.',
     searxng_demo: () => 'Indisponible en mode démo : rien n’est lancé sur ta machine.',
     docker_missing: () => 'Docker est introuvable. Installe Docker Desktop, puis réessaie.',
     docker_not_running: () =>
@@ -275,6 +277,8 @@ export const fr = {
     password: 'Mot de passe',
     settings: 'Réglages',
     reconnecting: 'Reconnexion…',
+    switching: 'Narcisse redémarre…',
+    leaveDemo: 'Revenir à mes données',
     demoBanner:
       'Mode démo : le module de démonstration invente des résultats, sans rien interroger.',
     theme: 'Thème',
@@ -359,6 +363,34 @@ export const fr = {
     } as Record<string, (p: Params) => string>,
   },
 
+  welcome: {
+    title: 'Bienvenue dans Narcisse',
+    intro:
+      'Tu décris qui tu es, Narcisse cherche ce qu’Internet montre de toi, te dit ce que ça expose et t’aide à le réduire.',
+    sections: [
+      [
+        'Qui tu peux chercher',
+        'Toi, ou quelqu’un qui te l’a demandé explicitement. Chercher une personne à son insu, la surveiller ou la harceler est interdit : ces usages sont souvent illégaux. Même publique, une information reste une donnée personnelle, protégée par le RGPD en Europe.',
+      ],
+      [
+        'Ce qui sort de ta machine',
+        'Tes données restent sur ton ordinateur : pas de compte, pas de serveur, aucune télémétrie. Un scan envoie seulement ce que tu as décrit aux sources que tu coches, comme ton navigateur le ferait. La page « Sources » dit qui est contacté.',
+      ],
+      [
+        'Ce que Narcisse ne fera jamais',
+        'Il ne se connecte à aucun compte et n’envoie rien en ton nom : il prépare les demandes de suppression, c’est toi qui les envoies. Ses résultats sont des pistes, à vérifier : il peut confondre des homonymes.',
+      ],
+    ] as [string, string][],
+    start: 'J’ai compris, commencer',
+    tryIt: 'Essayer avec un exemple',
+    tryHint:
+      'L’exemple utilise une identité inventée et ne contacte aucun site. Ses données restent à part, et un bouton te ramène ici.',
+  },
+  nextStep: {
+    seeds: 'Première étape : ajoute ton nom, un pseudo ou un email.',
+    seedsLink: 'Aller aux éléments',
+    scan: 'Prochaine étape : clique sur « Lancer un scan ». Narcisse interroge les sources publiques et les résultats arrivent ici au fil de l’eau.',
+  },
   profiles: {
     intro: 'Un profil rassemble ce qui t’identifie : noms, pseudos, emails… Narcisse part de là.',
     loading: 'Chargement des profils…',

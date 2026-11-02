@@ -20,6 +20,7 @@ TOKENS = ("github_token", "gitlab_token", "llm_key")
 def _out(preferences: Preferences) -> PreferencesOut:
     return PreferencesOut(
         ui_lang=preferences.ui_lang if preferences.ui_lang in ("fr", "en") else "auto",
+        welcomed=preferences.welcomed,
         github_token_set=bool(preferences.github_token),
         gitlab_token_set=bool(preferences.gitlab_token),
         exclude_adult=preferences.exclude_adult,
@@ -67,6 +68,7 @@ async def update_preferences(body: PreferencesPatch, s: ServicesDep) -> Preferen
     changes = body.model_dump(exclude_unset=True)
     for key in (
         "ui_lang",
+        "welcomed",
         "exclude_adult",
         "fediverse_instances",
         "searxng_autostart",

@@ -60,6 +60,26 @@ const TraceList = lazy(() =>
   import('@/features/graph/TraceList').then((m) => ({ default: m.TraceList })),
 );
 
+/** Until a first scan, what to do next: someone who just made a profile finds an empty graph. */
+function NextStep({ profile, tab }: { profile: ProfileDetail; tab: ProfileTab }) {
+  const scans = useScans(profile.id);
+  if (!scans.data || scans.data.length > 0) return null;
+  const noSeed = profile.seeds.length === 0;
+  return (
+    <p className="rounded-lg border border-dashed p-3 text-sm" data-testid="next-step">
+      {noSeed ? t().nextStep.seeds : t().nextStep.scan}
+      {noSeed && tab !== 'elements' && (
+        <>
+          {' '}
+          <Link href={`/profils/${profile.id}/elements`} className="underline">
+            {t().nextStep.seedsLink}
+          </Link>
+        </>
+      )}
+    </p>
+  );
+}
+
 export function ProfilePage({ id, tab }: { id: number; tab: ProfileTab }) {
   const profile = useProfile(id);
   const view = useTraceViewState();
@@ -87,6 +107,7 @@ export function ProfilePage({ id, tab }: { id: number; tab: ProfileTab }) {
           <DeleteProfile id={id} name={data.name} />
         </div>
       </div>
+      <NextStep profile={data} tab={tab} />
       <nav aria-label={t().profile.views} className="flex gap-1 border-b">
         {tabs().map(([key, title]) => (
           <Link
