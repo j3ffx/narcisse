@@ -4,7 +4,7 @@ Self-OSINT tool: you describe your own identity, Narcisse finds the public trace
 an interactive graph, scores each one, and helps you remove what you can. It runs entirely on your
 machine: a Python backend (FastAPI, SQLite) listening on loopback, and a React UI (strict TypeScript,
 Vite). This file is the contributor guide for humans and AI assistants alike; `README.md` covers what
-the tool does and the ethical frame.
+the tool does and the ethical frame (`README.en.md`: the same in English).
 
 ## Commands
 
@@ -42,7 +42,8 @@ Body explaining *why* (the diff already shows what).
 - **Types:** `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `build`, `ci`, `chore`, `style`, `revert`.
 - **Scope** is optional; `scripts/check-commits.mjs` holds the authoritative list of types and scopes.
 - Header of 72 characters or fewer. One logical change and one type per commit.
-- Code, comments and commit messages are in English; the UI and the user docs are in French.
+- Code, comments and commit messages are in English. The UI speaks French and English (see
+  Invariants); `README.md` and `CHANGELOG.md` are in French, `README.en.md` follows `README.md`.
 - Work happens on `main`; every push runs the CI.
 
 ## Privacy of the public repository
@@ -158,31 +159,36 @@ fixtures, docs, commit messages or commit metadata.
 
 ## Layout
 
-- `src/narcisse/`: Python package. `engine/` (scheduling, events, HTTP for modules, the scores in
-  `scoring.py` kept up to date by `rescore.py`, the leads scans may follow in `pivot.py`, the scans profiles ask for on their own in
-  `schedule.py`),
-  `modules/` (one file per source; `_text.py` reads profiles' bios and relates findings to the
-  profile they were read on), `api/`, `storage/` (models, Alembic migrations: `scripts/new-migration.py`),
-  `llm/` (the optional assistant: providers, the tasks and the text they send, the queue, this
-  machine's resources and the model that suits them, local servers and model downloads),
-  `history.py` (what changed between two scans), `export.py` (a profile's complete export,
-  which the UI turns into CSV and HTML in `web/src/lib/report.ts`), `storage/backup.py`
-  (backups, plain or sealed with a passphrase, and restoring them in place),
-  `remediation/` (what to do about each trace: the knowledge base in `data/`, with a copy of
-  JustDeleteMe and Narcisse's own sheets, the rules in `actions.py`, the GDPR letters in
-  `data/letters/`, and in `follow.py` the requests the user follows: reminders, the check a
-  later scan makes, the exposure snapshot taken when a scan ends), `demo_graph.py` (fictitious graphs of thousands of traces, demo mode only),
-  `i18n.py` (which language to speak) and `notes.py` (the proofs' sentences in both languages),
-  `desktop/` (tray, Windows integration, the icon drawn in `art.py` and exported by
-  `scripts/make-icons.py`).
-  `tests/`: pytest (`tests/fakes.py` holds modules whose timing tests control).
+- `src/narcisse/`: the Python package.
+  - `engine/`: scheduling, events, HTTP for modules, the scores (`scoring.py`, kept up to date by
+    `rescore.py`), the leads scans may follow (`pivot.py`), the scans profiles ask for on their own
+    (`schedule.py`).
+  - `modules/`: one file per source; `_text.py` reads profiles' bios and relates findings to the
+    profile they were read on.
+  - `api/`: the HTTP routes.
+  - `storage/`: models, Alembic migrations (`scripts/new-migration.py`), backups plain or sealed with
+    a passphrase and restoring them in place (`backup.py`).
+  - `llm/`: the optional assistant: providers, the tasks and the text they send, the queue, this
+    machine's resources and the model that suits them, local servers and model downloads.
+  - `remediation/`: what to do about each trace: the knowledge base in `data/` (a copy of
+    JustDeleteMe and Narcisse's own sheets), the rules in `actions.py`, the GDPR letters in
+    `data/letters/`, and in `follow.py` the requests the user follows: reminders, the check a later
+    scan makes, the exposure snapshot taken when a scan ends.
+  - `desktop/`: tray, Windows integration, the icon drawn in `art.py` and exported by
+    `scripts/make-icons.py`.
+  - `i18n.py`: which language to speak. `notes.py`: the proofs' sentences in both languages.
+  - `history.py`: what changed between two scans. `export.py`: a profile's complete export, which the
+    UI turns into CSV and HTML in `web/src/lib/report.ts`. `demo_graph.py`: fictitious graphs of
+    thousands of traces, demo mode only.
+- `tests/`: pytest (`tests/fakes.py` holds modules whose timing tests control).
 - `web/`: the UI (Vite, React, Tailwind, shadcn/ui in `src/components/ui/`, TanStack Query, wouter).
-  `src/i18n/`: the texts, in French (`fr.ts`) and English (`en.ts`), read with `t()`.
-  `src/lib/live.ts` and `src/lib/graph.ts` apply the live events to the query cache.
-  `src/features/graph/`: the graph (Sigma 4 + graphology, ForceAtlas2 in a Web Worker, loaded on
-  demand) and the list that mirrors it. `npm run build` writes the UI into
-  `src/narcisse/web/static/` (ignored), which the Python package serves and ships. `web/e2e/`:
-  Playwright against `narcisse serve --demo` on a temporary data dir.
+  `npm run build` writes it into `src/narcisse/web/static/` (ignored), which the Python package serves
+  and ships.
+  - `src/i18n/`: the texts, in French (`fr.ts`) and English (`en.ts`), read with `t()`.
+  - `src/lib/live.ts` and `src/lib/graph.ts`: apply the live events to the query cache.
+  - `src/features/graph/`: the graph (Sigma 4 + graphology, ForceAtlas2 in a Web Worker, loaded on
+    demand) and the list that mirrors it.
+  - `e2e/`: Playwright against `narcisse serve --demo`, on a data dir emptied at each run.
 - `scripts/`: repository checks, git hook helpers, and the refresh of the data modules reuse
   (`update-wmn.py`, `update-registries.py`: dated copies in `src/narcisse/modules/data/`;
   `update-jdm.py`: in `src/narcisse/remediation/data/`).
@@ -191,9 +197,8 @@ fixtures, docs, commit messages or commit metadata.
 
 The graph must stay fluid (about 60 frames a second up to 5,000 traces) and no task may block the
 page for 200 ms while a scan streams (`e2e/demo.spec.ts` and `e2e/graph-fluidity.spec.ts` check it,
-the latter on the GPU, in software on CI). `npm run bench` measures it;
-headless Chrome draws WebGL in software unless told to use the GPU, so the benchmark asks for it
-and names the renderer. Last run (2026-10-22, nodes sized by risk, integrated Intel Iris Xe,
+the latter on the GPU, in software on CI). `npm run bench` measures it; headless Chrome draws WebGL
+in software unless told to use the GPU, so the benchmark asks for it and names the renderer. Last run (2026-10-22, nodes sized by risk, integrated Intel Iris Xe,
 Chrome headless):
 
 | Traces | First drawing | Layout | Panning and zooming | Worst frame |

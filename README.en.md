@@ -7,14 +7,16 @@ the public traces of that identity, links them in a graph to show how one leads 
 what each one exposes, and helps you clean up: delete an account, get a page delisted, send a GDPR
 request. Then it follows your progress from one scan to the next.
 
-> **Early version.** Narcisse looks for your accounts from a username (over 600 sites), reads your
-> public profiles (GitHub, GitLab, Bluesky, Mastodon, Hacker News, Stack Exchange, Keybase), what
-> Gravatar and PGP key servers publish about you, what your domains say (registry, DNS,
-> certificates, your site's legal notice), what web archives keep of them, the breaches your email
-> appears in and company registries, and prepares the searches to run on search engines. It links
-> everything in a graph, tells you for each trace how surely it is you and how much it exposes you
-> (and why), what to do about it (with GDPR requests ready to send) and follows your requests until
-> the trace is gone. What each version brings: the [changelog](CHANGELOG.md) (in French).
+> **What it does today.** Narcisse looks for your accounts from a username (over 600 sites), reads
+> your public profiles (GitHub, GitLab, Bluesky, Mastodon, Hacker News, Stack Exchange, Keybase), what
+> Gravatar and PGP key servers publish about you, what your domains say (registry, DNS, certificates,
+> your site's legal notice), what web archives keep of them, the breaches your email appears in and
+> company registries, and prepares the searches to run on search engines. It links everything in a
+> graph, tells you for each trace how surely it is you and how much it exposes you (and why), what to
+> do about it (with GDPR requests ready to send) and follows your requests until the trace is gone. It
+> compares your scans, runs them again on its own if you want, exports and backs up your data, and can
+> lean on an AI assistant if you choose one. What each version brings: the
+> [changelog](CHANGELOG.md) (in French).
 
 Narcisse speaks French and English: it follows your browser's language, or the one chosen in
 **Settings**. The screenshots below are of the French interface.

@@ -7,15 +7,17 @@ publiques de cette identité, les relie dans un graphe pour montrer comment elle
 évalue ce que chacune expose, et t’aide à faire le ménage : supprimer un compte, demander un
 déréférencement, envoyer une demande RGPD. Puis il suit tes progrès d’un scan à l’autre.
 
-> **Première version.** Narcisse cherche tes comptes à partir d’un pseudo (plus de 600 sites),
-> lit tes profils publics (GitHub, GitLab, Bluesky, Mastodon, Hacker News, Stack Exchange, Keybase),
-> ce que Gravatar et les serveurs de clés PGP publient sur toi, ce que disent tes domaines (registre,
-> DNS, certificats, mentions légales de ton site), ce qu’en gardent les archives du web, les fuites
-> où figure ton email et les registres d’entreprises, et te prépare les recherches à faire sur les
-> moteurs. Il relie tout dans un graphe, te dit pour chaque trace à quel point c’est toi et à quel
-> point elle t’expose (en expliquant pourquoi), te dit quoi faire de chacune (avec les demandes RGPD
-> prêtes à envoyer) et suit tes demandes jusqu’à ce que la trace disparaisse. Ce que chaque version
-> apporte : le [journal des changements](CHANGELOG.md).
+> **Ce qu’il fait aujourd’hui.** Narcisse cherche tes comptes à partir d’un pseudo (plus de 600
+> sites), lit tes profils publics (GitHub, GitLab, Bluesky, Mastodon, Hacker News, Stack Exchange,
+> Keybase), ce que Gravatar et les serveurs de clés PGP publient sur toi, ce que disent tes domaines
+> (registre, DNS, certificats, mentions légales de ton site), ce qu’en gardent les archives du web,
+> les fuites où figure ton email et les registres d’entreprises, et te prépare les recherches à faire
+> sur les moteurs. Il relie tout dans un graphe, te dit pour chaque trace à quel point c’est toi et à
+> quel point elle t’expose (en expliquant pourquoi), te dit quoi faire de chacune (avec les demandes
+> RGPD prêtes à envoyer) et suit tes demandes jusqu’à ce que la trace disparaisse. Il compare tes
+> scans, les relance tout seul si tu veux, exporte et sauvegarde tes données, et peut s’appuyer sur un
+> assistant IA si tu en choisis un. Ce que chaque version apporte : le
+> [journal des changements](CHANGELOG.md).
 
 Narcisse parle français et anglais : il suit la langue de ton navigateur, ou celle choisie dans
 les **Réglages**.
@@ -89,22 +91,22 @@ narcisse serve --demo
 
 ## Premiers pas
 
-Le navigateur s’ouvre sur <http://narcisse.localhost> : une adresse que les navigateurs
-envoient d’eux-mêmes vers ta machine, sans réglage. En mode démo, crée un profil fictif (« Jeanne Exemple »), ajoute un
-nom, un pseudo, un email et un domaine, puis lance un scan avec le module de démonstration : les
-résultats arrivent au fil de l’eau pendant une trentaine de secondes, avec une limite de débit, une
-erreur réseau rattrapée seule et une panne à relancer. Tu peux mettre en pause, annuler, fermer le
-navigateur ou arrêter Narcisse : tout reprend où ça en était.
+Le navigateur s’ouvre sur <http://narcisse.localhost> : une adresse que les navigateurs envoient
+d’eux-mêmes vers ta machine, sans réglage. En mode démo, crée un profil fictif (« Jeanne Exemple »),
+ajoute un nom, un pseudo, un email et un domaine, puis lance un scan avec le module de démonstration :
+les résultats arrivent au fil de l’eau pendant une trentaine de secondes, avec une limite de débit,
+une erreur réseau rattrapée seule et une panne à relancer. Tu peux mettre en pause, annuler, fermer
+le navigateur ou arrêter Narcisse : tout reprend où ça en était.
 
-Le profil s’ouvre sur son **graphe** : chaque trace y apparaît au fil du scan, reliée à celle qui y a
-mené (un pseudo → un compte → le site indiqué sur ce compte), d’autant plus grosse qu’elle t’expose.
+Le profil s’ouvre sur son **graphe** : chaque trace y apparaît au fil du scan, reliée à celle qui y
+a mené (un pseudo → un compte → le site indiqué sur ce compte), d’autant plus grosse qu’elle t’expose.
 Clique une trace pour voir ses scores et leurs raisons, ses preuves et ses voisines, cherche-en une
-(touche `/`), filtre par type, source, statut, confiance, risque ou date,
-demande comment deux traces sont reliées (le plus court chemin), replie les traces isolées,
-regroupe par type, par source ou par site, et enregistre la vue pour y revenir. La
-vue **Liste** montre les mêmes traces, avec les mêmes filtres et la même sélection, sous une forme
-que tout le monde peut lire. En mode démo, le bouton « Graphe fictif » crée un profil de 500 à
-20 000 traces inventées, pour voir le graphe à grande échelle.
+(touche `/`), filtre par type, source, statut, confiance, risque ou date, demande comment deux traces
+sont reliées (le plus court chemin), replie les traces isolées, regroupe par type, par source ou par
+site, et enregistre la vue pour y revenir. La vue **Liste** montre les mêmes traces, avec les mêmes
+filtres et la même sélection, sous une forme que tout le monde peut lire. En mode démo, le bouton
+« Graphe fictif » crée un profil de 500 à 20 000 traces inventées, pour voir le graphe à grande
+échelle.
 
 - `narcisse serve` : sans `--demo`, le module de démonstration n’est pas proposé. Les données du
   mode démo sont rangées à part : les profils fictifs ne se mélangent jamais aux vrais.
@@ -125,8 +127,8 @@ l’icône dit ce qui se passe (un point bleu pendant un scan, jaune en pause, r
 échoue), et son menu permet d’ouvrir Narcisse, de mettre les scans en pause, de couper les
 notifications, de passer du mode démo à tes vraies données et inversement (case « Mode démo » : le
 menu Démarrer et le démarrage avec Windows rouvrent ensuite le dernier choisi), de le faire démarrer
-avec Windows (décoché tant que tu ne le coches pas), de le redémarrer ou de le quitter. Une notification te prévient quand un scan se termine ou qu’une
-recherche échoue.
+avec Windows (décoché tant que tu ne le coches pas), de le redémarrer ou de le quitter. Une
+notification te prévient quand un scan se termine ou qu’une recherche échoue.
 
 Pour l’installer comme une appli du navigateur (icône dans la barre des tâches), ouvre
 <http://narcisse.localhost> dans Chrome ou Edge et clique sur l’icône d’installation dans la barre
@@ -277,12 +279,11 @@ chaque scan les a laissées.
 
 Le bouton **Exporter** d’un profil enregistre un rapport HTML à lire ou imprimer (sans script ni
 ressource extérieure), ses traces en CSV pour un tableur, ou tout en JSON. Dans les **Réglages**,
-« Télécharger une sauvegarde » met tous tes profils, demandes et réglages dans un fichier
-`.narcisse`, chiffré si tu donnes une phrase de passe (il garde alors aussi tes tokens et la clé
-de ton assistant IA) ;
-« Restaurer » le remet en place, après avoir gardé tes données du moment dans une sauvegarde de
-sécurité. En ligne de commande, `narcisse backup [--chiffrer]` et `narcisse restore FICHIER` font
-de même (le second, Narcisse arrêté).
+« Télécharger une sauvegarde » met tous tes profils, demandes et réglages dans un fichier `.narcisse`,
+chiffré si tu donnes une phrase de passe (il garde alors aussi tes tokens et la clé de ton assistant
+IA) ; « Restaurer » le remet en place, après avoir gardé tes données du moment dans une sauvegarde de
+sécurité. En ligne de commande, `narcisse backup [--chiffrer]` et `narcisse restore FICHIER` font de
+même (le second, Narcisse arrêté).
 
 ### Un assistant IA, si tu veux
 
@@ -325,7 +326,7 @@ local) ne reçoit rien tant que tu ne l’as pas accepté une fois dans les Rég
 ## Ajouter une source
 
 Une source est un fichier dans `src/narcisse/modules/`, avec une classe qui décrit ce qu’elle fait
-(titre, description, types d’éléments acceptés et produits, sites contactés, limite de débit,
+(titre et description en français et en anglais, types d’éléments acceptés et produits, sites contactés, limite de débit,
 licence) et une méthode qui rend ses résultats un par un. Le moteur s’occupe du reste : file
 d’attente, pause, reprise, erreurs, limites de débit, affichage. Le module de démonstration,
 [`demo.py`](src/narcisse/modules/demo.py), sert d’exemple.
