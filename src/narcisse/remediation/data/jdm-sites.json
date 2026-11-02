@@ -5572,6 +5572,15 @@
 ]
 },
 {
+"name": "Dazn",
+"url": "https://www.dazn.com/en-DE/help",
+"difficulty": "medium",
+"notes": "You need to log in, open the chat and request account deletion.",
+"domains": [
+"dazn.com"
+]
+},
+{
 "name": "dbrand",
 "url": "https://dbrand.com/contact",
 "difficulty": "hard",
@@ -6778,6 +6787,15 @@
 "domains": [
 "economist.com",
 "myaccount.economist.com"
+]
+},
+{
+"name": "Ecosia",
+"url": "https://www.ecosia.org/accounts/profile/settings/delete-account-verify",
+"difficulty": "medium",
+"notes": "To delete your account, click on your profile picture in the top right and then on Your Profile. After that, you click on the settings in the top right again and then at the click at the bottom on Delete Account. Now you have to sign in again to delete your account and your finished.",
+"domains": [
+"ecosia.org"
 ]
 },
 {
@@ -9821,6 +9839,15 @@
 "domains": [
 "greenmangaming.com",
 "corporate.greenmangaming.com"
+]
+},
+{
+"name": "Greensurance",
+"url": "https://greensurance.digitalerversicherungsmanager.de/mein-konto/loeschen",
+"difficulty": "easy",
+"domains": [
+"greensurance.de",
+"greensurance.digitalerversicherungsmanager.de"
 ]
 },
 {
@@ -14344,6 +14371,17 @@
 "notes": "Scroll to the bottom of the page and click 'Delete my Account', make sure you're logged in and follow the steps.",
 "domains": [
 "mediafire.com"
+]
+},
+{
+"name": "MediaMarkt",
+"url": "https://www.mediamarkt.de/de/myaccount/profile",
+"difficulty": "hard",
+"email": "datenschutz@mediamarkt.de",
+"email_subject": "Löschen meiner persönlichen Daten",
+"email_body": "Sehr geehrtes Team, hiermit beantrage ich die Löschung von jeglichen persönlichen Daten. Die hinterlegte E-Mail in meinem Konto ist: XXXXX. Ich bedanke mich im voraus. Mit freundlichen Grüßen",
+"domains": [
+"mediamarkt.de"
 ]
 },
 {
@@ -20381,6 +20419,17 @@
 "difficulty": "easy",
 "domains": [
 "satorireader.com"
+]
+},
+{
+"name": "Saturn",
+"url": "https://www.saturn.de/de/myaccount/profile",
+"difficulty": "hard",
+"email": "datenschutz@saturn.de",
+"email_subject": "Löschen meiner persönlichen Daten",
+"email_body": "Sehr geehrtes Team, hiermit beantrage ich die Löschung von jeglichen persönlichen Daten. Die hinterlegte E-Mail in meinem Konto ist: XXXXX. Ich bedanke mich im voraus. Mit freundlichen Grüßen",
+"domains": [
+"saturn.de"
 ]
 },
 {
@@ -27216,6 +27265,15 @@
 "notes_fr": "Cliquer sur 'Supprimer mon compte'",
 "domains": [
 "wizbii.com"
+]
+},
+{
+"name": "Wizz Air",
+"url": "https://www.wizzair.com/en-gb/information-and-services/compliments-and-complaints",
+"difficulty": "easy",
+"notes": "Log in and click the 'Delete Account' button at the bottom of the compliments and complaints page.",
+"domains": [
+"wizzair.com"
 ]
 },
 {
