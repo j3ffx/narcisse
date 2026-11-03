@@ -207,17 +207,17 @@ fixtures, docs, commit messages or commit metadata.
 The graph must stay fluid (about 60 frames a second up to 5,000 traces) and no task may block the
 page for 200 ms while a scan streams (`e2e/demo.spec.ts` and `e2e/graph-fluidity.spec.ts` check it,
 the latter on the GPU, in software on CI). `npm run bench` measures it; headless Chrome draws WebGL
-in software unless told to use the GPU, so the benchmark asks for it and names the renderer. Last run (2026-10-22, nodes sized by risk, integrated Intel Iris Xe,
+in software unless told to use the GPU, so the benchmark asks for it and names the renderer. Last run (2026-11-03, Sigma 4.0.4, nodes sized by risk, integrated Intel Iris Xe,
 Chrome headless):
 
 | Traces | First drawing | Layout | Panning and zooming | Worst frame |
 | -----: | ------------: | -----: | ------------------: | ----------: |
-|    500 |         1.5 s |  2.9 s |              60 fps |       17 ms |
-|  5,000 |         1.5 s | 11.7 s |              55 fps |      100 ms |
-| 20,000 |         3.9 s | 15.5 s |              17 fps |      600 ms |
+|    500 |         1.7 s |  3.0 s |              60 fps |       17 ms |
+|  5,000 |         1.4 s | 11.4 s |              57 fps |       67 ms |
+| 20,000 |         3.6 s | 15.3 s |              21 fps |      300 ms |
 
-Runs vary by a few frames a second (50 to 57 fps at 5,000 traces the same day); sizing by degree
-instead measured 57 fps there in the same session.
+Runs vary by a few frames a second (50 to 57 fps at 5,000 traces on 2026-10-22, when sizing by
+degree instead measured 57 fps in the same session).
 
 Re-run it after any change to the canvas, and update this table.
 
